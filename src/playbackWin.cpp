@@ -23,6 +23,10 @@ constexpr size_t sizeof_uint16_t = sizeof(uint16_t);
 constexpr size_t sizeof_int16_t = sizeof(int16_t);
 constexpr size_t sizeof_uint64_t = sizeof(uint64_t);
 
+
+void setDPIAwareness() {
+	SetProcessDPIAware();
+}
 void keyStatus(uint16_t vk_code, bool status) {
 	/* macos version.
 		
@@ -293,4 +297,5 @@ PYBIND11_MODULE(playback, m) {
     m.def("CompileEventArray", &CompileEventArray, "i mean it just kind like parses the event array idk");
 	m.def("PlayEventList", &PlayEventList, "i mean it just kind like plays the thingy if you know what i mean");
 	m.def("CompileAndPlay", &CompileAndPlay, "i mean it just kind like plays the thingy with less intervention needed if you know what i mean");
+	m.def("setDPIAwareness", &setDPIAwareness, "Sets the process DPI awareness to handle high-DPI displays correctly on Windows.");
 }

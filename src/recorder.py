@@ -96,4 +96,5 @@ with open("output.nprsma","wb") as f:
 
 import playback
 print("sucess?")
+playback.setDPIAwareness()
 playback.CompileAndPlay(v.buffer)
