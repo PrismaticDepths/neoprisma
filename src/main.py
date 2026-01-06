@@ -34,6 +34,7 @@ class Main:
 
 	def toggle_playback(self):
 		if self.state_recording or self.state_autoclicker: return
+		print('play:', not self.state_playback)
 		if self.state_playback: 
 			playback.abortPlayback()
 			self.state_playback = False
@@ -52,6 +53,7 @@ class Main:
 
 
 	def toggle_autoclicker(self):
-		if self.state_recording or self.playback: return
+		if self.state_recording or self.state_playback: return
+		print('auto:', not self.state_autoclicker)
 
 m = Main()
