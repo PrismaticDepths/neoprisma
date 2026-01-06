@@ -13,6 +13,7 @@
 #include <windows.h>
 namespace py = pybind11;
 
+
 constexpr uint8_t MAJOR_FMT_VERSION = 1; // CHANGE IF YOU ALSO CHANGE THIS VARIABLE IN recorder.py
 constexpr uint8_t EARLIEST_SUPPORTED_FMT_VERSION = 1; // LEAVE THIS ALONE UNLESS YOU MAKE BREAKING CHANGES AND CANT READ OLDER STUFF SOMEHOW
 constexpr char FILE_HEADER_ID[4] = {'N','P','R','M'}; // DONT CHANGE THIS ONE
@@ -22,6 +23,10 @@ constexpr size_t sizeof_uint16_t = sizeof(uint16_t);
 constexpr size_t sizeof_int16_t = sizeof(int16_t);
 constexpr size_t sizeof_uint64_t = sizeof(uint64_t);
 
+
+void setDPIAwareness() {
+	SetProcessDPIAware();
+}
 void keyStatus(uint16_t vk_code, bool status) {
 	/* macos version.
 		
@@ -59,8 +64,8 @@ void moveMouseAbsolute(uint16_t x, uint16_t y) {
 	ZeroMemory(&input, sizeof(INPUT));
 	input.type = INPUT_MOUSE;
 
-	input.mi.dx = (static_cast<long>x*65535)/ (GetSystemMetrics(SM_CXSCREEN) - 1); // size of length of primary monitor
-	input.mi.dy = (static_cast<long>y*65535)/ (GetSystemMetrics(SM_CYSCREEN) - 1); // size of width of primary monitor
+	input.mi.dx = (static_cast<long>(x*65535))/ (GetSystemMetrics(SM_CXSCREEN) - 1); // size of length of primary monitor
+	input.mi.dy = (static_cast<long>(y*65535))/ (GetSystemMetrics(SM_CYSCREEN) - 1); // size of width of primary monitor
 
 	input.mi.dwFlags = MOUSEEVENTF_MOVE | MOUSEEVENTF_ABSOLUTE;
 
@@ -76,8 +81,8 @@ void mouseButtonStatus(uint16_t button, uint16_t x, uint16_t y, bool status) {
 	ZeroMemory(&input, sizeof(INPUT));
 	input.type = INPUT_MOUSE;
 
-	input.mi.dx = (static_cast<long>x*65535)/ ( GetSystemMetrics(SM_CXSCREEN) - 1 ); // size of length of primary monitor
-	input.mi.dy = (static_cast<long>y*65535)/ ( GetSystemMetrics(SM_CYSCREEN) - 1); // size of width of primary monitor
+	input.mi.dx = (static_cast<long>(x*65535))/ ( GetSystemMetrics(SM_CXSCREEN) - 1 ); // size of length of primary monitor
+	input.mi.dy = (static_cast<long>(y*65535))/ ( GetSystemMetrics(SM_CYSCREEN) - 1); // size of width of primary monitor
 	input.mi.dwFlags = MOUSEEVENTF_MOVE | MOUSEEVENTF_ABSOLUTE;
 	switch (button) {
 		case 1:
@@ -207,7 +212,7 @@ std::pair<std::vector<EventPacket>, std::string> CompileEventArray(std::vector<u
 				e.payload.push_back(static_cast<int>(y));
 				break;
 
-			case Events::MOUSE_MOVE_ABSOLUTE:
+			case Events::MOUSE_ABS_MOVE:
 
 				std::memcpy(&x, e_bytearray.data()+cur, sizeof_uint16_t);
 				cur += sizeof_uint16_t;
@@ -217,7 +222,7 @@ std::pair<std::vector<EventPacket>, std::string> CompileEventArray(std::vector<u
 				e.payload.push_back(static_cast<int>(y));
 				break;
 
-			case Events::MOUSE_MOVE_RELATIVE:
+			case Events::MOUSE_REL_MOVE:
 				break; // TO BE IMPLEMENTED LATER
 
 			case Events::MOUSE_SCROLL:
@@ -261,7 +266,7 @@ void PlayEventList(std::vector<EventPacket> eventList) {
 			case Events::KEY_UP:
 				func = [e]() -> void { keyStatus(e.payload.front(),false); };
 				break;
-			case Events::MOUSE_MOVE_ABSOLUTE:
+			case Events::MOUSE_ABS_MOVE:
 				func = [e]() -> void { moveMouseAbsolute(e.payload.at(0),e.payload.at(1)); };
 				break;
 			case Events::MOUSE_DOWN:
@@ -272,7 +277,6 @@ void PlayEventList(std::vector<EventPacket> eventList) {
 				break;
 			case Events::MOUSE_SCROLL:
 				//func = [e]() -> void { mouseScroll(e.payload.at(0),e.payload.at(1),e.payload.at(2),e.payload.at(3)); };
-				// does not exist yet.
 				//break;
 				return;
 		}
@@ -284,6 +288,14 @@ void PlayEventList(std::vector<EventPacket> eventList) {
 	
 }
 
+void CompileAndPlay(std::vector<uint8_t>& e_bytearray) {
+	auto l = CompileEventArray(e_bytearray);
+	PlayEventList(l.first);
+}
+
 PYBIND11_MODULE(playback, m) {
-	m.def("CompileEventArray", &CompileEventArray, "i mean it just kind like parses the event array idk");
+    m.def("CompileEventArray", &CompileEventArray, "i mean it just kind like parses the event array idk");
+	m.def("PlayEventList", &PlayEventList, "i mean it just kind like plays the thingy if you know what i mean");
+	m.def("CompileAndPlay", &CompileAndPlay, "i mean it just kind like plays the thingy with less intervention needed if you know what i mean");
+	m.def("setDPIAwareness", &setDPIAwareness, "Sets the process DPI awareness to handle high-DPI displays correctly on Windows.");
 }
