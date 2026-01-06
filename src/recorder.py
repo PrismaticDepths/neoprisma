@@ -96,13 +96,3 @@ class OneShotRecorder:
 	def stop(self):
 		self.kb_listener.stop()
 		self.mouse_listener.stop()
-
-v = OneShotRecorder()
-v.start()
-time.sleep(3)
-v.stop()
-with open("output.nprsma","wb") as f:
-	f.write(v.buffer)
-
-import playback
-playback.CompileAndPlay(v.buffer)

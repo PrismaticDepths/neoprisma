@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <iostream>
 #include <vector>
+#include <atomic>
 #include <cstring>
 #include <string>
 #include <optional>
@@ -20,6 +21,20 @@ constexpr size_t sizeof_uint8_t = sizeof(uint8_t);
 constexpr size_t sizeof_uint16_t = sizeof(uint16_t);
 constexpr size_t sizeof_int16_t = sizeof(int16_t);
 constexpr size_t sizeof_uint64_t = sizeof(uint64_t);
+
+std::atomic<bool> n_abort{false};
+
+void abortPlayback() {
+	n_abort.store(true,std::memory_order_relaxed);
+}
+
+void resetAbortPlayback() {
+	n_abort.store(false,std::memory_order_relaxed);
+}
+
+bool getAbortStatus() {
+	return n_abort.load(std::memory_order_relaxed);
+}
 
 void keyStatus(uint16_t vk_code, bool status) {
 	CGEventRef keyStroke = CGEventCreateKeyboardEvent(NULL, (CGKeyCode)vk_code, status);
@@ -228,9 +243,12 @@ std::pair<std::vector<EventPacket>, std::string> CompileEventArray(std::vector<u
 }
 
 void PlayEventList(std::vector<EventPacket> eventList) {
+
+	if (n_abort.load(std::memory_order_relaxed)) { return; }
 	auto start = std::chrono::high_resolution_clock::now();
 	uint64_t lastTimestamp = 0;
 	for (EventPacket e : eventList) {
+		if (n_abort.load(std::memory_order_relaxed)) { return; }
 		uint64_t deltaNs = e.timestamp - lastTimestamp;
 		auto insertTime = start + std::chrono::nanoseconds(e.timestamp);
 		lastTimestamp = e.timestamp;
@@ -259,14 +277,17 @@ void PlayEventList(std::vector<EventPacket> eventList) {
 				func = [e]() -> void { mouseDragAbsolute(e.payload.at(0),e.payload.at(1),e.payload.at(2)); };
 		}
 		while (std::chrono::high_resolution_clock::now() < insertTime) {
-			// intentionally do nothing
+			if (n_abort.load(std::memory_order_relaxed)) { return; }
 		}
 		func();
+
 	}
 	
 }
 
 void CompileAndPlay(std::vector<uint8_t>& e_bytearray) {
+	py::gil_scoped_release release;
+
 	auto l = CompileEventArray(e_bytearray);
 	PlayEventList(l.first);
 }
@@ -275,4 +296,8 @@ PYBIND11_MODULE(playback, m) {
     m.def("CompileEventArray", &CompileEventArray, "i mean it just kind like parses the event array idk");
 	m.def("PlayEventList", &PlayEventList, "i mean it just kind like plays the thingy if you know what i mean");
 	m.def("CompileAndPlay", &CompileAndPlay, "i mean it just kind like plays the thingy with less intervention needed if you know what i mean");
+	m.def("abortPlayback", &abortPlayback, "Sets flag n_abort to True, causing a running recording to stop after the current event finishes.");
+	m.def("resetAbortPlayback", &resetAbortPlayback, "Sets flag n_abort to False. Allows you to play recordings again.");
+	m.def("getAbortStatus", &getAbortStatus, "Returns the value of flag n_abort");
+	
 }
