@@ -28,8 +28,8 @@ class Main:
 		self.app.setQuitOnLastWindowClosed(False)
 
 		self.icon_static = QIcon("icon.png")
-		self.icon_rec = QIcon("icon.png")
-		self.icon_play = QIcon("icon.png")
+		self.icon_rec = QIcon("cbimage.png")
+		self.icon_play = QIcon("cbimage-2.png")
 		self.icon_auto = QIcon("icon.png")
 
 		self.tray = QSystemTrayIcon()
@@ -70,63 +70,76 @@ class Main:
 		h.start()
 		self.app.exec()
 
-	def load(self):
-		if self.state_playback or self.state_recording: return
-
-
 	def toggle_recording(self):
-		if self.state_playback or self.state_autoclicker: return
-		print('rec:', not self.state_recording)
-		if self.state_recording: self.recorder.stop()
-		self.arr = copy.deepcopy(self.recorder.buffer)
-		self.recorder = recorder.OneShotRecorder()
-		if self.state_recording:
-			self.tray.setIcon(self.icon_static)
-			self.state_recording = False
-		else: 
-			self.tray.setIcon(self.icon_rec)
-			self.state_recording = True
-			self.recorder.start()
+		try:
+			if self.state_playback or self.state_autoclicker: return
+			print('rec:', not self.state_recording)
+			if self.state_recording: self.recorder.stop()
+			self.arr = copy.deepcopy(self.recorder.buffer)
+			self.recorder = recorder.OneShotRecorder()
+			if self.state_recording:
+				self.tray.setIcon(self.icon_static)
+				self.state_recording = False
+			else: 
+				self.tray.setIcon(self.icon_rec)
+				self.state_recording = True
+				self.recorder.start()
+		except Exception:
+			self.error_emitter.error.emit(traceback.format_exc(750))
 
 	def toggle_playback(self):
-		if self.state_recording or self.state_autoclicker: return
-		print('play:', not self.state_playback)
-		if self.state_playback:
-			self.tray.setIcon(self.icon_static)
-			playback.abortPlayback()
-			self.state_playback = False
-		else:
-			self.tray.setIcon(self.icon_play)
-			self.state_playback = True
-			playback.resetAbortPlayback()
-			def inner():
-				while self.state_playback:
-					try:
-						playback.CompileAndPlay(self.arr)
-					except Exception as e: 
-						self.error_emitter.error.emit(traceback.format_exc())
-			t = Thread(target=inner)
-			t.start()
+		try:
+			if self.state_recording or self.state_autoclicker: return
+			print('play:', not self.state_playback)
+			if self.state_playback:
+				self.tray.setIcon(self.icon_static)
+				playback.abortPlayback()
+				self.state_playback = False
+			else:
+				self.tray.setIcon(self.icon_play)
+				self.state_playback = True
+				playback.resetAbortPlayback()
+				def inner():
+					while self.state_playback:
+						try:
+							playback.CompileAndPlay(self.arr)
+						except Exception as e: 
+							self.error_emitter.error.emit(traceback.format_exc())
+							self.toggle_playback()
+				t = Thread(target=inner)
+				t.start()
+		except Exception:
+			self.error_emitter.error.emit(traceback.format_exc())
 
 	def toggle_autoclicker(self):
-		if self.state_recording or self.state_playback: return
-		print('auto:', not self.state_autoclicker)
+
+		try:
+			if self.state_recording or self.state_playback: return
+			print('auto:', not self.state_autoclicker)
+		except Exception:
+			self.error_emitter.error.emit(traceback.format_exc())
 
 	def load(self):
 
-		file, _ = QFileDialog.getOpenFileName(None,"Select a recording to load",filter="Recordings (*.nprsma);;All Files (*)")
-		if file == "": return
-		else:
-			with open(file,"rb") as fstream:
-				self.arr = fstream.read()
+		try:
+			file, _ = QFileDialog.getOpenFileName(None,"Select a recording to load",filter="Recordings (*.nprsma);;All Files (*)")
+			if file == "": return
+			else:
+				with open(file,"rb") as fstream:
+					self.arr = bytearray(fstream.read())
+		except Exception:
+			self.error_emitter.error.emit(traceback.format_exc())
 
 	def save(self):
-		
-		file, _ = QFileDialog.getSaveFileName(None,"Select a location to save your recording",filter="Recordings (*.nprsma)")
-		if file == "": return
-		else:
-			with open(file,"wb") as fstream:
-				fstream.write(self.arr)
+
+		try:
+			file, _ = QFileDialog.getSaveFileName(None,"Select a location to save your recording",filter="Recordings (*.nprsma)")
+			if file == "": return
+			else:
+				with open(file,"wb") as fstream:
+					fstream.write(self.arr)
+		except Exception:
+			self.error_emitter.error.emit(traceback.format_exc())
 
 
 m = Main()

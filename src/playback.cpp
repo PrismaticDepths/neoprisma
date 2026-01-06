@@ -157,6 +157,7 @@ std::pair<std::vector<EventPacket>, std::string> CompileEventArray(std::vector<u
 	std::vector<EventPacket> eventList;
 	if (!headerInfo.first) {
 		std::cerr << "nprisma: bad fileheader, found version " << int(headerInfo.second) << std::endl;
+		throw std::runtime_error("nprisma: bad fileheader, found version " + std::to_string(headerInfo.second) );
 		return {eventList,"Failed to parse event array: Bad file header or incompatible version."}; 
 	}
 	for (size_t cur = 5; cur < e_bytearray.size();) {
