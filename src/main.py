@@ -3,6 +3,7 @@ import recorder
 import pynput
 import copy
 import traceback
+import time
 import sys
 from threading import Thread
 from PyQt6.QtGui import QAction,QIcon
@@ -16,6 +17,7 @@ class Main:
 
 	def __init__(self):
 		self.recorder = recorder.OneShotRecorder()
+		self.m_simulator = pynput.mouse.Controller()
 		self.arr = bytearray(b"<NEOPRISMA>\x01")
 		self.compiled_arr:list[playback.EventPacket] = []
 		self.state_recording = False
@@ -66,7 +68,8 @@ class Main:
 		h = pynput.keyboard.GlobalHotKeys({
 		'<ctrl>+<f7>': self.toggle_recording,
 		'<ctrl>+<f9>': self.toggle_playback,
-		'<ctrl>+<f8>': self.toggle_autoclicker})
+		'<ctrl>+<f8>': self.toggle_autoclicker},
+		on_error=self.error_emitter.error.emit)
 
 		h.start()
 		self.app.exec()
@@ -75,7 +78,9 @@ class Main:
 		try:
 			if self.state_playback or self.state_autoclicker: return
 			# print('rec:', not self.state_recording)
-			if self.state_recording: self.recorder.stop()
+			if self.state_recording: 
+				self.recorder.stop()
+				time.sleep(0.05)
 			self.arr = copy.deepcopy(self.recorder.buffer)
 			self.recorder = recorder.OneShotRecorder()
 			if self.state_recording:
@@ -133,13 +138,28 @@ class Main:
 			self.error_emitter.error.emit(traceback.format_exc())
 
 	def toggle_autoclicker(self):
-
 		try:
 			if self.state_recording or self.state_playback: return
-			# print('auto:', not self.state_autoclicker)
+			if self.state_autoclicker:
+				self.tray.setIcon(self.icon_static)
+				self.state_autoclicker = False
+			else:
+				self.tray.setIcon(self.icon_auto)
+				self.state_autoclicker = True
+				def inner():
+					while self.state_autoclicker:
+						mpos = self.m_simulator.position
+						playback.mouseButtonStatus(1,int(mpos[0]),int(mpos[1]),True)
+						time.sleep(0.000375)
+						playback.mouseButtonStatus(1,int(mpos[0]),int(mpos[1]),False)
+						time.sleep(0.000375)
+				t = Thread(target=inner)
+				t.start()
+				
+
 		except Exception:
 			self.error_emitter.error.emit(traceback.format_exc())
-
+			
 	def load(self):
 
 		try:

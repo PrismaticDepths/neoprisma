@@ -312,12 +312,13 @@ void CompileAndPlay(std::vector<uint8_t>& e_bytearray) {
 }
 
 PYBIND11_MODULE(playback, m) {
-    m.def("CompileEventArray", &CompileEventArray, "i mean it just kind like parses the event array idk");
-	m.def("PlayEventList", &PlayEventList, "i mean it just kind like plays the thingy if you know what i mean");
-	m.def("CompileAndPlay", &CompileAndPlay, "i mean it just kind like plays the thingy with less intervention needed if you know what i mean");
+    m.def("CompileEventArray", &CompileEventArray, "Reads a bytecode event array and returns a much more easily parseable list");
+	m.def("PlayEventList", &PlayEventList, "Injects input read from an event list");
+	m.def("CompileAndPlay", &CompileAndPlay, "Deprecated; please compile and play the event list using the associated functions.");
 	m.def("abortPlayback", &abortPlayback, "Sets flag n_abort to True, causing a running recording to stop after the current event finishes.");
 	m.def("resetAbortPlayback", &resetAbortPlayback, "Sets flag n_abort to False. Allows you to play recordings again.");
-	m.def("getAbortStatus", &getAbortStatus, "Returns the value of flag n_abort");
+	m.def("getAbortStatus", &getAbortStatus, "Returns the value of flag n_abort.");
+	m.def("mouseButtonStatus",&mouseButtonStatus, "Simulates a mouse click.");
 	py::class_<EventPacket>(m, "EventPacket")
         .def(py::init<>()) // Expose the default constructor to allow creation in Python
         .def_readwrite("timestamp", &EventPacket::timestamp)
