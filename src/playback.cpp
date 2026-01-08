@@ -248,7 +248,7 @@ std::pair<std::vector<EventPacket>, std::string> CompileEventArray(std::vector<u
 				break;
 
 			default:
-				throw std::runtime_error("Unknown event type encountered: "+std::to_string(e.event)+" (found @ index "+std::to_string(cur)+")");
+				throw std::runtime_error("Corrupt or outdated event array. (Unknown event type <"+std::to_string(e.event)+"> encountered @ index "+std::to_string(cur)+")");
 				break;
 		}
 		eventList.push_back(e);
