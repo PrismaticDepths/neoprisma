@@ -136,12 +136,13 @@ class Main:
 			if file == "": return
 			else:
 				with open(file,"rb") as fstream:
+					dat = bytearray(fstream.read())
 					try:
-						playback.CompileEventArray(bytearray(fstream.read()))
+						playback.CompileEventArray(dat)
 					except RuntimeError as e:
 						self.error_emitter.error.emit(str(e))
 					else: 
-						self.arr = bytearray(fstream.read())
+						self.arr = bytearray(dat)
 					
 		except Exception:
 			self.error_emitter.error.emit(traceback.format_exc())

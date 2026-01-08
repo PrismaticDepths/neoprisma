@@ -137,7 +137,7 @@ void mouseScroll(uint16_t x, uint16_t y, uint16_t dx, uint16_t dy) {
 
 }
 
-std::pair<bool, uint8_t> ensureValidHeaders(std::vector<uint8_t>& e_bytearray) {
+std::pair<bool, uint8_t> ensureValidHeaders(const std::vector<uint8_t>& e_bytearray) {
 	uint8_t version = 0;
 	if (e_bytearray.size() < FILE_HEADER_ID_SIZE+1 || std::memcmp(e_bytearray.data(),FILE_HEADER_ID,FILE_HEADER_ID_SIZE) != 0) {
 		return {false, version};
@@ -151,11 +151,11 @@ std::pair<bool, uint8_t> ensureValidHeaders(std::vector<uint8_t>& e_bytearray) {
 	} 
 }
 
-std::pair<std::vector<EventPacket>, std::string> CompileEventArray(std::vector<uint8_t>& e_bytearray) {
+std::pair<std::vector<EventPacket>, std::string> CompileEventArray(const std::vector<uint8_t>& e_bytearray) {
 	std::pair<bool, uint8_t> headerInfo = ensureValidHeaders(e_bytearray);
 	std::vector<EventPacket> eventList;
 	if (!headerInfo.first) {
-		std::cerr << "nprisma: bad fileheader, found version " << int(headerInfo.second) << " (must be <=" << int(EARLIEST_SUPPORTED_FMT_VERSION) << "& >=" << int(MAJOR_FMT_VERSION) << ")" << std::endl;
+		std::cerr << "nprisma: bad fileheader, found version " << int(headerInfo.second) << " (must be >=" << int(EARLIEST_SUPPORTED_FMT_VERSION) << "& <=" << int(MAJOR_FMT_VERSION) << ")" << std::endl;
 		if (headerInfo.second == 0) {
 			throw std::runtime_error("Incompatible file format (11byte header does not match; not a .neop recording)");
 		} else {
@@ -256,17 +256,17 @@ std::pair<std::vector<EventPacket>, std::string> CompileEventArray(std::vector<u
 	return {eventList,""};
 }
 
-void PlayEventList(std::vector<EventPacket> eventList) {
+void PlayEventList(const std::vector<EventPacket>& eventList) {
 	py::gil_scoped_release release;
 
 	if (n_abort.load(std::memory_order_relaxed)) { return; }
-	auto start = std::chrono::high_resolution_clock::now();
-	for (EventPacket e : eventList) {
+	auto start = std::chrono::steady_clock::now();
+	for (const EventPacket& e : eventList) {
 		if (n_abort.load(std::memory_order_relaxed)) { return; }
 		auto insertTime = start + std::chrono::nanoseconds(e.timestamp);
 		while (true) {
 			if (n_abort.load(std::memory_order_relaxed)) { return; }
-			auto now = std::chrono::high_resolution_clock::now();
+			auto now = std::chrono::steady_clock::now();
 			if (now >= insertTime) { break; }
 			auto remaining = insertTime - now;
 			if (remaining > std::chrono::nanoseconds(200)) {
