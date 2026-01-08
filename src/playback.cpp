@@ -261,15 +261,19 @@ void PlayEventList(std::vector<EventPacket> eventList) {
 
 	if (n_abort.load(std::memory_order_relaxed)) { return; }
 	auto start = std::chrono::high_resolution_clock::now();
-	uint64_t lastTimestamp = 0;
 	for (EventPacket e : eventList) {
 		if (n_abort.load(std::memory_order_relaxed)) { return; }
-		uint64_t deltaNs = e.timestamp - lastTimestamp;
 		auto insertTime = start + std::chrono::nanoseconds(e.timestamp);
-		lastTimestamp = e.timestamp;
-		if (deltaNs > 200) { std::this_thread::sleep_for(std::chrono::nanoseconds(deltaNs)-std::chrono::nanoseconds(200)); }
-		while (std::chrono::high_resolution_clock::now() < insertTime) {
+		while (true) {
 			if (n_abort.load(std::memory_order_relaxed)) { return; }
+			auto now = std::chrono::high_resolution_clock::now();
+			if (now >= insertTime) { break; }
+			auto remaining = insertTime - now;
+			if (remaining < std::chrono::nanoseconds(200)) {
+				std::this_thread::sleep_for(remaining-std::chrono::nanoseconds(200));
+			} else {
+				std::this_thread::yield();
+			}
 		}
 		switch (e.event) {
 			case Events::KEY_DOWN:
