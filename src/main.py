@@ -150,9 +150,9 @@ class Main:
 					while self.state_autoclicker:
 						mpos = self.m_simulator.position
 						playback.mouseButtonStatus(1,int(mpos[0]),int(mpos[1]),True)
-						time.sleep(0.000375)
+						time.sleep(0.0003)
 						playback.mouseButtonStatus(1,int(mpos[0]),int(mpos[1]),False)
-						time.sleep(0.000375)
+						time.sleep(0.0003)
 				t = Thread(target=inner)
 				t.start()
 				
