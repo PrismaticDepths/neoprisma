@@ -7,7 +7,7 @@ while true; do
 	read -r -u 3 -p "This program will install Neoprisma. Proceed with installation? [y/n] " yn < /dev/tty
 	case $yn in
 		[Yy]* ) echo "Installing..."; break;; # Break the loop and continue script
-		[Nn]* ) echo "Exiting..."; exit;;      # Exit the script
+		[Nn]* ) echo "Exiting..."; exit;; # Exit the script
 		* ) echo "Please answer yes or no.";; # Loop back for invalid input
 	esac
 done
@@ -18,12 +18,12 @@ APP_NAME="neoprisma"
 BUNDLE_ID="com.prismaticdepths.neoprisma"
 
 die() {
-    echo "ERROR: $*" >&2
-    exit 1
+	echo "ERROR: $*" >&2
+	exit 1
 }
 
 version_ge() {
-  [ "$(printf '%s\n' "$2" "$1" | sort -V | head -n1)" = "$2" ]
+	[ "$(printf '%s\n' "$2" "$1" | sort -V | head -n1)" = "$2" ]
 }
 
 # OS check
@@ -34,15 +34,15 @@ REQUIRED_MACOS="12.0"
 INSTALLED_MACOS=$(sw_vers -productVersion)
 
 version_ge "$INSTALLED_MACOS" "$REQUIRED_MACOS" \
-  || die "macOS $REQUIRED_MACOS+ required (found $INSTALLED_MACOS)"
+	|| die "macOS $REQUIRED_MACOS+ required (found $INSTALLED_MACOS)"
 
 # Architecture check
 ARCH=$(uname -m)
 [[ "$ARCH" == "arm64" || "$ARCH" == "x86_64" ]] \
-  || die "unsupported CPU architecture $ARCH (must be arm64 or x86_64)"
+	|| die "unsupported CPU architecture $ARCH (must be arm64 or x86_64)"
 
 require_cmd() {
-  command -v "$1" >/dev/null 2>&1 || die "missing dependency $1"
+	command -v "$1" >/dev/null 2>&1 || die "missing dependency $1"
 }
 
 require_cmd git
@@ -54,10 +54,10 @@ if [ -d "$BUILD_DIR" ]; then
 
 	if [[ -n "$BUILD_DIR" ]] && [[ "$BUILD_DIR" != "$HOME" ]] && [[ "$BUILD_DIR" != "/" ]]; then
 		while true; do
-			read  -r -u 3 -p "The given BUILD_DIR ($BUILD_DIR) exists and is not empty. Delete it and install here anyways? [y/n] " yn < /dev/tty
+			read -r -u 3 -p "The given BUILD_DIR ($BUILD_DIR) exists and is not empty. Delete it and install here anyways? [y/n] " yn < /dev/tty
 			case $yn in
 				[Yy]* ) echo "Continuing..."; break;; # Break the loop and continue script
-				[Nn]* ) echo "Stopping installer..."; exit;;      # Exit the script
+				[Nn]* ) echo "Stopping installer..."; exit;; # Exit the script
 				* ) echo "Please answer yes or no.";; # Loop back for invalid input
 			esac
 		done
@@ -82,13 +82,14 @@ clang++ -O3 -Wall -shared -std=c++17 -undefined dynamic_lookup $(python3 -m pybi
 cd ..
 
 pyinstaller \
-  --windowed \
-  --name "$APP_NAME" \
-  --osx-bundle-identifier "$BUNDLE_ID" \
-  --add-data "src:src" \
-  --add-data "src/assets:assets" \
-  --add-binary "src/playback*$(python3-config --extension-suffix):src" \
-  src/main.py
+	--windowed \
+	--name "$APP_NAME" \
+	--osx-bundle-identifier "$BUNDLE_ID" \
+	--add-data "src:src" \
+	--add-data "src/assets:assets" \
+	--add-binary "src/playback*$(python3-config --extension-suffix):src" \
+	--hidden-import=Quartz \
+	src/main.py
 
 mkdir -p "$INSTALL_DIR"
 
@@ -100,10 +101,10 @@ if [ -d "$BUILD_DIR" ]; then
 
 	if [[ -n "$BUILD_DIR" ]] && [[ "$BUILD_DIR" != "$HOME" ]] && [[ "$BUILD_DIR" != "/" ]]; then
 		while true; do
-			read  -r -u 3 -p "Clean up BUILD_DIR ($BUILD_DIR)? [y/n] " yn < /dev/tty
+			read -r -u 3 -p "Clean up BUILD_DIR ($BUILD_DIR)? [y/n] " yn < /dev/tty
 			case $yn in
 				[Yy]* ) echo "Cleaning..."; break;; # Break the loop and continue script
-				[Nn]* ) echo "Exiting..."; exit;;      # Exit the script
+				[Nn]* ) echo "Exiting..."; exit;; # Exit the script
 				* ) echo "Please answer yes or no.";; # Loop back for invalid input
 			esac
 		done
