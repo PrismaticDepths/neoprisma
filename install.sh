@@ -98,7 +98,7 @@ pyinstaller \
 	--name "$APP_NAME" \
 	--osx-bundle-identifier "$BUNDLE_ID" \
 	--add-data "src:src" \
-	--add-data "src/assets:src/assets" \
+	--add-data "src/assets:assets" \
 	--add-binary "src/playback*$(python3-config --extension-suffix):src" \
 	--hidden-import=Quartz \
 	src/main.py
