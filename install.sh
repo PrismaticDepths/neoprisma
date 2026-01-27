@@ -102,6 +102,9 @@ pyinstaller \
 	--add-binary "src/playback*$(python3-config --extension-suffix):src" \
 	--hidden-import=Quartz \
 	--hidden-import=Quartz.CoreGraphics \
+	--hidden-import=Quartz.CoreText \
+	--hidden-import=Cocoa \
+	--hidden-import=ApplicationServices \
 	src/main.py
 
 mkdir -p "$INSTALL_DIR"
