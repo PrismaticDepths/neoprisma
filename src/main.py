@@ -50,14 +50,16 @@ class Main:
 		def check_perms():
 			from Quartz import AXIsProcessTrustedWithOptions
 			if AXIsProcessTrustedWithOptions({"AXTrustedCheckOptionPrompt": True}):
-				pass
+				return True
 			else:
 				self.error_emitter.error.emit("Neoprisma requires accessibility & input monitoring permissions to operate. Please grant them in the Privacy & Security section of System Settings.")
-				return
+				return False
 
-
-		self.recorder = recorder.OneShotRecorder()
-		self.m_simulator = pynput.mouse.Controller()
+		canrun = False
+		if check_perms():
+			canrun = True
+			self.recorder = recorder.OneShotRecorder()
+			self.m_simulator = pynput.mouse.Controller()
 
 		self.icon_static = QIcon(resource_path("assets/icon.png"))
 		self.icon_rec = QIcon(resource_path("assets/cbimage.png"))
@@ -95,14 +97,13 @@ class Main:
 		self.tray.setContextMenu(self.menu)
 
 		
-
 		h = pynput.keyboard.GlobalHotKeys({
 		'<ctrl>+<f7>': self.toggle_recording,
 		'<ctrl>+<f9>': self.toggle_playback,
 		'<ctrl>+<f8>': self.toggle_autoclicker},
 		on_error=self.error_emitter.error.emit)
-
-		h.start()
+		if canrun:
+			h.start()
 		QTimer.singleShot(0.5,check_perms)
 		self.app.exec()
 
