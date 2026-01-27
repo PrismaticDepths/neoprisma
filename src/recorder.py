@@ -55,8 +55,8 @@ class OneShotRecorder:
 		self.starting_time = 0
 		self.buffer = bytearray()
 		self.buffer.extend(struct.pack(FILE_HEADER_FMT,FILE_HEADER_ID,MAJOR_FMT_VERSION)) # Add the file header
-		self.kb_listener = pynput.keyboard.Listener(on_press=self.captured_key_press,on_release=self.captured_key_release)
-		self.mouse_listener = pynput.mouse.Listener(on_move=self.captured_mouse_move,on_click=self.captured_mouse_click,on_scroll=self.captured_mouse_scroll)
+		self.kb_listener = None
+		self.mouse_listener = None
 
 	def log_event(self,timestamp,event,*payload):
 		self.buffer.extend(struct.pack(EVENT_HEADER_FMT+PAYLOAD_FMTS[event],timestamp,event,*payload))
@@ -97,6 +97,9 @@ class OneShotRecorder:
 		self.log_event(t,Events.MOUSE_SCROLL,int(x),int(y),int(dx),int(dy))
 
 	def start(self):
+		self.kb_listener = pynput.keyboard.Listener(on_press=self.captured_key_press,on_release=self.captured_key_release)
+		self.mouse_listener = pynput.mouse.Listener(on_move=self.captured_mouse_move,on_click=self.captured_mouse_click,on_scroll=self.captured_mouse_scroll)
+
 		assert self.starting_time == 0
 		self.starting_time = time.perf_counter_ns()
 		self.kb_listener.start()
