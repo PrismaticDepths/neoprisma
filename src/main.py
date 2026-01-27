@@ -22,6 +22,12 @@ from PyQt6.QtCore import QObject,pyqtSignal
 from PyQt6.QtWidgets import QApplication,QSystemTrayIcon,QMenu, QFileDialog, QMessageBox, QWidget
 from resources import resource_path
 
+def prompt_accessibility():
+	from Quartz.CoreGraphics import CGEventCreateKeyboardEvent, CGEventPost, kCGHIDEventTap
+	event = CGEventCreateKeyboardEvent(None, 0x0C, True)  # Press 'q'
+	CGEventPost(kCGHIDEventTap, event)
+prompt_accessibility()
+
 class Emitter(QObject):
 	error = pyqtSignal(str)
 
