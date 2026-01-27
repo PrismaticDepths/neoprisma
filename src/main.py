@@ -41,8 +41,6 @@ class Main:
 		self.state_playback = False
 		self.state_autoclicker = False
 		self.timestamp_multiplier = 1
-		self.recorder = DummyRecorder
-		self.m_simulator = pynput.mouse.Controller()
 		
 		self.error_emitter = Emitter()
 		self.error_emitter.error.connect(lambda msg: QMessageBox.critical(None,"neoprisma: an error occured",msg if len(msg) <= 300 else msg[:300],QMessageBox.StandardButton.Ok))
@@ -84,8 +82,12 @@ class Main:
 		# Add the menu to the tray
 		self.tray.setContextMenu(self.menu)
 
+		def alc_r():
+			self.recorder=recorder.OneShotRecorder()
+			self.m_simulator = pynput.mouse.Controller()
 
 		QTimer.singleShot(0,self.start_hotkeys)
+		QTimer.singleShot(0,alc_r)
 		self.app.exec()
 
 	def start_hotkeys(self):
