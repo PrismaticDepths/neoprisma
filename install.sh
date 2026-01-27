@@ -87,7 +87,7 @@ cd src
 
 echo "Building binaries..."
 
-clang++ -O3 -Wall -shared -std=c++17 -undefined dynamic_lookup $(python3 -m pybind11 --includes) playback.cpp -o playback$(python3-config --extension-suffix)
+clang++ -arch $ARCH -O3 -Wall -shared -std=c++17 -undefined dynamic_lookup $(python3 -m pybind11 --includes) playback.cpp -o playback$(python3-config --extension-suffix)
 
 cd ..
 

@@ -1,3 +1,14 @@
+import os, sys
+
+if getattr(sys, "frozen", False):
+    BASE = sys._MEIPASS
+else:
+    BASE = os.path.dirname(__file__)
+
+SRC = os.path.join(BASE, "src")
+if SRC not in sys.path:
+    sys.path.insert(0, SRC)
+
 import pynput, time, struct
 MAJOR_FMT_VERSION = 1 # ONLY CHANGE WHEN YOU MAKE BREAKING CHANGES THAT WOULD CRASH AN OLDER VERSION OF THE PLAYBACK ENGINE. ALSO CHANGE THE NUMBER IN THE PLAYBACK SECTION TOO LOL
 # MAJOR_FMT_VERSION MUST BE UNDER 256 (or 255 maybe i forgot) OR THE C++ PLAYBACK CODE MIGHT BREAK
