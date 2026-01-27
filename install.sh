@@ -17,6 +17,8 @@ INSTALL_DIR="$HOME/Applications"
 APP_NAME="neoprisma"
 BUNDLE_ID="com.prismaticdepths.neoprisma"
 
+echo "Checking OS and arch..."
+
 die() {
 	echo "ERROR: $*" >&2
 	exit 1
@@ -41,6 +43,8 @@ ARCH=$(uname -m)
 [[ "$ARCH" == "arm64" || "$ARCH" == "x86_64" ]] \
 	|| die "unsupported CPU architecture $ARCH (must be arm64 or x86_64)"
 
+echo "Checking for dependencies..."
+
 require_cmd() {
 	command -v "$1" >/dev/null 2>&1 || die "missing dependency $1"
 }
@@ -49,9 +53,8 @@ require_cmd git
 require_cmd python3
 require_cmd clang++
 
-
 if [ -d "$BUILD_DIR" ]; then
-
+	echo "Cleaning build dir..."
 	if [[ -n "$BUILD_DIR" ]] && [[ "$BUILD_DIR" != "$HOME" ]] && [[ "$BUILD_DIR" != "/" ]]; then
 		while true; do
 			read -r -u 3 -p "The given BUILD_DIR ($BUILD_DIR) exists and is not empty. Delete it and install here anyways? [y/n] " yn < /dev/tty
@@ -67,8 +70,12 @@ if [ -d "$BUILD_DIR" ]; then
 	fi
 fi
 
+echo "Cloning repo into build dir..."
+
 git clone https://github.com/PrismaticDepths/neoprisma "$BUILD_DIR"
 cd "$BUILD_DIR"
+
+echo "Installing Python dependencies..."
 
 python3 -m venv .venv
 source .venv/bin/activate
@@ -77,9 +84,14 @@ $PIP install --upgrade pip
 $PIP install -r requirements.txt
 $PIP install pyinstaller
 cd src
+
+echo "Building binaries..."
+
 clang++ -O3 -Wall -shared -std=c++17 -undefined dynamic_lookup $(python3 -m pybind11 --includes) playback.cpp -o playback$(python3-config --extension-suffix)
 
 cd ..
+
+echo "Building application bundle..."
 
 pyinstaller \
 	--windowed \
@@ -93,7 +105,11 @@ pyinstaller \
 
 mkdir -p "$INSTALL_DIR"
 
+echo "Moving dist to installation dir..."
+
 mv "$BUILD_DIR/dist/$APP_NAME.app" "$INSTALL_DIR/"
+
+echo "Signing app..."
 codesign --force --deep --sign - "$INSTALL_DIR/$APP_NAME.app"
 
 echo "Installed dist at $INSTALL_DIR/$APP_NAME.app"
