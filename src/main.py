@@ -100,16 +100,18 @@ class Main:
 			self.h.start()
 		except Exception:
 			self.error_emitter.error.emit("Neoprisma is missing 'Input Monitoring' permissions and could not start the hotkey listener. Without this permission, any attempt to record input will cause an immediate crash. Please grant this permission in System Settings -> Privacy & Security -> Input Monitoring.")
-
+	def init_recorder(self):
+		self.recorder = recorder.OneShotRecorder()
 	def toggle_recording(self):
 		try:
 			if self.state_playback or self.state_autoclicker: return
 			# print('rec:', not self.state_recording)
 			if self.state_recording: 
-				self.recorder.stop()
+				QTimer.singleShot(0,self.recorder.stop)
 				time.sleep(0.05)
 			self.arr = copy.deepcopy(self.recorder.buffer)
-			self.recorder = recorder.OneShotRecorder()
+
+			QTimer.singleShot(0, self.init_recorder)
 			time.sleep(0)
 			if self.state_recording:
 				self.tray.setIcon(self.icon_static)
@@ -117,7 +119,7 @@ class Main:
 			else: 
 				self.tray.setIcon(self.icon_rec)
 				self.state_recording = True
-				self.recorder.start()
+				QTimer.singleShot(0,self.recorder.start)
 		except Exception:
 			self.error_emitter.error.emit(traceback.format_exc(250))
 
