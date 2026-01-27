@@ -91,6 +91,7 @@ class Main:
 		self.app.exec()
 
 	def toggle_recording(self):
+		self.error_emitter.error.emit("REC")
 		try:
 			if self.state_playback or self.state_autoclicker: return
 			# print('rec:', not self.state_recording)
@@ -110,6 +111,7 @@ class Main:
 			self.error_emitter.error.emit(traceback.format_exc(250))
 
 	def toggle_playback(self):
+		self.error_emitter.error.emit("PLAYBACK")
 		try:
 			if self.state_recording or self.state_autoclicker: return
 			# print('play:', not self.state_playback)
