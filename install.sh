@@ -114,7 +114,7 @@ echo "Moving dist to installation dir..."
 mv "$BUILD_DIR/dist/$APP_NAME.app" "$INSTALL_DIR/"
 
 echo "Signing app..."
-codesign --force --deep --sign - "$INSTALL_DIR/$APP_NAME.app"
+codesign --force --deep --sign - --options runtime "$INSTALL_DIR/$APP_NAME.app" 
 
 echo "Installed dist at $INSTALL_DIR/$APP_NAME.app"
 if [ -d "$BUILD_DIR" ]; then
