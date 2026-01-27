@@ -1,3 +1,14 @@
+import os, sys
+
+if getattr(sys, "frozen", False):
+    BASE = sys._MEIPASS
+else:
+    BASE = os.path.dirname(__file__)
+
+SRC = os.path.join(BASE, "src")
+if SRC not in sys.path:
+    sys.path.insert(0, SRC)
+
 import playback
 import recorder
 import pynput
@@ -9,6 +20,7 @@ from threading import Thread
 from PyQt6.QtGui import QAction,QIcon
 from PyQt6.QtCore import QObject,pyqtSignal
 from PyQt6.QtWidgets import QApplication,QSystemTrayIcon,QMenu, QFileDialog, QMessageBox, QWidget
+from resources import resource_path
 
 class Emitter(QObject):
 	error = pyqtSignal(str)
@@ -31,10 +43,10 @@ class Main:
 		self.app = QApplication(sys.argv)
 		self.app.setQuitOnLastWindowClosed(False)
 
-		self.icon_static = QIcon("icon.png")
-		self.icon_rec = QIcon("cbimage.png")
-		self.icon_play = QIcon("cbimage-2.png")
-		self.icon_auto = QIcon("icon.png")
+		self.icon_static = QIcon(resource_path("assets/icon.png"))
+		self.icon_rec = QIcon(resource_path("assets/cbimage.png"))
+		self.icon_play = QIcon(resource_path("assets/cbimage-2.png"))
+		self.icon_auto = QIcon(resource_path("assets/icon.png"))
 
 		self.tray = QSystemTrayIcon()
 		self.tray.setIcon(self.icon_static)
