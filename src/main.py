@@ -58,6 +58,7 @@ class Main:
 		self.state_playback = False
 		self.state_autoclicker = False
 		self.timestamp_multiplier = 1
+		self.dummy_recorder = None
 		
 		self.error_emitter = Emitter()
 		self.error_emitter.error.connect(lambda msg: QMessageBox.critical(None,"neoprisma: an error occured",msg if len(msg) <= 300 else msg[:300],QMessageBox.StandardButton.Ok))
@@ -109,8 +110,15 @@ class Main:
 		self.tray.setContextMenu(self.menu)
 
 		QTimer.singleShot(0,self.start_hotkeys)
+		QTimer.singleShot(0,self.init_dummy_recorder)
 		QTimer.singleShot(0,self.init_recorder_and_simulator)
 		self.app.exec()
+
+	def init_dummy_recorder(self):
+		try:
+			self.dummy_recorder = recorder.OneShotRecorder()
+		except Exception:
+			self.error_emitter.error.emit(traceback.format_exc())
 
 	def init_recorder_and_simulator(self):
 			try:
@@ -146,6 +154,7 @@ class Main:
 		#QMetaObject.invokeMethod(self.app,self.toggle_autoclicker,Qt.ConnectionType.QueuedConnection)
 		self.thread_helper.call_signal.emit(self.toggle_autoclicker)
 	def toggle_recording(self):
+		self.error_emitter.error.emit("R")
 		print("received: toggle recording")
 		try:
 			if self.state_playback or self.state_autoclicker: return
@@ -155,7 +164,7 @@ class Main:
 				time.sleep(0.05)
 			self.arr = copy.deepcopy(self.recorder.buffer)
 
-			self.recorder = recorder.OneShotRecorder()
+			self.recorder = copy.deepcopy(self.dummy_recorder)
 			time.sleep(0)
 			if self.state_recording:
 				self.tray.setIcon(self.icon_static)
