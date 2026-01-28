@@ -1,13 +1,13 @@
 import os, sys
 
 if getattr(sys, "frozen", False):
-    BASE = sys._MEIPASS
+	BASE = sys._MEIPASS
 else:
-    BASE = os.path.dirname(__file__)
+	BASE = os.path.dirname(__file__)
 
 SRC = os.path.join(BASE, "src")
 if SRC not in sys.path:
-    sys.path.insert(0, SRC)
+	sys.path.insert(0, SRC)
 
 import playback
 import recorder
@@ -18,7 +18,7 @@ import time
 import sys
 from threading import Thread
 from PyQt6.QtGui import QAction,QIcon
-from PyQt6.QtCore import QObject,pyqtSignal, QTimer
+from PyQt6.QtCore import QObject,pyqtSignal, QTimer, QMetaObject, Qt
 from PyQt6.QtWidgets import QApplication,QSystemTrayIcon,QMenu, QFileDialog, QMessageBox, QWidget
 from resources import resource_path
 
@@ -31,6 +31,20 @@ class Emitter(QObject):
 
 class sig(QObject):
 	s = pyqtSignal()
+
+from PyQt6.QtCore import QObject, pyqtSignal
+
+class MainThreadInvoker(QObject):
+	call_signal = pyqtSignal(object)  # emit a callable
+
+	def __init__(self):
+		super().__init__()
+		self.call_signal.connect(self._run)
+
+	def _run(self, func):
+		# This executes in the main thread
+		func()
+
 
 class Main:
 
@@ -54,6 +68,8 @@ class Main:
 		self.signal_toggle_recording.s.connect(self.toggle_recording)
 		self.signal_toggle_playback.s.connect(self.toggle_playback)
 		self.signal_toggle_autoclicker.s.connect(self.toggle_autoclicker)
+
+		self.thread_helper = MainThreadInvoker()
 
 		self.app.setQuitOnLastWindowClosed(False)
 
@@ -92,8 +108,6 @@ class Main:
 		# Add the menu to the tray
 		self.tray.setContextMenu(self.menu)
 
-
-
 		QTimer.singleShot(0,self.start_hotkeys)
 		QTimer.singleShot(0,self.init_recorder_and_simulator)
 		self.app.exec()
@@ -117,14 +131,20 @@ class Main:
 			self.error_emitter.error.emit("Could not start the global hotkey listener: "+traceback.format_exc())
 
 	def _toggle_recording(self):
-		self.signal_toggle_recording.s.emit()
+		#self.signal_toggle_recording.s.emit()
 		#QTimer.singleShot(0,self.toggle_recording)
+		#QMetaObject.invokeMethod(self.app,self.toggle_recording,Qt.ConnectionType.QueuedConnection)
+		self.thread_helper.call_signal.emit(self.toggle_recording)
 	def _toggle_playback(self):
-		self.signal_toggle_playback.s.emit()
+		#self.signal_toggle_playback.s.emit()
 		#QTimer.singleShot(0,self.toggle_playback)
+		#QMetaObject.invokeMethod(self.app,self.toggle_playback,Qt.ConnectionType.QueuedConnection)
+		self.thread_helper.call_signal.emit(self.toggle_playback)
 	def _toggle_autoclicker(self):
-		self.signal_toggle_autoclicker.s.emit()
+		#self.signal_toggle_autoclicker.s.emit()
 		#QTimer.singleShot(0,self.toggle_autoclicker)
+		#QMetaObject.invokeMethod(self.app,self.toggle_autoclicker,Qt.ConnectionType.QueuedConnection)
+		self.thread_helper.call_signal.emit(self.toggle_autoclicker)
 	def toggle_recording(self):
 		print("received: toggle recording")
 		try:
