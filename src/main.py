@@ -163,8 +163,9 @@ class Main:
 				self.recorder.stop()
 				time.sleep(0.05)
 			self.arr = copy.deepcopy(self.recorder.buffer)
-
+		
 			self.recorder = copy.deepcopy(self.dummy_recorder)
+			self.error_emitter.error.emit("R")
 			time.sleep(0)
 			if self.state_recording:
 				self.tray.setIcon(self.icon_static)
