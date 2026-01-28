@@ -149,17 +149,9 @@ echo "Signing app..."
 codesign --force --deep --sign - --options runtime  --entitlements "$ENTITLEMENTS" "$INSTALL_DIR/$APP_NAME.app" 
 
 echo "Installed dist at $INSTALL_DIR/$APP_NAME.app"
+echo "Cleaning BUILD_DIR ($BUILD_DIR)"4
 if [ -d "$BUILD_DIR" ]; then
-
 	if [[ -n "$BUILD_DIR" ]] && [[ "$BUILD_DIR" != "$HOME" ]] && [[ "$BUILD_DIR" != "/" ]]; then
-		while true; do
-			read -r -u 3 -p "Clean up BUILD_DIR ($BUILD_DIR)? [y/n] " yn < /dev/tty
-			case $yn in
-				[Yy]* ) echo "Cleaning..."; break;; # Break the loop and continue script
-				[Nn]* ) echo "Exiting..."; exit;; # Exit the script
-				* ) echo "Please answer yes or no.";; # Loop back for invalid input
-			esac
-		done
 		rm -rf "$BUILD_DIR"
 	else
 		die "BUILD_DIR is empty or home. Cannot clean."

@@ -11,20 +11,23 @@ It is the successor to Prism's Autoclicker 4.0.
 
 ## Installation
 
-Unlike prism's autoclicker, prebuilt binaries are not provided.\
-However, neoprisma is still extremely easy to install, if not easier than prism's autoclicker.
-
+Neoprisma can be build and installed with its dedicated installer script.\
+Support for installation via Homebrew is planned to be added soon.
 
 > Please note that you will still need to install Python, pip, and Apple's Command Line Tools as a prerequisite for installing neoprisma. Pip is usually bundled with Python. If you have already installed these in the past, you may skip this step.
+>
 > - Official downloads for Python: https://www.python.org/downloads/
 > - See this page for info on the Command Line Tools: https://developer.apple.com/documentation/xcode/installing-the-command-line-tools/
 
 You may inspect `install.sh` in this repository to make sure the code you are about to run is trustworthy.\
 If you are satisfied, execute the following in your terminal:
+
 ```bash
 curl -fsSL https://raw.githubusercontent.com/PrismaticDepths/neoprisma/main/install.sh | bash
 ```
+
 This will:
+
 1. Ensure all dependencies are installed before running
 2. Ask to erase the target build directory (if it exists)
 3. Clone this git repository into the build directory
@@ -35,7 +38,6 @@ This will:
 8. Move the app into the target installation directory
 9. Sign the app's code
 10. Ask to erase the build directory since it is not needed anymore
-
 
 ## Hotkeys
 
@@ -48,6 +50,10 @@ All hotkeys are in the range of `<ctrl>+<fn>+<f7-f9>` (or `<ctrl>+<f7-f9>` if yo
 ## Known Issues
 
 Pynput will sometimes crash due to a bug within the library, causing hotkeys to be unresponsive. Additionally, the program will sometimes get `trace trap`'d by the OS for no apparent reason when you toggle recording on. However, neoprisma is still much more stable than prism's autoclicker.
+
+When ran as an app, Neoprisma currently fails as soon as recording is toggled on. This is due to extremely tight security regulations from MacOS, and the app is forcibly killed by the operating system with no way to catch or stop the termination. I am working on fixing this, but it might be a while.
+
+A workaround to this is running the executable file inside the app bundle using your terminal. In Dinder, navigate to the installed neoprisma app (likely at `~/Applications/neoprisma`) and click "Show Contents". Open the "Contents" folder and then the "MacOS" folder and run the executable file you see. After granting your terminal accessibility and input monitoring permissons, you should be able to use neoprisma.
 
 ## Performance
 
