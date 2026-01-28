@@ -29,7 +29,7 @@ curl -fsSL https://raw.githubusercontent.com/PrismaticDepths/neoprisma/main/inst
 This will:
 
 1. Ensure all dependencies are installed before running
-2. Ask to erase the target build directory (if it exists)
+2. Ask to clean the target build directory (if it already exists)
 3. Clone this git repository into the build directory
 4. Create a virtual environment and install dependencies from `requirements.txt`
 5. Install `pyinstaller`
@@ -37,7 +37,7 @@ This will:
 7. Build the program as a `.app` bundle.
 8. Move the app into the target installation directory
 9. Sign the app's code
-10. Ask to erase the build directory since it is not needed anymore
+10. Clean up after itself (erase the build directory since it is not needed anymore)
 
 ## Hotkeys
 
