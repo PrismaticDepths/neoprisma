@@ -58,8 +58,8 @@ A workaround to this is running the executable file inside the app bundle using 
 ## Performance
 
 CPU usage does not seem to be excessive, nor does battery usage.
-However, neoprisma isn't optimized for either, and mostly optimized for accurate recording playback. 
+This is somewhat surprising considering that neoprisma isn't optimized for either, and mostly optimized for accurate playback.
 
-When testing with a recording of Geometry Dash gameplay, neoprisma didn't do the best, getting as far as the middle of ship section after several tries. 
+When testing with a recording of Geometry Dash gameplay, neoprisma didn't do the best, getting as far as the middle of the Stereo Madness ship section after several tries.
 
 Setting the process priority to 20 may help.
