@@ -160,7 +160,7 @@ class Main:
 				self.state_recording = False
 			else: 
 				self.state_recording = True
-				self.recorder.start()
+				#self.recorder.start()
 				self.tray.setIcon(self.icon_rec)
 
 		except Exception:
