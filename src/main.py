@@ -89,9 +89,9 @@ class Main:
 		self.flag_poll.setInterval(200)
 		self.flag_poll.timeout.connect(self._flaghelper_recording)
 
-		self.flag_poll.start()
 		QTimer.singleShot(0,self.start_hotkeys)
 		QTimer.singleShot(0,self.init_recorder_and_simulator)
+		QTimer.singleShot(0,self.flag_poll.start)
 		self.app.exec()
 
 	def init_recorder_and_simulator(self):
