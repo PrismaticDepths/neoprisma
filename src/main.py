@@ -160,7 +160,10 @@ class Main:
 				self.state_recording = False
 			else: 
 				self.state_recording = True
-				#self.recorder.start()
+				if QThread.currentThread() == self.app.thread():
+					self.recorder.start()
+				else:
+					QTimer.singleShot(0,self.recorder.start)
 				self.tray.setIcon(self.icon_rec)
 
 		except Exception:
