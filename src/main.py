@@ -86,7 +86,7 @@ class Main:
 		self.tray.setContextMenu(self.menu)
 
 		self.flag_poll = QTimer()
-		self.flag_poll.setInterval(100)
+		self.flag_poll.setInterval(200)
 		self.flag_poll.timeout.connect(self._flaghelper_recording)
 
 		self.flag_poll.start()
@@ -134,7 +134,6 @@ class Main:
 		self.error_emitter.error.emit("R")
 		try:
 			if self.state_playback or self.state_autoclicker: return
-			self._flag_recorder_started.clear()
 			if self.state_recording:
 				self.recorder.stop()
 				time.sleep(0.05)
@@ -146,6 +145,7 @@ class Main:
 				self.state_recording = False
 			else: 
 				self.state_recording = True
+				self._flag_recorder_started.clear()
 				self._flag_requested_recorder_start.set()
 				self._flag_recorder_started.wait()
 				self.tray.setIcon(self.icon_rec)
