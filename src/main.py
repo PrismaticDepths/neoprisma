@@ -138,6 +138,9 @@ class Main:
 				self.recorder.stop()
 				time.sleep(0.05)
 			self.arr = copy.deepcopy(self.recorder.buffer)
+			if self.recorder.running:
+				self.error_emitter.error.emit("Could not toggle recording: Existing recorder object is still running, cannot create a new one.")
+				return
 			self.recorder = recorder.OneShotRecorder()
 			time.sleep(0)
 			if self.state_recording:

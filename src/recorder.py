@@ -56,6 +56,7 @@ class OneShotRecorder:
 		self.buffer = bytearray()
 		self.buffer.extend(struct.pack(FILE_HEADER_FMT,FILE_HEADER_ID,MAJOR_FMT_VERSION)) # Add the file header
 		self.kb_listener = None
+		self.running = False
 
 	def log_event(self,timestamp,event,*payload):
 		self.buffer.extend(struct.pack(EVENT_HEADER_FMT+PAYLOAD_FMTS[event],timestamp,event,*payload))
@@ -103,9 +104,11 @@ class OneShotRecorder:
 			self.starting_time = time.perf_counter_ns()
 			self.kb_listener.start()
 			self.mouse_listener.start()
+			self.running = True
 		except Exception:
 			raise RuntimeError("Failed to initialize & start keyboard/mouse listeners. Recorder may already be started.")
 
 	def stop(self):
 		self.kb_listener.stop()
 		self.mouse_listener.stop()
+		self.running = False
