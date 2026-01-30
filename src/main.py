@@ -110,15 +110,8 @@ class Main:
 		self.tray.setContextMenu(self.menu)
 
 		QTimer.singleShot(0,self.start_hotkeys)
-		QTimer.singleShot(0,self.init_dummy_recorder)
 		QTimer.singleShot(0,self.init_recorder_and_simulator)
 		self.app.exec()
-
-	def init_dummy_recorder(self):
-		try:
-			self.dummy_recorder = recorder.OneShotRecorder()
-		except Exception:
-			self.error_emitter.error.emit(traceback.format_exc())
 
 	def init_recorder_and_simulator(self):
 			try:
@@ -164,8 +157,7 @@ class Main:
 				time.sleep(0.05)
 			self.arr = copy.deepcopy(self.recorder.buffer)
 		
-			self.recorder = copy.deepcopy(self.dummy_recorder)
-			self.error_emitter.error.emit("R")
+			self.recorder = recorder.OneShotRecorder()
 			time.sleep(0)
 			if self.state_recording:
 				self.tray.setIcon(self.icon_static)
