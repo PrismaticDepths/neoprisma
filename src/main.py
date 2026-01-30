@@ -18,7 +18,7 @@ import time
 import sys
 from threading import Thread, Event
 from PyQt6.QtGui import QAction,QIcon
-from PyQt6.QtCore import QObject,pyqtSignal, QTimer, QMetaObject, Qt
+from PyQt6.QtCore import QObject,pyqtSignal, QTimer, QMetaObject, Qt, QThread
 from PyQt6.QtWidgets import QApplication,QSystemTrayIcon,QMenu, QFileDialog, QMessageBox, QWidget
 from resources import resource_path
 
@@ -111,6 +111,9 @@ class Main:
 			self.h.start()
 		except Exception:
 			self.error_emitter.error.emit("Could not start the global hotkey listener: "+traceback.format_exc())
+
+	def _is_main_thread(self):
+		return QThread.currentThread() == self.app.thread()
 
 	def _flaghelper_recording(self):
 		if self._flag_requested_recorder_start.is_set():
