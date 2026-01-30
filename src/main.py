@@ -142,6 +142,7 @@ class Main:
 				self.error_emitter.error.emit("Could not toggle recording: Existing recorder object is still running, cannot create a new one.")
 				return
 			self.recorder = recorder.OneShotRecorder()
+			self.error_emitter.error.emit("R2")
 			time.sleep(0)
 			if self.state_recording:
 				self.tray.setIcon(self.icon_static)
