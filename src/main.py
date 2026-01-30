@@ -119,10 +119,6 @@ class Main:
 		return QThread.currentThread() == self.app.thread()
 
 	def _flaghelper(self):
-		if self._flag_requested_recorder_start.is_set():
-			self._flag_requested_recorder_start.clear()
-			self.recorder.start()
-			self._flag_recorder_started.set()
 		if self._flag_tr.is_set():
 			self._flag_tr.clear()
 			QTimer.singleShot(0,self.toggle_recording)
@@ -151,22 +147,20 @@ class Main:
 			if self.state_playback or self.state_autoclicker: return
 			if self.state_recording:
 				self.recorder.stop()
-				time.sleep(0.05)
+				QThread.msleep(10)
 			self.arr = copy.deepcopy(self.recorder.buffer)
 			if self.recorder.running:
 				self.error_emitter.error.emit("Could not toggle recording: Existing recorder object is still running, cannot create a new one.")
 				return
 			self.recorder = recorder.OneShotRecorder()
+			QThread.msleep(10)
 			self.error_emitter.error.emit("R2")
-			time.sleep(0)
 			if self.state_recording:
 				self.tray.setIcon(self.icon_static)
 				self.state_recording = False
 			else: 
 				self.state_recording = True
-				self._flag_recorder_started.clear()
-				self._flag_requested_recorder_start.set()
-				self._flag_recorder_started.wait()
+				self.recorder.start()
 				self.tray.setIcon(self.icon_rec)
 
 		except Exception:
