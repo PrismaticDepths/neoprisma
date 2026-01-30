@@ -98,7 +98,6 @@ class OneShotRecorder:
 
 	def start(self):
 		try:
-
 			assert self.starting_time == 0
 			self.starting_time = time.perf_counter_ns()
 			self.kb_listener.start()

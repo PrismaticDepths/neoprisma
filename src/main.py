@@ -89,6 +89,7 @@ class Main:
 		self.flag_poll.setInterval(100)
 		self.flag_poll.timeout.connect(self._flaghelper_recording)
 
+		self.flag_poll.start()
 		QTimer.singleShot(0,self.start_hotkeys)
 		QTimer.singleShot(0,self.init_recorder_and_simulator)
 		self.app.exec()
@@ -113,8 +114,8 @@ class Main:
 
 	def _flaghelper_recording(self):
 		if self._flag_requested_recorder_start.is_set():
-			self.recorder.start()
 			self._flag_requested_recorder_start.clear()
+			self.recorder.start()
 			self._flag_recorder_started.set()
 
 	def _toggle_recording(self):
@@ -131,18 +132,16 @@ class Main:
 		try:
 			if self.state_playback or self.state_autoclicker: return
 			self._flag_recorder_started.clear()
-			if self.state_recording: 
+			if self.state_recording:
 				self.recorder.stop()
 				time.sleep(0.05)
 			self.arr = copy.deepcopy(self.recorder.buffer)
-		
 			self.recorder = recorder.OneShotRecorder()
 			time.sleep(0)
 			if self.state_recording:
 				self.tray.setIcon(self.icon_static)
 				self.state_recording = False
 			else: 
-
 				self.state_recording = True
 				self._flag_requested_recorder_start.set()
 				self._flag_recorder_started.wait()
