@@ -43,7 +43,10 @@ class Main:
 		self._flag_requested_recorder_start = Event()
 		self._flag_recorder_started = Event()
 
-		
+		self._flag_tr = Event()
+		self._flag_tp = Event()
+		self._flag_ta = Event()
+
 		self.error_emitter = Emitter()
 		self.error_emitter.error.connect(lambda msg: QMessageBox.critical(None,"neoprisma: an error occured",msg if len(msg) <= 300 else msg[:300],QMessageBox.StandardButton.Ok))
 
@@ -87,7 +90,7 @@ class Main:
 
 		self.flag_poll = QTimer()
 		self.flag_poll.setInterval(200)
-		self.flag_poll.timeout.connect(self._flaghelper_recording)
+		self.flag_poll.timeout.connect(self._flaghelper)
 
 		QTimer.singleShot(0,self.start_hotkeys)
 		QTimer.singleShot(0,self.init_recorder_and_simulator)
@@ -115,20 +118,32 @@ class Main:
 	def _is_main_thread(self):
 		return QThread.currentThread() == self.app.thread()
 
-	def _flaghelper_recording(self):
+	def _flaghelper(self):
 		if self._flag_requested_recorder_start.is_set():
 			self._flag_requested_recorder_start.clear()
 			self.recorder.start()
 			self._flag_recorder_started.set()
+		if self._flag_tr.is_set():
+			self._flag_tr.clear()
+			QTimer.singleShot(0,self.toggle_recording)
+		if self._flag_tp.is_set():
+			self._flag_tp.clear()
+			QTimer.singleShot(0,self.toggle_playback)
+		if self._flag_ta.is_set():
+			self._flag_ta.clear()
+			QTimer.singleShot(0,self.toggle_autoclicker)
+
+
+		
 
 	def _toggle_recording(self):
-		self.toggle_recording()
+		self._flag_tr.set()
 
 	def _toggle_playback(self):
-		self.toggle_playback()
+		self._flag_tp.set()
 
 	def _toggle_autoclicker(self):
-		self.toggle_autoclicker()
+		self._flag_ta.set()
 
 	def toggle_recording(self):
 		self.error_emitter.error.emit("R")
