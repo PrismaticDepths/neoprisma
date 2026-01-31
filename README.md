@@ -26,7 +26,7 @@ If you are satisfied, execute the following in your terminal:
 curl -fsSL https://raw.githubusercontent.com/PrismaticDepths/neoprisma/main/install.sh | bash
 ```
 
-This will:
+This will do the following for you:
 
 1. Ensure all dependencies are installed before running
 2. Ask to clean the target build directory (if it already exists)
