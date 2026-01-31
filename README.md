@@ -15,11 +15,11 @@ It is the successor to Prism's Autoclicker 4.0.
 Neoprisma can be built and installed with its dedicated installer script.\
 Support for installation via Homebrew is planned to be added soon.
 
-You may inspect `install.sh` in this repository to make sure the code you are about to run is trustworthy.\
+You may inspect `install.sh` in the stable branch of this repository to make sure the code you are about to run is trustworthy.\
 If you are satisfied, execute the following in your terminal:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/PrismaticDepths/neoprisma/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/PrismaticDepths/neoprisma/stable/install.sh | bash
 ```
 
 Once the install finishes, grant the application "Input Monitoring" and "Accessibility" permissions in System Settings.
