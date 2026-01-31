@@ -39,13 +39,6 @@ class Main:
 		self.state_autoclicker = False
 		self.timestamp_multiplier = 1
 
-		self._flag_requested_recorder_start = Event()
-		self._flag_recorder_started = Event()
-
-		self._flag_tr = Event()
-		self._flag_tp = Event()
-		self._flag_ta = Event()
-
 		self.error_emitter = Emitter()
 		self.error_emitter.error.connect(lambda msg: QMessageBox.critical(None,"neoprisma: an error occured",msg if len(msg) <= 300 else msg[:300],QMessageBox.StandardButton.Ok))
 
@@ -86,13 +79,8 @@ class Main:
 		# Add the menu to the tray
 		self.tray.setContextMenu(self.menu)
 
-		self.flag_poll = QTimer()
-		self.flag_poll.setInterval(200)
-		self.flag_poll.timeout.connect(self._flaghelper)
-
 		QTimer.singleShot(0,self.start_hotkeys)
 		QTimer.singleShot(0,self.init_recorder_and_simulator)
-		#QTimer.singleShot(0,self.flag_poll.start)
 		self.app.exec()
 
 	def init_recorder_and_simulator(self):
@@ -113,43 +101,12 @@ class Main:
 		except Exception:
 			self.error_emitter.error.emit("Could not start the global hotkey listener: "+traceback.format_exc())
 
-	def _is_main_thread(self):
-		return QThread.currentThread() == self.app.thread()
-
-	def _flaghelper(self):
-
-		if self._flag_tr.is_set():
-			self._flag_tr.clear()
-			QTimer.singleShot(1,self.toggle_recording)
-		if self._flag_tp.is_set():
-			self._flag_tp.clear()
-			QTimer.singleShot(1,self.toggle_playback)
-		if self._flag_ta.is_set():
-			self._flag_ta.clear()
-			QTimer.singleShot(1,self.toggle_autoclicker)
-
-
-	def _toggle_recording(self):
-		self._flag_tr.set()
-
-	def _toggle_playback(self):
-		self._flag_tp.set()
-
-	def _toggle_autoclicker(self):
-		self._flag_ta.set()
-
 	def toggle_recording(self):
 		try:
 			if self.state_playback or self.state_autoclicker: return
 			if self.state_recording:
 				self.recorder.stop()
-				#QThread.msleep(10)
 			self.arr = copy.deepcopy(self.recorder.buffer)
-			#if self.recorder.running:
-			#	self.error_emitter.error.emit("Could not toggle recording: Existing recorder object is still running, cannot create a new one.")
-			#	return
-			#self.recorder = recorder.OneShotRecorder()
-			#QThread.msleep(10)
 			if self.state_recording:
 				self.tray.setIcon(self.icon_static)
 				self.state_recording = False
@@ -157,15 +114,12 @@ class Main:
 				self.state_recording = True
 				self.recorder.start()
 				self.tray.setIcon(self.icon_rec)
-				
-
 		except Exception:
 			self.error_emitter.error.emit(traceback.format_exc())
 
 	def toggle_playback(self):
 		try:
 			if self.state_recording or self.state_autoclicker: return
-			# print('play:', not self.state_playback)
 			if self.state_playback:
 				self.tray.setIcon(self.icon_static)
 				playback.abortPlayback()
