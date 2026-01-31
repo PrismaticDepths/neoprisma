@@ -47,7 +47,7 @@ class Main:
 		self.icon_static = QIcon(resource_path("assets/static.png"))
 		self.icon_rec = QIcon(resource_path("assets/cbimage.png"))
 		self.icon_play = QIcon(resource_path("assets/cbimage-2.png"))
-		self.icon_auto = QIcon(resource_path("assets/icon.png"))
+		self.icon_auto = QIcon(resource_path("assets/auto.png"))
 
 		self.tray = QSystemTrayIcon()
 		self.tray.setIcon(self.icon_static)
