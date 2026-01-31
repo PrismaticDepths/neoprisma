@@ -14,17 +14,17 @@ It is the successor to Prism's Autoclicker 4.0.
 Neoprisma can be build and installed with its dedicated installer script.\
 Support for installation via Homebrew is planned to be added soon.
 
-> Please note that you will still need to install Python, pip, and Apple's Command Line Tools as a prerequisite for installing neoprisma. Pip is usually bundled with Python. If you have already installed these in the past, you may skip this step.
->
-> - Official downloads for Python: https://www.python.org/downloads/
-> - See this page for info on the Command Line Tools: https://developer.apple.com/documentation/xcode/installing-the-command-line-tools/
-
 You may inspect `install.sh` in this repository to make sure the code you are about to run is trustworthy.\
 If you are satisfied, execute the following in your terminal:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/PrismaticDepths/neoprisma/main/install.sh | bash
 ```
+
+> Please note that you will still need to install Python, pip, and Apple's Command Line Tools as a prerequisite for installing neoprisma. Pip is usually bundled with Python. If you have already installed these in the past, you may skip this step.
+>
+> - Official downloads for Python: https://www.python.org/downloads/
+> - See this page for info on the Command Line Tools: https://developer.apple.com/documentation/xcode/installing-the-command-line-tools/
 
 This will do the following for you:
 
@@ -45,7 +45,7 @@ All hotkeys are in the range of `<ctrl>+<fn>+<f7-f9>` (or `<ctrl>+<f7-f9>` if yo
 
 `<ctrl><fn><f7>` - toggle recording\
 `<ctrl><fn><f8>` - toggle autoclicker\
-`<ctrl><fn><f9>` - toggle playback\
+`<ctrl><fn><f9>` - toggle playback
 
 ## Known Issues
 
