@@ -58,6 +58,7 @@ class OneShotRecorder:
 		self.kb_listener = pynput.keyboard.Listener(on_press=self.captured_key_press,on_release=self.captured_key_release)
 		self.mouse_listener = pynput.mouse.Listener(on_move=self.captured_mouse_move,on_click=self.captured_mouse_click,on_scroll=self.captured_mouse_scroll)
 		self.running = False
+		time.sleep(0.1)
 		self.kb_listener.start()
 		self.kb_listener.wait()
 		self.mouse_listener.start()
