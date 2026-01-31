@@ -66,28 +66,36 @@ class OneShotRecorder:
 		
 
 	def log_event(self,timestamp,event,*payload):
+		if not self.running: return
 		self.buffer.extend(struct.pack(EVENT_HEADER_FMT+PAYLOAD_FMTS[event],timestamp,event,*payload))
 
 	def captured_key_press(self,key:pynput.keyboard.Key|pynput.keyboard.KeyCode):
 		t=time.perf_counter_ns()-self.starting_time
-		if not self.running: return
+		
+		
 		vk = key.vk if isinstance(key,pynput.keyboard.KeyCode) else key.value.vk
-		if 59 in self.keysdown and vk in [101,41]: return
 		self.keysdown.add(vk)
+		if 59 in self.keysdown and vk in [101,98]: 
+			return
+
 		self.log_event(t,Events.KEY_DOWN,vk)
 
 	def captured_key_release(self,key:pynput.keyboard.Key|pynput.keyboard.KeyCode):
 		t=time.perf_counter_ns()-self.starting_time
-		if not self.running: return
 		vk = key.vk if isinstance(key,pynput.keyboard.KeyCode) else key.value.vk
-		if 59 in self.keysdown and vk in [101,41]: return
-		try: self.keysdown.discard(vk)
-		except Exception: pass
+
+		if vk not in self.keysdown: return
+		if 59 in self.keysdown and vk in [101,98]: 
+			self.keysdown.discard(vk)
+			return
+		else:
+			self.keysdown.discard(vk)
+
 		self.log_event(t,Events.KEY_UP,vk)
 
 	def captured_mouse_click(self,x,y,button,pressed):
 		t=time.perf_counter_ns()-self.starting_time
-		if not self.running: return
+		
 		b = list(pynput.mouse.Button).index(button)
 		self.log_event(t,Events.MOUSE_DOWN if pressed else Events.MOUSE_UP,b,int(x),int(y))
 		if pressed: self.clicks.append(b) 
@@ -97,7 +105,7 @@ class OneShotRecorder:
 
 	def captured_mouse_move(self,x,y):
 		t=time.perf_counter_ns()-self.starting_time
-		if not self.running: return
+		
 		if len(self.clicks)!=0:
 			self.log_event(t,Events.MOUSE_DRAG,self.clicks[-1],int(x),int(y))
 		else:
@@ -105,12 +113,13 @@ class OneShotRecorder:
 
 	def captured_mouse_scroll(self,x,y,dx,dy):
 		t=time.perf_counter_ns()-self.starting_time
-		if not self.running: return
+		
 		self.log_event(t,Events.MOUSE_SCROLL,int(x),int(y),int(dx),int(dy))
 
 	def start(self):
 		self.buffer = bytearray()
 		self.buffer.extend(struct.pack(FILE_HEADER_FMT,FILE_HEADER_ID,MAJOR_FMT_VERSION))
+		self.keysdown = set()
 		self.starting_time = time.perf_counter_ns()
 		self.running = True
 

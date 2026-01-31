@@ -49,15 +49,15 @@ All hotkeys are in the range of `<ctrl>+<fn>+<f7-f9>` (or `<ctrl>+<f7-f9>` if yo
 
 ## Known Issues
 
-Pynput will sometimes crash due to a bug within the library, causing hotkeys to be unresponsive. Additionally, the program will sometimes get `trace trap`'d by the OS for no apparent reason when you toggle recording on. However, neoprisma is still much more stable than prism's autoclicker.
+Pynput will sometimes crash due to a bug within the library, causing hotkeys to be unresponsive. Additionally, the program will sometimes get `trace trap`'d by the OS for no apparent reason when you toggle recording on. However, Neoprisma is still much more stable than prism's autoclicker.
 
-Neoprisma hotkeys are often logged during recording. Existing safeguards should prevent this from affecting anything, but they do still get logged.
+Parts of Neoprisma hotkeys can sometimes get caught in recordings. In theory, this should have little to no effect since Neoprisma already blocks activation of recording, playing, or autoclicking if it is already doing one of the three.
 
 ## Performance
 
 CPU usage does not seem to be excessive, nor does battery usage.
-This is somewhat surprising considering that neoprisma isn't optimized for either, and mostly optimized for accurate playback.
+This is somewhat surprising considering that Neoprisma isn't optimized for either, and mostly optimized for accurate playback.
 
-When testing with a recording of Geometry Dash gameplay, neoprisma didn't do the best, getting as far as the middle of the Stereo Madness ship section after several tries.
+When testing with a recording of Geometry Dash gameplay (Stereo Madness), Neoprisma didn't do the best, getting as far as the middle of the first ship section after several tries.
 
 Setting the process priority to 20 may help.
