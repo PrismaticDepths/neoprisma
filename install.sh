@@ -89,7 +89,7 @@ fi
 
 echo "Cloning repo into build dir..."
 
-git clone https://github.com/PrismaticDepths/neoprisma "$BUILD_DIR"
+git clone -b stable https://github.com/PrismaticDepths/neoprisma "$BUILD_DIR"
 cd "$BUILD_DIR"
 
 echo "Installing Python dependencies..."
