@@ -4,7 +4,7 @@ set -euo pipefail
 exec 3</dev/tty
 
 while true; do
-	read -r -u 3 -p "The Neoprisma installer is still in development and the resulting app will likely be glitchy or fail entirely. Install anyways? [y/n] " yn < /dev/tty
+	read -r -u 3 -p "This installer will build/compile Neoprisma locally and install it. Python >= 3.10 is recommended. Proceed? [y/n] " yn < /dev/tty
 	case $yn in
 		[Yy]* ) echo "Installing..."; break;; # Break the loop and continue script
 		[Nn]* ) echo "Exiting..."; exit;; # Exit the script
