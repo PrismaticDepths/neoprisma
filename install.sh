@@ -114,7 +114,7 @@ echo "Building application bundle..."
 pyinstaller \
 	--windowed \
 	--name "$APP_NAME" \
-	--icon "src/assets/appicon.png" \
+	--icon "src/assets/appicon" \
 	--osx-bundle-identifier "$BUNDLE_ID" \
 	--add-data "src:src" \
 	--add-data "src/assets:assets" \
