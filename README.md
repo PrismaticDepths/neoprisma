@@ -43,17 +43,15 @@ This will do the following for you:
 
 All hotkeys are in the range of `<ctrl>+<fn>+<f7-f9>` (or `<ctrl>+<f7-f9>` if you have configured the function keys to need fn to do their special action)
 
-`<f7>` - toggle recording\
-`<f8>` - toggle autoclicker\
-`<f9>` - toggle playback\
+`<ctrl><fn><f7>` - toggle recording\
+`<ctrl><fn><f8>` - toggle autoclicker\
+`<ctrl><fn><f9>` - toggle playback\
 
 ## Known Issues
 
 Pynput will sometimes crash due to a bug within the library, causing hotkeys to be unresponsive. Additionally, the program will sometimes get `trace trap`'d by the OS for no apparent reason when you toggle recording on. However, neoprisma is still much more stable than prism's autoclicker.
 
-When ran as an app, Neoprisma currently fails as soon as recording is toggled on. This is due to extremely tight security regulations from MacOS, and the app is forcibly killed by the operating system with no way to catch or stop the termination. I am working on fixing this, but it might be a while.
-
-A workaround to this is running the executable file inside the app bundle using your terminal. In Dinder, navigate to the installed neoprisma app (likely at `~/Applications/neoprisma`) and click "Show Contents". Open the "Contents" folder and then the "MacOS" folder and run the executable file you see. After granting your terminal accessibility and input monitoring permissons, you should be able to use neoprisma.
+Neoprisma hotkeys are often logged during recording. Existing safeguards should prevent this from affecting anything, but they do still get logged.
 
 ## Performance
 
