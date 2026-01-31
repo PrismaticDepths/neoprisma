@@ -159,7 +159,9 @@ class Main:
 			else: 
 				self.state_recording = True
 				QTimer.singleShot(50,self.recorder.start)
+				QThread.msleep(55)
 				self.tray.setIcon(self.icon_rec)
+				
 
 		except Exception:
 			self.error_emitter.error.emit(traceback.format_exc())
