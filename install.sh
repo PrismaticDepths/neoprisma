@@ -100,6 +100,7 @@ PIP="python3 -m pip"
 $PIP install --upgrade pip
 $PIP install -r requirements.txt
 $PIP install pyinstaller
+$PIP install pillow
 cd src
 
 echo "Building binaries..."
