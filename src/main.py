@@ -158,7 +158,7 @@ class Main:
 				self.state_recording = False
 			else: 
 				self.state_recording = True
-				QTimer.singleShot(10,self.recorder.start)
+				QTimer.singleShot(50,self.recorder.start)
 				self.tray.setIcon(self.icon_rec)
 
 		except Exception:
