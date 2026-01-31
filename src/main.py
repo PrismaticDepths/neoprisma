@@ -92,7 +92,7 @@ class Main:
 
 		QTimer.singleShot(0,self.start_hotkeys)
 		QTimer.singleShot(0,self.init_recorder_and_simulator)
-		QTimer.singleShot(0,self.flag_poll.start)
+		#QTimer.singleShot(0,self.flag_poll.start)
 		self.app.exec()
 
 	def init_recorder_and_simulator(self):
@@ -105,9 +105,9 @@ class Main:
 	def start_hotkeys(self):
 		try:
 			self.h = pynput.keyboard.GlobalHotKeys({
-			'<ctrl>+<f7>': self._toggle_recording,
-			'<ctrl>+<f9>': self._toggle_playback,
-			'<ctrl>+<f8>': self._toggle_autoclicker},
+			'<ctrl>+<f7>': self.toggle_recording,
+			'<ctrl>+<f9>': self.toggle_playback,
+			'<ctrl>+<f8>': self.toggle_autoclicker},
 			on_error=self.error_emitter.error.emit)
 			self.h.start()
 		except Exception:
@@ -139,19 +139,17 @@ class Main:
 		self._flag_ta.set()
 
 	def toggle_recording(self):
-		self.error_emitter.error.emit("R")
 		try:
 			if self.state_playback or self.state_autoclicker: return
 			if self.state_recording:
 				self.recorder.stop()
-				QThread.msleep(10)
+				#QThread.msleep(10)
 			self.arr = copy.deepcopy(self.recorder.buffer)
-			if self.recorder.running:
-				self.error_emitter.error.emit("Could not toggle recording: Existing recorder object is still running, cannot create a new one.")
-				return
-			self.recorder = recorder.OneShotRecorder()
-			QThread.msleep(10)
-			self.error_emitter.error.emit("R2")
+			#if self.recorder.running:
+			#	self.error_emitter.error.emit("Could not toggle recording: Existing recorder object is still running, cannot create a new one.")
+			#	return
+			#self.recorder = recorder.OneShotRecorder()
+			#QThread.msleep(10)
 			if self.state_recording:
 				self.tray.setIcon(self.icon_static)
 				self.state_recording = False
