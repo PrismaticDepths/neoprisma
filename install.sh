@@ -34,10 +34,8 @@ while getopts ":b:i:r:" opt; do
 			BRANCH="$OPTARG"
 			;;
 		\?)
-			echo "
-			Invalid option. Usage:
-			curl -fsSL https://raw.githubusercontent.com/PrismaticDepths/neoprisma/stable/install.sh | bash -s -- [-r BRANCH] [-b BUILD_DIR] [-i INSTALL_DIR] [-h]
-			" >&2
+			echo "Invalid option. Usage:
+curl -fsSL https://raw.githubusercontent.com/PrismaticDepths/neoprisma/stable/install.sh | bash -s -- [-r BRANCH] [-b BUILD_DIR] [-i INSTALL_DIR] [-h]" >&2
 			exit 1
 			;;
 		:)
