@@ -44,7 +44,7 @@ class Main:
 
 		self.app.setQuitOnLastWindowClosed(False)
 
-		self.icon_static = QIcon(resource_path("assets/icon.png"))
+		self.icon_static = QIcon(resource_path("assets/static.png"))
 		self.icon_rec = QIcon(resource_path("assets/cbimage.png"))
 		self.icon_play = QIcon(resource_path("assets/cbimage-2.png"))
 		self.icon_auto = QIcon(resource_path("assets/icon.png"))
