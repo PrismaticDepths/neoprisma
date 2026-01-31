@@ -56,6 +56,7 @@ class OneShotRecorder:
 		self.buffer = bytearray()
 		self.buffer.extend(struct.pack(FILE_HEADER_FMT,FILE_HEADER_ID,MAJOR_FMT_VERSION)) # Add the file header
 		self.kb_listener = None
+		self.mouse_listener = None
 		self.running = False
 
 	def log_event(self,timestamp,event,*payload):
