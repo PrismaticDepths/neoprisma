@@ -20,7 +20,7 @@ BUNDLE_ID="com.prismaticdepths.neoprisma"
 BRANCH="stable"
 
 while getopts ":b:i:r:" opt; do
-	case $opt in
+	case "$opt" in
 		b)
 			echo "Using BUILD_DIR $OPTARG"
 			BUILD_DIR="$OPTARG"
