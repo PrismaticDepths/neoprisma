@@ -47,15 +47,15 @@ while getopts ":b:i:r:" opt; do
 	esac
 done
 
-if [ "$#" -gt 0 ] then
+if [ "$#" -gt 0 ]; then
 	while true; do
-	read -r -u 3 -p "The installer was invoked with flags that can modify its behaviour. Install anyways? [y/n] " yn < /dev/tty
-	case $yn in
-		[Yy]* ) echo "Installing..."; break;; # Break the loop and continue script
-		[Nn]* ) echo "Exiting..."; exit;; # Exit the script
-		* ) echo "Please answer yes or no.";; # Loop back for invalid input
-	esac
-done
+		read -r -u 3 -p "The installer was invoked with flags that can modify its behaviour. Install anyways? [y/n] " yn < /dev/tty
+		case $yn in
+			[Yy]* ) echo "Installing..."; break;; # Break the loop and continue script
+			[Nn]* ) echo "Exiting..."; exit;; # Exit the script
+			* ) echo "Please answer yes or no.";; # Loop back for invalid input
+		esac
+	done
 fi
 
 echo "Checking OS and arch..."
