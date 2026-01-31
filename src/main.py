@@ -44,10 +44,10 @@ class Main:
 
 		self.app.setQuitOnLastWindowClosed(False)
 
-		self.icon_static = QIcon(resource_path("assets/static.png"))
-		self.icon_rec = QIcon(resource_path("assets/cbimage.png"))
-		self.icon_play = QIcon(resource_path("assets/cbimage-2.png"))
-		self.icon_auto = QIcon(resource_path("assets/auto.png"))
+		self.icon_static = QIcon(resource_path("assets/neoprisma-static.png"))
+		self.icon_rec = QIcon(resource_path("assets/neoprisma-rec.png"))
+		self.icon_play = QIcon(resource_path("assets/neoprisma-play.png"))
+		self.icon_auto = QIcon(resource_path("assets/neoprisma-ac.png"))
 
 		self.tray = QSystemTrayIcon()
 		self.tray.setIcon(self.icon_static)
