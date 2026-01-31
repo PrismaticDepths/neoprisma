@@ -100,7 +100,6 @@ PIP="python3 -m pip"
 $PIP install --upgrade pip
 $PIP install -r requirements.txt
 $PIP install pyinstaller
-$PIP install pillow
 cd src
 
 echo "Building binaries..."
@@ -114,7 +113,7 @@ echo "Building application bundle..."
 pyinstaller \
 	--windowed \
 	--name "$APP_NAME" \
-	--icon "src/assets/appicon" \
+	--icon "src/assets/ico-dark.icns" \
 	--osx-bundle-identifier "$BUNDLE_ID" \
 	--add-data "src:src" \
 	--add-data "src/assets:assets" \
