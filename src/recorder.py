@@ -103,7 +103,9 @@ class OneShotRecorder:
 			assert self.starting_time == 0
 			self.starting_time = time.perf_counter_ns()
 			self.kb_listener.start()
+			self.kb_listener.wait()
 			self.mouse_listener.start()
+			self.mouse_listener.wait()
 			self.running = True
 		except Exception:
 			raise RuntimeError("Failed to initialize & start keyboard/mouse listeners. Recorder may already be started.")
