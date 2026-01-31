@@ -26,7 +26,6 @@ from resources import resource_path
 class Emitter(QObject):
 	error = pyqtSignal(str)
 
-
 class Main:
 
 	def __init__(self):
@@ -49,7 +48,6 @@ class Main:
 
 		self.error_emitter = Emitter()
 		self.error_emitter.error.connect(lambda msg: QMessageBox.critical(None,"neoprisma: an error occured",msg if len(msg) <= 300 else msg[:300],QMessageBox.StandardButton.Ok))
-
 
 		self.app.setQuitOnLastWindowClosed(False)
 
