@@ -67,7 +67,7 @@ class Main:
 		self.load_widget.triggered.connect(self.load)
 		self.save_widget = QAction("Save Recording")
 		self.save_widget.triggered.connect(self.save)
-		self.conf_widget = QAction("Settings")
+		self.conf_widget = QAction("Settings (COMING SOON)")
 
 		self.menu.addActions([self.toggle_rec_widget,self.toggle_play_widget,self.toggle_auto_widget,self.load_widget,self.save_widget,self.conf_widget])
 
