@@ -11,7 +11,7 @@ It is the successor to Prism's Autoclicker 4.0.
 
 ## Installation
 
-Neoprisma can be build and installed with its dedicated installer script.\
+Neoprisma can be built and installed with its dedicated installer script.\
 Support for installation via Homebrew is planned to be added soon.
 
 You may inspect `install.sh` in this repository to make sure the code you are about to run is trustworthy.\
