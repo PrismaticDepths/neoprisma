@@ -109,7 +109,7 @@ class Main:
 			'<ctrl>+<f9>': self._toggle_playback,
 			'<ctrl>+<f8>': self._toggle_autoclicker},
 			on_error=self.error_emitter.error.emit)
-			self.h.start()
+			#self.h.start()
 		except Exception:
 			self.error_emitter.error.emit("Could not start the global hotkey listener: "+traceback.format_exc())
 
