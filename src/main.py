@@ -109,7 +109,7 @@ class Main:
 			'<ctrl>+<f9>': self._toggle_playback,
 			'<ctrl>+<f8>': self._toggle_autoclicker},
 			on_error=self.error_emitter.error.emit)
-			#self.h.start()
+			self.h.start()
 		except Exception:
 			self.error_emitter.error.emit("Could not start the global hotkey listener: "+traceback.format_exc())
 
@@ -117,18 +117,17 @@ class Main:
 		return QThread.currentThread() == self.app.thread()
 
 	def _flaghelper(self):
+
 		if self._flag_tr.is_set():
 			self._flag_tr.clear()
-			QTimer.singleShot(0,self.toggle_recording)
+			QTimer.singleShot(1,self.toggle_recording)
 		if self._flag_tp.is_set():
 			self._flag_tp.clear()
-			QTimer.singleShot(0,self.toggle_playback)
+			QTimer.singleShot(1,self.toggle_playback)
 		if self._flag_ta.is_set():
 			self._flag_ta.clear()
-			QTimer.singleShot(0,self.toggle_autoclicker)
+			QTimer.singleShot(1,self.toggle_autoclicker)
 
-
-		
 
 	def _toggle_recording(self):
 		self._flag_tr.set()
@@ -158,8 +157,7 @@ class Main:
 				self.state_recording = False
 			else: 
 				self.state_recording = True
-				QTimer.singleShot(50,self.recorder.start)
-				QThread.msleep(55)
+				self.recorder.start()
 				self.tray.setIcon(self.icon_rec)
 				
 
