@@ -11,6 +11,7 @@ if SRC not in sys.path:
 
 import playback
 import recorder
+import globalconfwizard
 import pynput
 import copy
 import traceback
@@ -19,7 +20,21 @@ import sys
 from threading import Thread, Event
 from PyQt6.QtGui import QAction,QIcon
 from PyQt6.QtCore import QObject,pyqtSignal, QTimer, QMetaObject, Qt, QThread
-from PyQt6.QtWidgets import QApplication,QSystemTrayIcon,QMenu, QFileDialog, QMessageBox, QWidget
+from PyQt6.QtWidgets import (
+	QApplication,
+	QSystemTrayIcon,
+	QMenu, 
+	QFileDialog, 
+	QMessageBox, 
+	QWidget, 
+	QLabel,
+	QDial,
+	QCheckBox,
+	QComboBox,
+	QTextEdit,
+	QSpinBox,
+	QSlider
+)
 from resources import resource_path
 
 
@@ -38,6 +53,27 @@ class Main:
 		self.state_playback = False
 		self.state_autoclicker = False
 		self.timestamp_multiplier = 1
+		self.keysdown = set()
+		self.hotkeys = {
+			"play": set(),
+			"record": set(),
+			"auto": set()
+		}
+
+		if os.path.exists("~/.neoprisma"):
+			conf_data=globalconfwizard.unpack("~/.neoprisma")
+		else:
+			conf_data={
+				"DOC":"NEOPRISMA CONFIGURATION DATA",
+				"KEYBIND_TOGGLE_RECORD":"59 98",
+				"KEYBIND_TOGGLE_AUTOCLICK":"59 100",
+				"KEYBIND_TOGGLE_PLAYBACK":"59 101"
+			}
+			globalconfwizard.pack("~/.neoprisma",conf_data)
+			
+		self.hotkeys["play"] = set(int(i) for i in conf_data["KEYBIND_TOGGLE_PLAYBACK"].split(" "))
+		self.hotkeys["record"] = set(int(i) for i in conf_data["KEYBIND_TOGGLE_RECORD"].split(" "))
+		self.hotkeys["auto"] = set(int(i) for i in conf_data["KEYBIND_TOGGLE_AUTOCLICK"].split(" "))
 
 		self.error_emitter = Emitter()
 		self.error_emitter.error.connect(lambda msg: QMessageBox.critical(None,"neoprisma: an error occured",msg if len(msg) <= 300 else msg[:300],QMessageBox.StandardButton.Ok))
@@ -76,12 +112,29 @@ class Main:
 		quit.triggered.connect(self.app.quit)
 		self.menu.addAction(quit)
 
+		self.settingsw = QWidget()
+		self.settingsw.setWindowTitle("Settings")
+		self.settingsw_label = QLabel("hi",self.settingsw)
+		self.settingsw_speedslider = QSlider()
+		self.settingsw_speedslider.setRange(0,10)
+		self.settingsw_speedslider.setValue(5)
+		self.settingsw_speedslider.valueChanged.connect()
+		self.settingsw.show()
+
 		# Add the menu to the tray
 		self.tray.setContextMenu(self.menu)
 
 		QTimer.singleShot(0,self.start_hotkeys)
 		QTimer.singleShot(0,self.init_recorder_and_simulator)
 		self.app.exec()
+
+	def listener_hotkeysv2_handlekeypress(self,key:pynput.keyboard.Key|pynput.keyboard.KeyCode): # this is a very long name
+		vk = key.vk if isinstance(key,pynput.keyboard.KeyCode) else key.value.vk
+		self.keysdown.add(vk)
+	def listener_hotkeysv2_handlekeyrelease(self,key:pynput.keyboard.Key|pynput.keyboard.KeyCode): # this is a very long name too
+		vk = key.vk if isinstance(key,pynput.keyboard.KeyCode) else key.value.vk
+		self.keysdown.discard(vk)
+
 
 	def init_recorder_and_simulator(self):
 			try:
