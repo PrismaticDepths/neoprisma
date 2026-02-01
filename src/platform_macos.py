@@ -60,8 +60,8 @@ class Main:
 			"auto": set()
 		}
 
-		if os.path.exists("~/.neoprisma"):
-			conf_data=globalconfwizard.unpack("~/.neoprisma")
+		if os.path.exists(os.path.expanduser("~/.neoprisma")):
+			conf_data=globalconfwizard.unpack(os.path.expanduser("~/.neoprisma"))
 		else:
 			conf_data={
 				"DOC":"NEOPRISMA CONFIGURATION DATA",
@@ -69,8 +69,8 @@ class Main:
 				"KEYBIND_TOGGLE_AUTOCLICK":"59 100",
 				"KEYBIND_TOGGLE_PLAYBACK":"59 101"
 			}
-			globalconfwizard.pack("~/.neoprisma",conf_data)
-			
+			globalconfwizard.pack(os.path.expanduser("~/.neoprisma"),conf_data)
+
 		self.hotkeys["play"] = set(int(i) for i in conf_data["KEYBIND_TOGGLE_PLAYBACK"].split(" "))
 		self.hotkeys["record"] = set(int(i) for i in conf_data["KEYBIND_TOGGLE_RECORD"].split(" "))
 		self.hotkeys["auto"] = set(int(i) for i in conf_data["KEYBIND_TOGGLE_AUTOCLICK"].split(" "))

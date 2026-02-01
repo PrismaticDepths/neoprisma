@@ -24,10 +24,10 @@ def unpack(fpath):
 		if data["DOC"] != "NEOPRISMA CONFIGURATION DATA": raise RuntimeError("Non-compatible DOC tag.")
 	return data
 
-def pack(fpath,data):
-	
+def pack(fpath,data:dict):
+
 	with open(fpath,"w") as cfile:
 		packed=""
-		for key,value in data:
+		for key,value in data.items():
 			packed += f"{key.upper()}% {value}\n"
 		cfile.write(packed)
