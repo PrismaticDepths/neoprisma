@@ -46,6 +46,16 @@ Events.MOUSE_DRAG:"BHH", #UINT8,UINT16,UINT16
 # toggle playing recordings is ctrl f9 also avoid that
 # ctrl f8 is fine since that will toggle the autoclicker
 
+modifiers = [
+	55,
+	54,
+	58,
+	61,
+	59,
+	63,
+	56, #lshift
+	60 #rshift
+]
 
 class OneShotRecorder:
 	def __init__(self):
@@ -70,27 +80,22 @@ class OneShotRecorder:
 		if not self.running: return
 		self.buffer.extend(struct.pack(EVENT_HEADER_FMT+PAYLOAD_FMTS[event],timestamp,event,*payload))
 
-	def captured_key_press(self,key:pynput.keyboard.Key|pynput.keyboard.KeyCode):
+	def captured_key_press(self,key:pynput.keyboard.Key|pynput.keyboard.KeyCode,i):
 		t=time.perf_counter_ns()-self.starting_time
-		
+		if i: return
 		
 		vk = key.vk if isinstance(key,pynput.keyboard.KeyCode) else key.value.vk
 		self.keysdown.add(vk)
-		if 59 in self.keysdown and vk in [101,98]: 
-			return
 
 		self.log_event(t,Events.KEY_DOWN,vk)
 
-	def captured_key_release(self,key:pynput.keyboard.Key|pynput.keyboard.KeyCode):
+	def captured_key_release(self,key:pynput.keyboard.Key|pynput.keyboard.KeyCode,i):
 		t=time.perf_counter_ns()-self.starting_time
+		if i: return
 		vk = key.vk if isinstance(key,pynput.keyboard.KeyCode) else key.value.vk
 
 		if vk not in self.keysdown: return
-		if 59 in self.keysdown and vk in [101,98]: 
-			self.keysdown.discard(vk)
-			return
-		else:
-			self.keysdown.discard(vk)
+		self.keysdown.discard(vk)
 
 		self.log_event(t,Events.KEY_UP,vk)
 

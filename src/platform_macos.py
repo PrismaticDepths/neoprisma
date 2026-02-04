@@ -107,7 +107,8 @@ class Main:
 		self.load_widget.triggered.connect(self.load)
 		self.save_widget = QAction("Save Recording")
 		self.save_widget.triggered.connect(self.save)
-		self.conf_widget = QAction("Settings (COMING SOON)")
+		self.conf_widget = QAction("Settings")
+		self.conf_widget.triggered.connect(lambda: self.settingsw.show())
 
 		self.menu.addActions([self.toggle_rec_widget,self.toggle_play_widget,self.toggle_auto_widget,self.load_widget,self.save_widget,self.conf_widget])
 
@@ -168,7 +169,6 @@ class Main:
 		self.settingsw_save = QPushButton("Save configurations",self.settingsw)
 		self.settingsw_save.clicked.connect(self.save_configurations)
 		self.settingsw_layout.addWidget(self.settingsw_save)
-		self.settingsw.show()
 
 		# Add the menu to the tray
 		self.tray.setContextMenu(self.menu)
@@ -194,7 +194,8 @@ class Main:
 			if hk.startswith("KEYBIND"): 
 				self.conf_data[hk] = " ".join([str(i) for i in self.keysdown])
 
-	def listener_hotkeysv2_handlekeypress(self,key:pynput.keyboard.Key|pynput.keyboard.KeyCode): # this is a very long name
+	def listener_hotkeysv2_handlekeypress(self,key:pynput.keyboard.Key|pynput.keyboard.KeyCode,i): # this is a very long name
+		if i: return
 		vk = key.vk if isinstance(key,pynput.keyboard.KeyCode) else key.value.vk
 		self.keysdown.add(vk)
 		print(self.keysdown)
@@ -209,7 +210,8 @@ class Main:
 			self.toggle_autoclicker()
 			return
 
-	def listener_hotkeysv2_handlekeyrelease(self,key:pynput.keyboard.Key|pynput.keyboard.KeyCode): # this is a very long name too
+	def listener_hotkeysv2_handlekeyrelease(self,key:pynput.keyboard.Key|pynput.keyboard.KeyCode,i): # this is a very long name too
+		if i: return
 		vk = key.vk if isinstance(key,pynput.keyboard.KeyCode) else key.value.vk
 		self.keysdown.discard(vk)
 
