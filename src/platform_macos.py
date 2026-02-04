@@ -108,7 +108,7 @@ class Main:
 		self.save_widget = QAction("Save Recording")
 		self.save_widget.triggered.connect(self.save)
 		self.conf_widget = QAction("Settings")
-		self.conf_widget.triggered.connect(lambda: self.settingsw.show())
+		self.conf_widget.triggered.connect(self.settingsw_popup)
 
 		self.menu.addActions([self.toggle_rec_widget,self.toggle_play_widget,self.toggle_auto_widget,self.load_widget,self.save_widget,self.conf_widget])
 
@@ -176,6 +176,11 @@ class Main:
 		QTimer.singleShot(0,self.start_hotkeys)
 		QTimer.singleShot(0,self.init_recorder_and_simulator)
 		self.app.exec()
+
+	def settingsw_popup(self):
+		self.settingsw.show()
+		self.settingsw.activateWindow()
+		self.settingsw.raise_()
 
 	def upd_speed(self,x):
 		if x == 0: return
