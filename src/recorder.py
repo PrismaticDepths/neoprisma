@@ -63,6 +63,7 @@ class OneShotRecorder:
 		self.kb_listener.wait()
 		self.mouse_listener.start()
 		self.mouse_listener.wait()
+		self.known_hotkey = set()
 		
 
 	def log_event(self,timestamp,event,*payload):
@@ -122,6 +123,10 @@ class OneShotRecorder:
 		self.keysdown = set()
 		self.starting_time = time.perf_counter_ns()
 		self.running = True
+	
+	def update_hk(self,hk):
+		import copy
+		self.known_hotkey = copy.deepcopy(hk)
 
 	def stop(self):
 		self.running = False

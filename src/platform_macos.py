@@ -32,8 +32,11 @@ from PyQt6.QtWidgets import (
 	QCheckBox,
 	QComboBox,
 	QTextEdit,
-	QSpinBox,
-	QSlider
+	QDoubleSpinBox,
+	QSlider,
+	QPushButton,
+	QVBoxLayout,
+	QHBoxLayout
 )
 from resources import resource_path
 
@@ -53,27 +56,28 @@ class Main:
 		self.state_playback = False
 		self.state_autoclicker = False
 		self.timestamp_multiplier = 1
+		self.cps = 100
 		self.keysdown = set()
 		self.hotkeys = {
-			"play": set(),
-			"record": set(),
-			"auto": set()
+			"KEYBIND_TOGGLE_RECORD": set(),
+			"KEYBIND_TOGGLE_PLAYBACK": set(),
+			"KEYBIND_TOGGLE_AUTOCLICK": set()
 		}
 
 		if os.path.exists(os.path.expanduser("~/.neoprisma")):
-			conf_data=globalconfwizard.unpack(os.path.expanduser("~/.neoprisma"))
+			self.conf_data=globalconfwizard.unpack(os.path.expanduser("~/.neoprisma"))
 		else:
-			conf_data={
+			self.conf_data={
 				"DOC":"NEOPRISMA CONFIGURATION DATA",
 				"KEYBIND_TOGGLE_RECORD":"59 98",
 				"KEYBIND_TOGGLE_AUTOCLICK":"59 100",
 				"KEYBIND_TOGGLE_PLAYBACK":"59 101"
 			}
-			globalconfwizard.pack(os.path.expanduser("~/.neoprisma"),conf_data)
+			globalconfwizard.pack(os.path.expanduser("~/.neoprisma"),self.conf_data)
 
-		self.hotkeys["play"] = set(int(i) for i in conf_data["KEYBIND_TOGGLE_PLAYBACK"].split(" "))
-		self.hotkeys["record"] = set(int(i) for i in conf_data["KEYBIND_TOGGLE_RECORD"].split(" "))
-		self.hotkeys["auto"] = set(int(i) for i in conf_data["KEYBIND_TOGGLE_AUTOCLICK"].split(" "))
+		for key in self.conf_data.keys():
+			if key.startswith("KEYBIND"):
+				self.hotkeys[key] = set(int(i) for i in self.conf_data[key].split(" "))
 
 		self.error_emitter = Emitter()
 		self.error_emitter.error.connect(lambda msg: QMessageBox.critical(None,"neoprisma: an error occured",msg if len(msg) <= 300 else msg[:300],QMessageBox.StandardButton.Ok))
@@ -113,12 +117,57 @@ class Main:
 		self.menu.addAction(quit)
 
 		self.settingsw = QWidget()
+		self.settingsw.setBaseSize(300,500)
+		self.settingsw_layout = QVBoxLayout()
+		self.settingsw.setLayout(self.settingsw_layout)
 		self.settingsw.setWindowTitle("Settings")
-		self.settingsw_label = QLabel("hi",self.settingsw)
-		self.settingsw_speedslider = QSlider()
-		self.settingsw_speedslider.setRange(0,10)
-		self.settingsw_speedslider.setValue(5)
-		self.settingsw_speedslider.valueChanged.connect()
+		self.settingsw_label = QLabel("Hotkeys are disabled while this window is active.",self.settingsw)
+		self.settingsw_layout.addWidget(self.settingsw_label)
+		self.settingsw_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+		#self.settingsw_speedslider = QSlider()
+		#self.settingsw_speedslider.setRange(0,2)
+		#self.settingsw_speedslider.setValue(1)
+		#self.settingsw_speedslider.valueChanged.connect()
+		self.settingsw_hk_rec = QPushButton("Set RECORD hotkey to currently held keys",self.settingsw)
+		self.settingsw_hk_play = QPushButton("Set PLAYBACK hotkey to currently held keys",self.settingsw)
+		self.settingsw_hk_auto = QPushButton("Set AUTOCLICK hotkey to currently held keys",self.settingsw)
+		self.settingsw_hk_rec.clicked.connect(lambda: self.set_hk("KEYBIND_TOGGLE_RECORD"))
+		self.settingsw_hk_play.clicked.connect(lambda: self.set_hk("KEYBIND_TOGGLE_PLAYBACK"))
+		self.settingsw_hk_auto.clicked.connect(lambda: self.set_hk("KEYBIND_TOGGLE_AUTOCLICK"))
+		self.settingsw_layout.addWidget(self.settingsw_hk_rec)
+		self.settingsw_layout.addWidget(self.settingsw_hk_play)
+		self.settingsw_layout.addWidget(self.settingsw_hk_auto)
+
+		self.settingsw_speededit = QWidget()
+		self.settingsw_speededit_layout = QHBoxLayout()
+		self.settingsw_speededit.setLayout(self.settingsw_speededit_layout)
+		self.settingsw_speededit_input = QDoubleSpinBox()
+		self.settingsw_speededit_input.setRange(0.01,100)
+		self.settingsw_speededit_input.setValue(1)
+		self.settingsw_speededit_input.valueChanged.connect(self.upd_speed)
+		self.settingsw_speededit_label = QLabel("(Playback) Speed multiplier:",self.settingsw_speededit)
+		self.settingsw_speededit_layout.addWidget(self.settingsw_speededit_label)
+		self.settingsw_speededit_layout.addWidget(self.settingsw_speededit_input)
+		self.settingsw_layout.addWidget(self.settingsw_speededit)
+
+		self.settingsw_cpsedit = QWidget()
+		self.settingsw_cpsedit_layout = QHBoxLayout()
+		self.settingsw_cpsedit.setLayout(self.settingsw_cpsedit_layout)
+		self.settingsw_cpsedit_input = QDoubleSpinBox()
+		self.settingsw_cpsedit_input.setRange(0.01,2200)
+		self.settingsw_cpsedit_input.setValue(100)
+		self.settingsw_cpsedit_input.valueChanged.connect(self.upd_cps)
+		self.settingsw_cpsedit_label = QLabel("(Autoclick) Target clicks/second:",self.settingsw_cpsedit)
+		self.settingsw_cpsedit_layout.addWidget(self.settingsw_cpsedit_label)
+		self.settingsw_cpsedit_layout.addWidget(self.settingsw_cpsedit_input)
+		self.settingsw_layout.addWidget(self.settingsw_cpsedit)
+		
+
+		self.settingsw_layout.addWidget(self.settingsw_speededit)
+
+		self.settingsw_save = QPushButton("Save configurations",self.settingsw)
+		self.settingsw_save.clicked.connect(self.save_configurations)
+		self.settingsw_layout.addWidget(self.settingsw_save)
 		self.settingsw.show()
 
 		# Add the menu to the tray
@@ -128,13 +177,41 @@ class Main:
 		QTimer.singleShot(0,self.init_recorder_and_simulator)
 		self.app.exec()
 
+	def upd_speed(self,x):
+		if x == 0: return
+		self.timestamp_multiplier=1/x
+	def upd_cps(self,x):
+		if x == 0: return
+		self.cps = 1/(2*x)
+
+	def save_configurations(self):
+		globalconfwizard.pack(os.path.expanduser("~/.neoprisma"),self.conf_data)
+
+	def set_hk(self,hk):
+		if len(self.keysdown) > 0:
+			self.hotkeys[hk] = copy.deepcopy(self.keysdown)
+			if hk == "KEYBIND_TOGGLE_RECORD": self.recorder.update_hk(self.hotkeys[hk])
+			if hk.startswith("KEYBIND"): 
+				self.conf_data[hk] = " ".join([str(i) for i in self.keysdown])
+
 	def listener_hotkeysv2_handlekeypress(self,key:pynput.keyboard.Key|pynput.keyboard.KeyCode): # this is a very long name
 		vk = key.vk if isinstance(key,pynput.keyboard.KeyCode) else key.value.vk
 		self.keysdown.add(vk)
+		print(self.keysdown)
+		if self.settingsw.isActiveWindow(): return
+		if self.keysdown == self.hotkeys["KEYBIND_TOGGLE_RECORD"]:
+			self.toggle_recording()
+			return
+		elif self.keysdown == self.hotkeys["KEYBIND_TOGGLE_PLAYBACK"]:
+			self.toggle_playback()
+			return
+		elif self.keysdown == self.hotkeys["KEYBIND_TOGGLE_AUTOCLICK"]:
+			self.toggle_autoclicker()
+			return
+
 	def listener_hotkeysv2_handlekeyrelease(self,key:pynput.keyboard.Key|pynput.keyboard.KeyCode): # this is a very long name too
 		vk = key.vk if isinstance(key,pynput.keyboard.KeyCode) else key.value.vk
 		self.keysdown.discard(vk)
-
 
 	def init_recorder_and_simulator(self):
 			try:
@@ -145,11 +222,10 @@ class Main:
 
 	def start_hotkeys(self):
 		try:
-			self.h = pynput.keyboard.GlobalHotKeys({
-			'<ctrl>+<f7>': self.toggle_recording,
-			'<ctrl>+<f9>': self.toggle_playback,
-			'<ctrl>+<f8>': self.toggle_autoclicker},
-			on_error=self.error_emitter.error.emit)
+			self.h = pynput.keyboard.Listener(
+				self.listener_hotkeysv2_handlekeypress,
+				self.listener_hotkeysv2_handlekeyrelease
+			)
 			self.h.start()
 		except Exception:
 			self.error_emitter.error.emit("Could not start the global hotkey listener: "+traceback.format_exc())
@@ -226,9 +302,9 @@ class Main:
 					while self.state_autoclicker:
 						mpos = self.m_simulator.position
 						playback.mouseButtonStatus(1,int(mpos[0]),int(mpos[1]),True)
-						time.sleep(0.0003)
+						time.sleep(self.cps)
 						playback.mouseButtonStatus(1,int(mpos[0]),int(mpos[1]),False)
-						time.sleep(0.0003)
+						time.sleep(self.cps)
 				t = Thread(target=inner)
 				t.start()
 				
