@@ -9,6 +9,9 @@ SRC = os.path.join(BASE, "src")
 if SRC not in sys.path:
 	sys.path.insert(0, SRC)
 
+import objc, CoreFoundation
+objc.registerCFSignature("CFStringRef", b"^{__CFString=}", CoreFoundation.CFStringGetTypeID(), "NSString")
+
 import playback
 import recorder
 import globalconfwizard
@@ -70,9 +73,10 @@ def version_dif(inp):
 class Emitter(QObject):
 	error = pyqtSignal(str)
 
-class Main:
+class Main(QObject):
 
 	def __init__(self):
+		super().__init__()
 
 		self.app = QApplication(sys.argv)
 
@@ -141,9 +145,9 @@ class Main:
 		self.menu.addActions([self.toggle_rec_widget,self.toggle_play_widget,self.toggle_auto_widget,self.load_widget,self.save_widget,self.conf_widget])
 
 		# Add a Quit option to the menu.
-		quit = QAction("Quit")
-		quit.triggered.connect(self.app.quit)
-		self.menu.addAction(quit)
+		self.quitaction = QAction("Quit")
+		self.quitaction.triggered.connect(self.app.quit)
+		self.menu.addAction(self.quitaction)
 
 		self.settingsw = QWidget()
 		self.settingsw.setBaseSize(300,500)
@@ -200,13 +204,12 @@ class Main:
 		QTimer.singleShot(0,self.start_hotkeys)
 		QTimer.singleShot(0,self.init_recorder_and_simulator)
 
-		listener_keepalive = QTimer()
-		listener_keepalive.timeout.connect(self.poll_hotkey_listener_alive)
-		listener_keepalive.start(20000)
+		self.listener_keepalive = QTimer(self)
+		self.listener_keepalive.timeout.connect(self.poll_hotkey_listener_alive)
+		self.listener_keepalive.start(20000)
 
 		if self.update_available:
 			QTimer.singleShot(0,self.prompt_update)
-		self.app.exec()
 
 	def prompt_update(self):
 
@@ -238,17 +241,13 @@ class Main:
 		if i: return
 		vk = key.vk if isinstance(key,pynput.keyboard.KeyCode) else key.value.vk
 		self.keysdown.add(vk)
-		print(self.keysdown)
 		if self.settingsw.isActiveWindow(): return
 		if self.keysdown == self.hotkeys["KEYBIND_TOGGLE_RECORD"]:
 			self.toggle_recording()
-			return
 		elif self.keysdown == self.hotkeys["KEYBIND_TOGGLE_PLAYBACK"]:
 			self.toggle_playback()
-			return
 		elif self.keysdown == self.hotkeys["KEYBIND_TOGGLE_AUTOCLICK"]:
 			self.toggle_autoclicker()
-			return
 
 	def listener_hotkeysv2_handlekeyrelease(self,key:pynput.keyboard.Key|pynput.keyboard.KeyCode,i): # this is a very long name too
 		if i: return
@@ -266,9 +265,11 @@ class Main:
 		try:
 			self.h = pynput.keyboard.Listener(
 				self.listener_hotkeysv2_handlekeypress,
-				self.listener_hotkeysv2_handlekeyrelease
+				self.listener_hotkeysv2_handlekeyrelease,
+				suppress=False,
 			)
 			self.h.start()
+			self.h.wait()
 		except Exception:
 			self.error_emitter.error.emit("Could not start the hotkey listener: "+traceback.format_exc())
 
@@ -390,3 +391,4 @@ class Main:
 
 
 m = Main()
+m.app.exec()
