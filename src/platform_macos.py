@@ -243,17 +243,19 @@ class Main(QObject):
 				self.conf_data[hk] = " ".join([str(i) for i in self.keysdown])
 
 	def listener_hotkeysv2_handlekeypress(self,key:pynput.keyboard.Key|pynput.keyboard.KeyCode,i): # this is a very long name
-		if i: return
-		vk = key.vk if isinstance(key,pynput.keyboard.KeyCode) else key.value.vk
-		self.keysdown.add(vk)
-		if self.settingsw.isActiveWindow(): return
-		if self.keysdown == self.hotkeys["KEYBIND_TOGGLE_RECORD"]:
-			self.toggle_recording()
-		elif self.keysdown == self.hotkeys["KEYBIND_TOGGLE_PLAYBACK"]:
-			self.toggle_playback()
-		elif self.keysdown == self.hotkeys["KEYBIND_TOGGLE_AUTOCLICK"]:
-			self.toggle_autoclicker()
-
+		try:
+			if i or key is None: return
+			vk = key.vk if isinstance(key,pynput.keyboard.KeyCode) else key.value.vk
+			self.keysdown.add(vk)
+			if self.settingsw.isActiveWindow(): return
+			if self.keysdown == self.hotkeys["KEYBIND_TOGGLE_RECORD"]:
+				self.toggle_recording()
+			elif self.keysdown == self.hotkeys["KEYBIND_TOGGLE_PLAYBACK"]:
+				self.toggle_playback()
+			elif self.keysdown == self.hotkeys["KEYBIND_TOGGLE_AUTOCLICK"]:
+				self.toggle_autoclicker()
+		except Exception:
+			self.error_emitter.error.emit(traceback.format_exc())
 	def listener_hotkeysv2_handlekeyrelease(self,key:pynput.keyboard.Key|pynput.keyboard.KeyCode,i): # this is a very long name too
 		if i: return
 		vk = key.vk if isinstance(key,pynput.keyboard.KeyCode) else key.value.vk

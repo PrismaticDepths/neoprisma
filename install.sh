@@ -162,6 +162,9 @@ $PIP install -r requirements.txt
 $PIP install pyinstaller
 cd src
 
+PYNPUT_DIR=$(python3 -c "import pynput; import os; print(os.path.dirname(pynput.__file__))")
+find "$PYNPUT_DIR" -name "*.py" -exec sed -i '' 's/self\._handle/self._pynput_handle/g' {} +
+
 echo "Building binaries..."
 
 clang++ -arch $ARCH -O3 -Wall -shared -std=c++17 -undefined dynamic_lookup $(python3 -m pybind11 --includes) playback.cpp -o playback$(python3-config --extension-suffix)
