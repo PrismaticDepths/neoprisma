@@ -5,10 +5,10 @@ It is the successor to Prism's Autoclicker 4.0.
 
 | | nprisma | prism's autoclicker |
 | - | - | - |
-| Autoclick | <ul><li>- [x] Fixed at ~900CPS & left click </li></ul> | <ul><li>- [x] LMB, RMB, and most keys. Customizable delay. </li></ul> |
-| Tasks | <ul><li>- [x] Keyboard, mouse, including mouse drag events. </li></ul> | <ul><li>- [x] Supports saving/loading to files, recording, and playback. </li></ul> |
+| Autoclick | <ul><li>- [x] Customisable delay, only left click. </li></ul> | <ul><li>- [x] LMB, RMB, and most keys. Customizable delay. </li></ul> |
+| Tasks | <ul><li>- [x] Keyboard, mouse, including mouse drag events. Adjustable playback speed. </li></ul> | <ul><li>- [x] Supports saving/loading to files, recording, and playback. </li></ul> |
 | Interface | <ul><li>- [x] QT based System tray UI. </li></ul> | <ul><li>- [x] Very simple GUI using TkInter. No tray UI. </li></ul> |
-| Easy Installation | <ul><li>- [x] Only a recent python release & git should be needed. The install script does the rest. </li></ul> | <ul><li>- [x] Had prebuilt binaries, but required manual de-quarantining. Currently requires a full manual build. </li></ul> |
+| Easy Installation | <ul><li>- [x] Only a recent python release & git should be needed. The install script does the rest. Also checks for new versions automatically. </li></ul> | <ul><li>- [x] Had prebuilt binaries, but required manual de-quarantining. Currently requires a full manual build. </li></ul> |
 
 ## Installation
 
@@ -44,7 +44,11 @@ This install script will do the following for you:
 
 ## Hotkeys / Usage
 
-All hotkeys are in the range of `<ctrl>+<fn>+<f7-f9>` (or `<ctrl>+<f7-f9>` if you have configured the function keys to need fn to do their special action)
+Hotkeys are configurable in the settings menu.
+
+You can reset hotkeys and other configuration data by deleting the hidden file named `.neoprisma` in your home directory. To show hidden files, you can use the keyboard shortcut `<cmd>+<shift>+<.>` in Finder.
+
+All default hotkeys are in the range of `<ctrl>+<fn>+<f7-f9>` (or `<ctrl>+<f7-f9>` if you have configured the function keys to need fn to do their special action)
 
 `<ctrl><fn><f7>` - toggle recording\
 `<ctrl><fn><f8>` - toggle autoclicker\
@@ -52,11 +56,7 @@ All hotkeys are in the range of `<ctrl>+<fn>+<f7-f9>` (or `<ctrl>+<f7-f9>` if yo
 
 ## Known Issues
 
-Pynput will sometimes crash due to a bug within the library, causing hotkeys to be unresponsive. Additionally, the program will sometimes get `trace trap`'d by the OS for no apparent reason when you toggle recording on. However, Neoprisma is still much more stable than prism's autoclicker.
-
-Parts of Neoprisma hotkeys can sometimes get caught in recordings. In theory, this should have little to no effect since Neoprisma already blocks activation of recording, playing, or autoclicking if it is already doing one of the three.
-
-The speed of the autoclicking is actually high enough it can sometimes cause real input events to be dropped, resulting in a less responsive keyboard and mouse. I will add customizable speed soon, so this should be less of a problem. Just note that anything over ~1000CPS is a bad idea.
+Hotkeys used to toggle recording are written into recordings. Neoprisma has safeguards to prevent any hotkeys contained in recordings from activating anything within itself, however if a hotkey in a recording conflicts with a hotkey from a different app, there is no guarantee that said app will ignore it. I plan to address this later.
 
 ## Performance
 
