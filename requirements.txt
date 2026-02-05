@@ -1,5 +1,8 @@
+certifi==2026.1.4
+charset-normalizer==3.4.4
+idna==3.11
 pybind11==3.0.1
-pynput==1.8.1
+pynput==1.7.8
 pyobjc-core==12.1
 pyobjc-framework-ApplicationServices==12.1
 pyobjc-framework-Cocoa==12.1
@@ -8,4 +11,6 @@ pyobjc-framework-Quartz==12.1
 PyQt6==6.10.1
 PyQt6-Qt6==6.10.1
 PyQt6_sip==13.10.3
+requests==2.32.5
 six==1.17.0
+urllib3==2.6.3

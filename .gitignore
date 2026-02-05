@@ -5,3 +5,5 @@
 *.neop
 *.exp
 *.o
+tester.py
+version.py

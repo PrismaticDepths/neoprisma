@@ -12,10 +12,49 @@ while true; do
 	esac
 done
 
+
 BUILD_DIR="$HOME/.neoprisma-build"
 INSTALL_DIR="$HOME/Applications"
 APP_NAME="neoprisma"
 BUNDLE_ID="com.prismaticdepths.neoprisma"
+BRANCH="stable"
+
+while getopts ":b:i:r:" opt; do
+	case "$opt" in
+		b)
+			echo "Using BUILD_DIR $OPTARG"
+			BUILD_DIR="$OPTARG"
+			;;
+		i)
+			echo "Using INSTALL_DIR $OPTARG"
+			INSTALL_DIR="$OPTARG"
+			;;
+		r)
+			echo "Using BRANCH $OPTARG"
+			BRANCH="$OPTARG"
+			;;
+		\?)
+			echo "Invalid option. Usage:
+curl -fsSL https://raw.githubusercontent.com/PrismaticDepths/neoprisma/stable/install.sh | bash -s -- [-r BRANCH] [-b BUILD_DIR] [-i INSTALL_DIR]" >&2
+			exit 1
+			;;
+		:)
+			echo "Option -$OPTARG requires an argument" >&2
+			exit 1
+			;;
+	esac
+done
+
+if [ "$#" -gt 0 ]; then
+	while true; do
+		read -r -u 3 -p "The installer was invoked with flags that can modify its behaviour. Install anyways? [y/n] " yn < /dev/tty
+		case $yn in
+			[Yy]* ) echo "Installing..."; break;; # Break the loop and continue script
+			[Nn]* ) echo "Exiting..."; exit;; # Exit the script
+			* ) echo "Please answer yes or no.";; # Loop back for invalid input
+		esac
+	done
+fi
 
 echo "Checking OS and arch..."
 
@@ -53,6 +92,9 @@ require_cmd git
 require_cmd python3
 require_cmd clang++
 
+tccutil reset Accessibility "$BUNDLE_ID"
+tccutil reset ListenEvent "$BUNDLE_ID"
+
 if [ -d "$BUILD_DIR" ]; then
 	echo "Cleaning build dir..."
 	if [[ -n "$BUILD_DIR" ]] && [[ "$BUILD_DIR" != "$HOME" ]] && [[ "$BUILD_DIR" != "/" ]]; then
@@ -89,8 +131,26 @@ fi
 
 echo "Cloning repo into build dir..."
 
-git clone -b stable https://github.com/PrismaticDepths/neoprisma "$BUILD_DIR"
+git clone -b "$BRANCH" https://github.com/PrismaticDepths/neoprisma "$BUILD_DIR"
 cd "$BUILD_DIR"
+
+echo "Fetching latest release version..."
+
+LATEST_VERSION=$(curl -s "https://api.github.com/repos/PrismaticDepths/neoprisma/releases/latest" | \
+                 grep '"tag_name":' | \
+                 sed -E 's/.*"([^"]+)".*/\1/')
+
+if [[ -z "$LATEST_VERSION" ]]; then
+    echo "Failed to fetch latest version, defaulting to '0.0.1'"
+    LATEST_VERSION="0.0.1"
+fi
+
+echo "Latest release version: $LATEST_VERSION"
+
+cat <<EOF > src/version.py
+__version__ = "$LATEST_VERSION"
+EOF
+
 
 echo "Installing Python dependencies..."
 
@@ -175,4 +235,5 @@ if [ -d "$BUILD_DIR" ]; then
 		die "BUILD_DIR is empty or home. Cannot clean."
 	fi
 fi
-echo "Installation complete!"
+
+echo "Installation complete! Remember to grant the app Accessibility & Input Monitoring permissions, even if you just reinstalled or updated the app."
