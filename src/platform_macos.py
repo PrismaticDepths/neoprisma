@@ -18,6 +18,7 @@ import globalconfwizard
 import pynput
 import requests
 import copy
+import queue
 import traceback
 import time
 import sys
@@ -74,8 +75,6 @@ class Emitter(QObject):
 	error = pyqtSignal(str)
 
 class Main(QObject):
-
-	signal_restart = pyqtSignal()
 
 	def __init__(self):
 		super().__init__()
@@ -148,7 +147,7 @@ class Main(QObject):
 
 		# Add a Quit option to the menu.
 		self.quitaction = QAction("Quit")
-		self.quitaction.triggered.connect(self.app.quit)
+		self.quitaction.triggered.connect(self.shutdown)
 		self.menu.addAction(self.quitaction)
 
 		self.settingsw = QWidget()
@@ -203,18 +202,21 @@ class Main(QObject):
 		self.settingsw_layout.addWidget(self.settingsw_save)
 		self.tray.setContextMenu(self.menu)
 
-		self.signal_restart.connect(self.start_hotkeys)
+		self.kqueue = queue.Queue()
+		self.run_workers = True
 
 		QTimer.singleShot(0,self.start_hotkeys)
 		QTimer.singleShot(0,self.init_recorder_and_simulator)
-
-
-		self.listener_keepalive = QTimer(self)
-		self.listener_keepalive.timeout.connect(self.poll_hotkey_listener_alive)
-		self.listener_keepalive.start(20000)
+		
+		self.worker_queue = Thread(target=self.listener_queue)
+		QTimer.singleShot(0,self.worker_queue.start)
 
 		if self.update_available:
 			QTimer.singleShot(0,self.prompt_update)
+
+	def shutdown(self):
+		self.run_workers = False
+		self.app.quit()
 
 	def prompt_update(self):
 
@@ -241,6 +243,22 @@ class Main(QObject):
 			if hk == "KEYBIND_TOGGLE_RECORD": self.recorder.update_hk(self.hotkeys[hk])
 			if hk.startswith("KEYBIND"): 
 				self.conf_data[hk] = " ".join([str(i) for i in self.keysdown])
+
+	def listener_queue(self):
+		while self.run_workers:
+			etype, key, i = self.kqueue.get()
+			if etype:
+				self.listener_hotkeysv2_handlekeypress(key,i)
+			else:
+				self.listener_hotkeysv2_handlekeyrelease(key,i)
+			self.kqueue.task_done()
+
+	def _keypressed(self,key,i):
+		if i: return
+		self.kqueue.put((True,key,i))
+	def _keyreleased(self,key,i):
+		if i: return
+		self.kqueue.put((False,key,i))
 
 	def listener_hotkeysv2_handlekeypress(self,key:pynput.keyboard.Key|pynput.keyboard.KeyCode,i): # this is a very long name
 		try:
@@ -272,10 +290,9 @@ class Main(QObject):
 		try:
 			if hasattr(self, "h") and self.h:
 				self.h.stop()
-
 			self.h = pynput.keyboard.Listener(
-				self.listener_hotkeysv2_handlekeypress,
-				self.listener_hotkeysv2_handlekeyrelease,
+				on_press=self._keypressed,
+				on_release=self._keyreleased,
 				suppress=False,
 			)
 			self.h.start()
@@ -401,4 +418,4 @@ class Main(QObject):
 
 
 m = Main()
-m.app.exec()
+sys.exit(m.app.exec())
