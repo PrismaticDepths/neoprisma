@@ -92,6 +92,9 @@ require_cmd git
 require_cmd python3
 require_cmd clang++
 
+tccutil reset Accessibility "$BUNDLE_ID"
+tccutil reset InputMonitoring "$BUNDLE_ID"
+
 if [ -d "$BUILD_DIR" ]; then
 	echo "Cleaning build dir..."
 	if [[ -n "$BUILD_DIR" ]] && [[ "$BUILD_DIR" != "$HOME" ]] && [[ "$BUILD_DIR" != "/" ]]; then
@@ -130,6 +133,24 @@ echo "Cloning repo into build dir..."
 
 git clone -b "$BRANCH" https://github.com/PrismaticDepths/neoprisma "$BUILD_DIR"
 cd "$BUILD_DIR"
+
+echo "Fetching latest release version..."
+
+LATEST_VERSION=$(curl -s "https://api.github.com/repos/PrismaticDepths/neoprisma/releases/latest" | \
+                 grep '"tag_name":' | \
+                 sed -E 's/.*"([^"]+)".*/\1/')
+
+if [[ -z "$LATEST_VERSION" ]]; then
+    echo "Failed to fetch latest version, defaulting to '0.0.1'"
+    LATEST_VERSION="0.0.1"
+fi
+
+echo "Latest release version: $LATEST_VERSION"
+
+cat <<EOF > src/version.py
+__version__ = "$LATEST_VERSION"
+EOF
+
 
 echo "Installing Python dependencies..."
 
@@ -214,4 +235,5 @@ if [ -d "$BUILD_DIR" ]; then
 		die "BUILD_DIR is empty or home. Cannot clean."
 	fi
 fi
-echo "Installation complete!"
+
+echo "Installation complete! Remember to grant the app Accessibility & Input Monitoring permissions, even if you just reinstalled or updated the app."

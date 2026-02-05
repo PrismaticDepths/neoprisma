@@ -13,6 +13,7 @@ import playback
 import recorder
 import globalconfwizard
 import pynput
+import requests
 import copy
 import traceback
 import time
@@ -39,7 +40,32 @@ from PyQt6.QtWidgets import (
 	QHBoxLayout
 )
 from resources import resource_path
+import version
+__version__ = version.__version__
 
+def latest():
+    url = f"https://api.github.com/repos/prismaticdepths/neoprisma/releases/latest"
+    try:
+        resp = requests.get(url, timeout=5)
+        resp.raise_for_status()
+        data = resp.json()
+        tag = data.get("tag_name")
+        if tag:
+            return tag
+        return "0.0.0"
+    except requests.RequestException:
+        return "0.0.0"
+
+def version_dif(inp):
+
+	current = __version__.split(".")
+	latest = inp.split(".")
+	for i in range(3):
+		if latest[i] > current[i]: 
+			return True, inp
+		elif latest[i] < current[i]:
+			return False, inp
+	return False, inp
 
 class Emitter(QObject):
 	error = pyqtSignal(str)
@@ -49,6 +75,8 @@ class Main:
 	def __init__(self):
 
 		self.app = QApplication(sys.argv)
+
+		self.update_available, self.latest_version = version_dif(latest())
 
 		self.arr = bytearray(b"<NEOPRISMA>\x01")
 		self.compiled_arr:list[playback.EventPacket] = []
@@ -175,7 +203,13 @@ class Main:
 
 		QTimer.singleShot(0,self.start_hotkeys)
 		QTimer.singleShot(0,self.init_recorder_and_simulator)
+		if self.update_available:
+			QTimer.singleShot(0,self.prompt_update)
 		self.app.exec()
+
+	def prompt_update(self):
+
+		QMessageBox.information(None,"Update available!",f"A new version of Neoprisma is available.\n\nYou currently have version {__version__}, and a newer version {self.latest_version} is now available for download.\n\nVisit the project's GitHub repository for more information.",QMessageBox.StandardButton.Ok)
 
 	def settingsw_popup(self):
 		self.settingsw.show()

@@ -32,7 +32,7 @@ Once the install finishes, grant the application "Input Monitoring" and "Accessi
 This install script will do the following for you:
 
 1. Ensure all dependencies are installed before running
-2. Ask to clean the target build directory (if it already exists)
+2. Ask to clean the target build directory (if it already exists and is not empty)
 3. Clone this git repository into the build directory
 4. Create a virtual environment and install dependencies from `requirements.txt`
 5. Install `pyinstaller`
