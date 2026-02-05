@@ -93,7 +93,7 @@ require_cmd python3
 require_cmd clang++
 
 tccutil reset Accessibility "$BUNDLE_ID"
-tccutil reset InputMonitoring "$BUNDLE_ID"
+tccutil reset ListenEvent "$BUNDLE_ID"
 
 if [ -d "$BUILD_DIR" ]; then
 	echo "Cleaning build dir..."
