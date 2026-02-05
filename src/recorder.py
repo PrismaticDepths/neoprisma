@@ -80,7 +80,7 @@ class OneShotRecorder:
 		if not self.running: return
 		self.buffer.extend(struct.pack(EVENT_HEADER_FMT+PAYLOAD_FMTS[event],timestamp,event,*payload))
 
-	def captured_key_press(self,key:pynput.keyboard.Key|pynput.keyboard.KeyCode,i):
+	def captured_key_press(self,key:pynput.keyboard.Key|pynput.keyboard.KeyCode,i=False):
 		t=time.perf_counter_ns()-self.starting_time
 		if i: return
 		
@@ -89,7 +89,7 @@ class OneShotRecorder:
 
 		self.log_event(t,Events.KEY_DOWN,vk)
 
-	def captured_key_release(self,key:pynput.keyboard.Key|pynput.keyboard.KeyCode,i):
+	def captured_key_release(self,key:pynput.keyboard.Key|pynput.keyboard.KeyCode,i=False):
 		t=time.perf_counter_ns()-self.starting_time
 		if i: return
 		vk = key.vk if isinstance(key,pynput.keyboard.KeyCode) else key.value.vk

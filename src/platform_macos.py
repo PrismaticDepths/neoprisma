@@ -260,7 +260,7 @@ class Main(QObject):
 		if i: return
 		self.kqueue.put((False,key,i))
 
-	def listener_hotkeysv2_handlekeypress(self,key:pynput.keyboard.Key|pynput.keyboard.KeyCode,i): # this is a very long name
+	def listener_hotkeysv2_handlekeypress(self,key:pynput.keyboard.Key|pynput.keyboard.KeyCode,i=False): # this is a very long name
 		try:
 			if i or key is None: return
 			vk = key.vk if isinstance(key,pynput.keyboard.KeyCode) else key.value.vk
@@ -274,7 +274,7 @@ class Main(QObject):
 				self.toggle_autoclicker()
 		except Exception:
 			self.error_emitter.error.emit(traceback.format_exc())
-	def listener_hotkeysv2_handlekeyrelease(self,key:pynput.keyboard.Key|pynput.keyboard.KeyCode,i): # this is a very long name too
+	def listener_hotkeysv2_handlekeyrelease(self,key:pynput.keyboard.Key|pynput.keyboard.KeyCode,i=False): # this is a very long name too
 		if i: return
 		vk = key.vk if isinstance(key,pynput.keyboard.KeyCode) else key.value.vk
 		self.keysdown.discard(vk)
@@ -298,11 +298,6 @@ class Main(QObject):
 			self.h.start()
 		except Exception:
 			self.error_emitter.error.emit("Could not start the hotkey listener: "+traceback.format_exc())
-
-
-	def poll_hotkey_listener_alive(self):
-		if not self.h.is_alive():
-			self.signal_restart.emit()
 
 	def toggle_recording(self):
 		try:
