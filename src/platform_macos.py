@@ -369,10 +369,10 @@ class Main(QObject):
 				self.state_autoclicker = True
 				def inner():
 					while self.state_autoclicker:
-						mpos = self.m_simulator.position
-						playback.mouseButtonStatus(1,int(mpos[0]),int(mpos[1]),True)
+						
+						playback.mouseButtonStatus(1,int(self.m_simulator.position[0]),int(self.m_simulator.position[1]),True)
 						time.sleep(self.cps)
-						playback.mouseButtonStatus(1,int(mpos[0]),int(mpos[1]),False)
+						playback.mouseButtonStatus(1,int(self.m_simulator.position[0]),int(self.m_simulator.position[1]),False)
 						time.sleep(self.cps)
 				t = Thread(target=inner)
 				t.start()
