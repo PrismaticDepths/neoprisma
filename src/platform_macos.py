@@ -209,7 +209,7 @@ class Main(QObject):
 		QTimer.singleShot(0,self.init_recorder_and_simulator)
 		
 		self.worker_queue = Thread(target=self.listener_queue)
-		QTimer.singleShot(0,self.worker_queue.start)
+		self.worker_queue.start()
 
 		if self.update_available:
 			QTimer.singleShot(0,self.prompt_update)
@@ -296,7 +296,6 @@ class Main(QObject):
 				suppress=False,
 			)
 			self.h.start()
-			self.h.wait()
 		except Exception:
 			self.error_emitter.error.emit("Could not start the hotkey listener: "+traceback.format_exc())
 
