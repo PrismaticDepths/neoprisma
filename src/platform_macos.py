@@ -47,17 +47,17 @@ import version
 __version__ = version.__version__
 
 def latest():
-    url = f"https://api.github.com/repos/prismaticdepths/neoprisma/releases/latest"
-    try:
-        resp = requests.get(url, timeout=5)
-        resp.raise_for_status()
-        data = resp.json()
-        tag = data.get("tag_name")
-        if tag:
-            return tag
-        return "0.0.0"
-    except requests.RequestException:
-        return "0.0.0"
+	url = f"https://api.github.com/repos/prismaticdepths/neoprisma/releases/latest"
+	try:
+		resp = requests.get(url, timeout=5)
+		resp.raise_for_status()
+		data = resp.json()
+		tag = data.get("tag_name")
+		if tag:
+			return tag
+		return "0.0.0"
+	except requests.RequestException:
+		return "0.0.0"
 
 def version_dif(inp):
 
@@ -74,6 +74,8 @@ class Emitter(QObject):
 	error = pyqtSignal(str)
 
 class Main(QObject):
+
+	signal_restart = pyqtSignal()
 
 	def __init__(self):
 		super().__init__()
@@ -201,8 +203,11 @@ class Main(QObject):
 		self.settingsw_layout.addWidget(self.settingsw_save)
 		self.tray.setContextMenu(self.menu)
 
+		self.signal_restart.connect(self.start_hotkeys)
+
 		QTimer.singleShot(0,self.start_hotkeys)
 		QTimer.singleShot(0,self.init_recorder_and_simulator)
+
 
 		self.listener_keepalive = QTimer(self)
 		self.listener_keepalive.timeout.connect(self.poll_hotkey_listener_alive)
@@ -263,6 +268,9 @@ class Main(QObject):
 
 	def start_hotkeys(self):
 		try:
+			if hasattr(self, "h") and self.h:
+				self.h.stop()
+
 			self.h = pynput.keyboard.Listener(
 				self.listener_hotkeysv2_handlekeypress,
 				self.listener_hotkeysv2_handlekeyrelease,
@@ -276,7 +284,7 @@ class Main(QObject):
 
 	def poll_hotkey_listener_alive(self):
 		if not self.h.is_alive():
-			self.start_hotkeys()
+			self.signal_restart.emit()
 
 	def toggle_recording(self):
 		try:
