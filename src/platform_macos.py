@@ -209,7 +209,7 @@ class Main(QObject):
 		QTimer.singleShot(0,self.init_recorder_and_simulator)
 		
 		self.worker_queue = Thread(target=self.listener_queue)
-		self.worker_queue.start()
+		#self.worker_queue.start()
 
 		if self.update_available:
 			QTimer.singleShot(0,self.prompt_update)
@@ -291,8 +291,8 @@ class Main(QObject):
 			if hasattr(self, "h") and self.h:
 				self.h.stop()
 			self.h = pynput.keyboard.Listener(
-				on_press=self._keypressed,
-				on_release=self._keyreleased,
+				on_press=self.listener_hotkeysv2_handlekeypress,
+				on_release=self.listener_hotkeysv2_handlekeyrelease,
 				suppress=False,
 			)
 			self.h.start()
