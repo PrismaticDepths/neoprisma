@@ -190,19 +190,20 @@ class Main:
 		self.settingsw_cpsedit_layout.addWidget(self.settingsw_cpsedit_label)
 		self.settingsw_cpsedit_layout.addWidget(self.settingsw_cpsedit_input)
 		self.settingsw_layout.addWidget(self.settingsw_cpsedit)
-		
-
 		self.settingsw_layout.addWidget(self.settingsw_speededit)
 
 		self.settingsw_save = QPushButton("Save configurations",self.settingsw)
 		self.settingsw_save.clicked.connect(self.save_configurations)
 		self.settingsw_layout.addWidget(self.settingsw_save)
-
-		# Add the menu to the tray
 		self.tray.setContextMenu(self.menu)
 
 		QTimer.singleShot(0,self.start_hotkeys)
 		QTimer.singleShot(0,self.init_recorder_and_simulator)
+
+		listener_keepalive = QTimer()
+		listener_keepalive.timeout.connect(self.poll_hotkey_listener_alive)
+		listener_keepalive.start(20000)
+
 		if self.update_available:
 			QTimer.singleShot(0,self.prompt_update)
 		self.app.exec()
@@ -269,7 +270,12 @@ class Main:
 			)
 			self.h.start()
 		except Exception:
-			self.error_emitter.error.emit("Could not start the global hotkey listener: "+traceback.format_exc())
+			self.error_emitter.error.emit("Could not start the hotkey listener: "+traceback.format_exc())
+
+
+	def poll_hotkey_listener_alive(self):
+		if not self.h.is_alive():
+			self.start_hotkeys()
 
 	def toggle_recording(self):
 		try:
