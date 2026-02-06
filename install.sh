@@ -92,9 +92,6 @@ require_cmd git
 require_cmd python3
 require_cmd clang++
 
-tccutil reset Accessibility "$BUNDLE_ID"
-tccutil reset ListenEvent "$BUNDLE_ID"
-
 if [ -d "$BUILD_DIR" ]; then
 	echo "Cleaning build dir..."
 	if [[ -n "$BUILD_DIR" ]] && [[ "$BUILD_DIR" != "$HOME" ]] && [[ "$BUILD_DIR" != "/" ]]; then
@@ -123,6 +120,8 @@ if [ -d "$INSTALL_DIR/$APP_NAME.app" ]; then
 				* ) echo "Please answer yes or no.";; # Loop back for invalid input
 			esac
 		done
+		tccutil reset Accessibility "$BUNDLE_ID"
+		tccutil reset ListenEvent "$BUNDLE_ID"
 		rm -rf "$INSTALL_DIR/$APP_NAME.app"
 	else
 		die "INSTALL_DIR/APP_NAME.app is empty or home. Installing to those locations is unsafe."
