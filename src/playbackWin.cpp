@@ -10,7 +10,6 @@
 #include <chrono>
 // #include <ApplicationServices/ApplicationServices.h> this is macos only. making this for windows!
 #include "playback.h"
-#include <windows.h>
 namespace py = pybind11;
 
 
@@ -26,141 +25,7 @@ constexpr size_t sizeof_uint64_t = sizeof(uint64_t);
 
 std::atomic<bool> n_abort{false};
 
-void setDPIAwareness() {
-	SetProcessDPIAware();
-}
-void keyStatus(uint16_t vk_code, bool status) {
-	/* macos version.
-		
-	CGEventRef keyStroke = CGEventCreateKeyboardEvent(NULL, (CGKeyCode)vk_code, status);
-	CGEventPost(kCGHIDEventTap, keyStroke);
-	CFRelease(keyStroke);
 
-	*/
-	// windows version
-	INPUT inputs[1] = {};
-	ZeroMemory(inputs, sizeof(inputs));
-	inputs[0].type = INPUT_KEYBOARD;
-	inputs[0].ki.wVk = vk_code;
-		
-	if(!status) {
-		inputs[0].ki.dwFlags = KEYEVENTF_KEYUP;
-	}
-	else {
-		inputs[0].ki.dwFlags = 0;
-	}
-		
-	SendInput(ARRAYSIZE(inputs), inputs, sizeof(INPUT));
-}
-
-void moveMouseAbsolute(uint16_t x, uint16_t y) {
-	
-	/*macos version
-	CGPoint destination = CGPointMake(x, y);
-	CGEventRef motion = CGEventCreateMouseEvent(NULL,kCGEventMouseMoved,destination,kCGMouseButtonLeft);
-	CGEventPost(kCGHIDEventTap, motion);
-	CFRelease(motion);
-	*/
-	// windows version
-	INPUT input;
-	ZeroMemory(&input, sizeof(INPUT));
-	input.type = INPUT_MOUSE;
-
-	input.mi.dx = (static_cast<long>(x)*65535)/ (GetSystemMetrics(SM_CXSCREEN) - 1); // size of length of primary monitor
-	input.mi.dy = (static_cast<long>(y)*65535)/ (GetSystemMetrics(SM_CYSCREEN) - 1); // size of width of primary monitor
-
-	input.mi.dwFlags = MOUSEEVENTF_MOVE | MOUSEEVENTF_ABSOLUTE;
-
-	SendInput(1, &input, sizeof(INPUT));
-
-
-
-}
-
-void mouseButtonStatus(uint16_t button, uint16_t x, uint16_t y, bool status) {
-	
-	INPUT input;
-	ZeroMemory(&input, sizeof(INPUT));
-	input.type = INPUT_MOUSE;
-
-	input.mi.dx = (static_cast<long>(x*65535))/ ( GetSystemMetrics(SM_CXSCREEN) - 1 ); // size of length of primary monitor
-	input.mi.dy = (static_cast<long>(y*65535))/ ( GetSystemMetrics(SM_CYSCREEN) - 1); // size of width of primary monitor
-	input.mi.dwFlags = MOUSEEVENTF_MOVE | MOUSEEVENTF_ABSOLUTE;
-	switch (button) {
-		case 1:
-			if (status)
-				input.mi.dwFlags |= MOUSEEVENTF_LEFTDOWN;
-			else
-				input.mi.dwFlags |= MOUSEEVENTF_LEFTUP;
-			break;
-		case 2:
-			if (status)
-				input.mi.dwFlags |= MOUSEEVENTF_RIGHTDOWN;
-			else
-				input.mi.dwFlags |= MOUSEEVENTF_RIGHTUP;
-			break;
-		case 3:
-			if (status)
-				input.mi.dwFlags |= MOUSEEVENTF_MIDDLEDOWN;
-			else
-				input.mi.dwFlags |= MOUSEEVENTF_MIDDLEUP;
-			break;
-		default:
-			// Windows does not support arbitrary mouse buttons
-			return;
-	}
-	SendInput(1, &input, sizeof(INPUT));
-
-
-	// below is macos version.
-	/*
-	CGPoint destination = CGPointMake(x, y);
-	CGEventType statusEvent;
-	CGMouseButton mouseButton;
-
-	switch (button) {
-		case 1:
-			if (status) {
-				statusEvent = kCGEventLeftMouseDown;
-			} else {
-				statusEvent = kCGEventLeftMouseUp;
-			}
-			mouseButton = kCGMouseButtonLeft;
-			break;
-		case 2:
-			if (status) {
-				statusEvent = kCGEventRightMouseDown;
-			} else {
-				statusEvent = kCGEventRightMouseUp;
-			}
-			mouseButton = kCGMouseButtonRight;
-			break;
-		case 3:
-			if (status) {
-				statusEvent = kCGEventOtherMouseDown;
-			} else {
-				statusEvent = kCGEventOtherMouseUp;
-			}
-			mouseButton = kCGMouseButtonCenter;
-			break;
-		default:
-			if (status) {
-				statusEvent = kCGEventOtherMouseDown;
-			} else {
-				statusEvent = kCGEventOtherMouseUp;
-			}
-			mouseButton = (CGMouseButton)button;
-			break;
-	}
-
-	CGEventRef click = CGEventCreateMouseEvent(NULL,statusEvent,destination,mouseButton);
-	if (button > 2) {
-		CGEventSetIntegerValueField(click, kCGMouseEventButtonNumber, button);
-	}
-	CGEventPost(kCGHIDEventTap,click);
-	CFRelease(click);  
-	*/
-}
 
 std::pair<bool, uint8_t> ensureValidHeaders(std::vector<uint8_t>& e_bytearray) {
 	uint8_t version = 0;
@@ -304,5 +169,5 @@ PYBIND11_MODULE(playback, m) {
     m.def("CompileEventArray", &CompileEventArray, "i mean it just kind like parses the event array idk");
 	m.def("PlayEventList", &PlayEventList, "i mean it just kind like plays the thingy if you know what i mean");
 	m.def("CompileAndPlay", &CompileAndPlay, "i mean it just kind like plays the thingy with less intervention needed if you know what i mean");
-	m.def("setDPIAwareness", &setDPIAwareness, "Sets the process DPI awareness to handle high-DPI displays correctly on Windows.");
+	//m.def("setDPIAwareness", &setDPIAwareness, "Sets the process DPI awareness to handle high-DPI displays correctly on Windows.");
 }
