@@ -1,5 +1,6 @@
 #include <windows.h>
-#include <automation.h>
+#include <cstdint>
+#include "automation.h"
 
 void setDPIAwareness() {
 	SetProcessDPIAware();
