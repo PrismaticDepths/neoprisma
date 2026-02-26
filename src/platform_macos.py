@@ -320,11 +320,27 @@ class Main(QObject):
 		globalconfwizard.pack(os.path.expanduser("~/.neoprisma"),self.conf_data)
 
 	def set_hk(self,hk):
+		if self.recording_hotkey and self.hotkey_edit_label != hk: return
 		self.recording_hotkey = not self.recording_hotkey
 		if self.recording_hotkey:
 			self.hotkey_record_buffer = set()
 			self.hotkey_edit_label = hk
+			if hk == "KEYBIND_TOGGLE_RECORD":
+				self.settingsw_hk_rec.setText("[Click to stop listening...]")
+				self.settingsw_hk_rec_disp.setText("")
+			elif hk == "KEYBIND_TOGGLE_PLAYBACK":
+				self.settingsw_hk_play.setText("[Click to stop listening...]")
+				self.settingsw_hk_play_disp.setText("")
+			elif hk == "KEYBIND_TOGGLE_AUTOCLICK":
+				self.settingsw_hk_auto.setText("[Click to stop listening...]")
+				self.settingsw_hk_auto_disp.setText("")
 		else:
+			if hk == "KEYBIND_TOGGLE_RECORD":
+				self.settingsw_hk_rec.setText("Edit RECORD hotkey")
+			elif hk == "KEYBIND_TOGGLE_PLAYBACK":
+				self.settingsw_hk_play.setText("Edit PLAYBACK hotkey")
+			elif hk == "KEYBIND_TOGGLE_AUTOCLICK":
+				self.settingsw_hk_auto.setText("Edit AUTOCLICK hotkey")
 			if len(self.hotkey_record_buffer) > 0:
 				self.hotkeys[hk] = copy.deepcopy(self.hotkey_record_buffer)
 				if hk == "KEYBIND_TOGGLE_RECORD": self.recorder.update_hk(self.hotkeys[hk])
@@ -343,7 +359,7 @@ class Main(QObject):
 			if i or key is None: return
 			vk = key.vk if isinstance(key,pynput.keyboard.KeyCode) else key.value.vk
 			self.keysdown.add(vk)
-			if self.recording_hotkey:
+			if self.recording_hotkey and len(self.hotkey_record_buffer) < 5:
 				self.hotkey_record_buffer.add(vk)
 				text = " + ".join([self.vk_to_name(i) for i in self.hotkey_record_buffer])
 				if self.hotkey_edit_label == "KEYBIND_TOGGLE_RECORD":

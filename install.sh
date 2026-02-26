@@ -113,7 +113,7 @@ if [ -d "$INSTALL_DIR/$APP_NAME.app" ]; then
 	echo "Removing previously installed dist..."
 	if [[ -n "$INSTALL_DIR/$APP_NAME.app" ]] && [[ "$INSTALL_DIR/$APP_NAME.app" != "$HOME" ]] && [[ "$INSTALL_DIR/$APP_NAME.app" != "/" ]]; then
 		while true; do
-			read -r -u 3 -p "The given INSTALL_DIR/APP_NAME.app ($INSTALL_DIR/$APP_NAME.app) exists. Delete it and proceed with install? [y/n] " yn < /dev/tty
+			read -r -u 3 -p "Neoprisma is already installed in the target location ($INSTALL_DIR/$APP_NAME.app). If you are updating the app, this is normal. Replace the existing app and proceed with installation? [y/n] " yn < /dev/tty
 			case $yn in
 				[Yy]* ) echo "Continuing..."; break;; # Break the loop and continue script
 				[Nn]* ) echo "Stopping installer..."; exit;; # Exit the script
