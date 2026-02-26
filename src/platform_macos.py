@@ -49,6 +49,16 @@ from resources import resource_path
 import version
 __version__ = version.__version__
 
+MACOS_VK_MAP = {
+    0: 'a', 11: 'b', 8: 'c', 2: 'd', 14: 'e', 3: 'f', 5: 'g', 4: 'h', 34: 'i',
+    38: 'j', 40: 'k', 37: 'l', 46: 'm', 45: 'n', 31: 'o', 35: 'p', 12: 'q',
+    15: 'r', 1: 's', 17: 't', 32: 'u', 9: 'v', 13: 'w', 7: 'x', 16: 'y', 6: 'z',
+    29: '0', 18: '1', 19: '2', 20: '3', 21: '4', 23: '5', 22: '6', 26: '7', 28: '8', 25: '9',
+    49: 'space', 36: 'newline', 48: 'tab',
+    24: '=', 27: '-', 33: '[', 30: ']', 42: '\\', 41: ';', 39: "'", 43: ',', 47: '.', 44: '/'
+}
+
+
 def latest():
 	url = f"https://api.github.com/repos/prismaticdepths/neoprisma/releases/latest"
 	try:
@@ -105,6 +115,9 @@ class Main(QObject):
 		self.state_playback = False
 		self.state_autoclicker = False
 		self.timestamp_multiplier = 1
+		self.recording_hotkey = False
+		self.hotkey_record_buffer = set()
+		self.hotkey_edit_label = ""
 		self.cps = 100
 		self.keysdown = set()
 		self.hotkeys = {
@@ -178,15 +191,34 @@ class Main(QObject):
 		#self.settingsw_speedslider.setRange(0,2)
 		#self.settingsw_speedslider.setValue(1)
 		#self.settingsw_speedslider.valueChanged.connect()
-		self.settingsw_hk_rec = QPushButton("Set RECORD hotkey to currently held keys",self.settingsw)
-		self.settingsw_hk_play = QPushButton("Set PLAYBACK hotkey to currently held keys",self.settingsw)
-		self.settingsw_hk_auto = QPushButton("Set AUTOCLICK hotkey to currently held keys",self.settingsw)
+
+		self.settingsw_hk_rec_layout = QHBoxLayout()
+		self.settingsw_hk_rec = QPushButton("Edit RECORD hotkey",self.settingsw)
+		self.settingsw_hk_rec_disp = QLabel(" + ".join([self.vk_to_name(i) for i in self.hotkeys["KEYBIND_TOGGLE_RECORD"]]))
+		self.settingsw_hk_rec_disp.setAlignment(Qt.AlignmentFlag.AlignRight)
+		self.settingsw_hk_rec_layout.addWidget(self.settingsw_hk_rec)
+		self.settingsw_hk_rec_layout.addWidget(self.settingsw_hk_rec_disp)
+
+		self.settingsw_hk_play_layout = QHBoxLayout()
+		self.settingsw_hk_play = QPushButton("Edit PLAYBACK hotkey",self.settingsw)
+		self.settingsw_hk_play_disp = QLabel(" + ".join([self.vk_to_name(i) for i in self.hotkeys["KEYBIND_TOGGLE_PLAYBACK"]]))
+		self.settingsw_hk_play_disp.setAlignment(Qt.AlignmentFlag.AlignRight)
+		self.settingsw_hk_play_layout.addWidget(self.settingsw_hk_play)
+		self.settingsw_hk_play_layout.addWidget(self.settingsw_hk_play_disp)
+
+		self.settingsw_hk_auto_layout = QHBoxLayout()
+		self.settingsw_hk_auto = QPushButton("Edit AUTOCLICK hotkey",self.settingsw)
+		self.settingsw_hk_auto_disp = QLabel(" + ".join([self.vk_to_name(i) for i in self.hotkeys["KEYBIND_TOGGLE_AUTOCLICK"]]))
+		self.settingsw_hk_auto_disp.setAlignment(Qt.AlignmentFlag.AlignRight)
+		self.settingsw_hk_auto_layout.addWidget(self.settingsw_hk_auto)
+		self.settingsw_hk_auto_layout.addWidget(self.settingsw_hk_auto_disp)
+
 		self.settingsw_hk_rec.clicked.connect(lambda: self.set_hk("KEYBIND_TOGGLE_RECORD"))
 		self.settingsw_hk_play.clicked.connect(lambda: self.set_hk("KEYBIND_TOGGLE_PLAYBACK"))
 		self.settingsw_hk_auto.clicked.connect(lambda: self.set_hk("KEYBIND_TOGGLE_AUTOCLICK"))
-		self.settingsw_layout.addWidget(self.settingsw_hk_rec)
-		self.settingsw_layout.addWidget(self.settingsw_hk_play)
-		self.settingsw_layout.addWidget(self.settingsw_hk_auto)
+		self.settingsw_layout.addLayout(self.settingsw_hk_rec_layout)
+		self.settingsw_layout.addLayout(self.settingsw_hk_play_layout)
+		self.settingsw_layout.addLayout(self.settingsw_hk_auto_layout)
 
 		self.settingsw_speededit = QWidget()
 		self.settingsw_speededit_layout = QHBoxLayout()
@@ -288,17 +320,39 @@ class Main(QObject):
 		globalconfwizard.pack(os.path.expanduser("~/.neoprisma"),self.conf_data)
 
 	def set_hk(self,hk):
-		if len(self.keysdown) > 0:
-			self.hotkeys[hk] = copy.deepcopy(self.keysdown)
-			if hk == "KEYBIND_TOGGLE_RECORD": self.recorder.update_hk(self.hotkeys[hk])
-			if hk.startswith("KEYBIND"): 
-				self.conf_data[hk] = " ".join([str(i) for i in self.keysdown])
+		self.recording_hotkey = not self.recording_hotkey
+		if self.recording_hotkey:
+			self.hotkey_record_buffer = set()
+			self.hotkey_edit_label = hk
+		else:
+			if len(self.hotkey_record_buffer) > 0:
+				self.hotkeys[hk] = copy.deepcopy(self.hotkey_record_buffer)
+				if hk == "KEYBIND_TOGGLE_RECORD": self.recorder.update_hk(self.hotkeys[hk])
+				if hk.startswith("KEYBIND"): 
+					self.conf_data[hk] = " ".join([str(i) for i in self.hotkey_record_buffer])
+
+	def vk_to_name(self,vk):
+		if vk == 49: return MACOS_VK_MAP[vk]
+		if pynput.keyboard.KeyCode.from_vk(vk) in pynput.keyboard.Key:
+			return pynput.keyboard.Key(pynput.keyboard.KeyCode.from_vk(vk)).name
+		else:
+			return MACOS_VK_MAP[vk]
 
 	def listener_hotkeysv2_handlekeypress(self,key:pynput.keyboard.Key|pynput.keyboard.KeyCode,i=False): # this is a very long name
 		try:
 			if i or key is None: return
 			vk = key.vk if isinstance(key,pynput.keyboard.KeyCode) else key.value.vk
 			self.keysdown.add(vk)
+			if self.recording_hotkey:
+				self.hotkey_record_buffer.add(vk)
+				text = " + ".join([self.vk_to_name(i) for i in self.hotkey_record_buffer])
+				if self.hotkey_edit_label == "KEYBIND_TOGGLE_RECORD":
+					self.settingsw_hk_rec_disp.setText(text)
+				elif self.hotkey_edit_label == "KEYBIND_TOGGLE_PLAYBACK":
+					self.settingsw_hk_play_disp.setText(text)
+				elif self.hotkey_edit_label == "KEYBIND_TOGGLE_AUTOCLICK":
+					self.settingsw_hk_auto_disp.setText(text)
+				
 			if self.settingsw.isActiveWindow(): return
 			if self.keysdown == self.hotkeys["KEYBIND_TOGGLE_RECORD"]:
 				self.toggle_recording()
@@ -308,6 +362,7 @@ class Main(QObject):
 				self.toggle_autoclicker()
 		except Exception:
 			self.error_emitter.error.emit(traceback.format_exc())
+
 	def listener_hotkeysv2_handlekeyrelease(self,key:pynput.keyboard.Key|pynput.keyboard.KeyCode,i=False): # this is a very long name too
 		if i: return
 		vk = key.vk if isinstance(key,pynput.keyboard.KeyCode) else key.value.vk
