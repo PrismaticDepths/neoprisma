@@ -176,11 +176,11 @@ echo "Building binaries..."
 
 clang++ -arch $ARCH -O3 -Wall -shared -std=c++17 -undefined dynamic_lookup $($PYTHON_EXE -m pybind11 --includes) playback.cpp -o playback$EXT_SUFFIX automation_macos.cpp
 
-ls
-
 cd ..
 
 echo "Building application bundle..."
+
+PLAYBACK_FILE=(src/playback*"${EXT_SUFFIX}")
 
 $PYTHON_EXE -m PyInstaller \
 	--windowed \
@@ -189,7 +189,7 @@ $PYTHON_EXE -m PyInstaller \
 	--osx-bundle-identifier "$BUNDLE_ID" \
 	--add-data "src:src" \
 	--add-data "src/assets:assets" \
-	--add-binary src/playback*"${EXT_SUFFIX}":src \
+	--add-binary "${PLAYBACK_FILE}:src" \
 	--hidden-import=Quartz \
 	--hidden-import=Quartz.CoreGraphics \
 	--hidden-import=Quartz.CoreText \
