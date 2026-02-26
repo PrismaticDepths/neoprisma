@@ -8,7 +8,7 @@ It is the successor to Prism's Autoclicker 4.0.
 | Autoclick | <ul><li>- [x] Customisable delay, only left click. </li></ul> | <ul><li>- [x] LMB, RMB, and most keys. Customizable delay. </li></ul> |
 | Tasks | <ul><li>- [x] Keyboard, mouse, including mouse drag events. Adjustable playback speed. </li></ul> | <ul><li>- [x] Supports saving/loading to files, recording, and playback. </li></ul> |
 | Interface | <ul><li>- [x] QT based System tray UI. </li></ul> | <ul><li>- [x] Very simple GUI using TkInter. No tray UI. </li></ul> |
-| Easy Installation | <ul><li>- [x] Only a recent python release & git should be needed. The install script does the rest. Also checks for new versions automatically and can update itself. </li></ul> | <ul><li>- [x] Had prebuilt binaries, but required manual de-quarantining. Currently requires a full manual build. </li></ul> |
+| Easy Installation | <ul><li>- [x] Only a recent python release & git should be needed. The install script does the rest. Also checks for new versions automatically and can update itself. </li></ul> | <ul><li>- [ ] Had prebuilt binaries, but required manual de-quarantining. Currently requires a full manual build. </li></ul> |
 
 ## Installation
 
