@@ -49,7 +49,8 @@ done
 
 if [ "$#" -gt 0 ]; then
 	while true; do
-		read -r -u 3 -p "The installer was invoked with flags that can modify its behaviour. Install anyways? [y/n] " yn < /dev/tty
+		printf "The installer was invoked with flags that can modify its behaviour. Install anyways? [y/n] " > /dev/tty
+		read -r yn < /dev/tty
 		case $yn in
 			[Yy]* ) echo "Installing..."; break;; # Break the loop and continue script
 			[Nn]* ) echo "Exiting..."; exit;; # Exit the script
@@ -100,7 +101,8 @@ if [ -d "$BUILD_DIR" ]; then
 	echo "Cleaning build dir..."
 	if [[ -n "$BUILD_DIR" ]] && [[ "$BUILD_DIR" != "$HOME" ]] && [[ "$BUILD_DIR" != "/" ]]; then
 		while true; do
-			read -r -u 3 -p "The given BUILD_DIR ($BUILD_DIR) exists and is not empty. Delete it and install here anyways? [y/n] " yn < /dev/tty
+			printf "The given BUILD_DIR ($BUILD_DIR) exists and is not empty. Delete it and install here anyways? [y/n] " > /dev/tty
+			read -r yn < /dev/tty
 			case $yn in
 				[Yy]* ) echo "Continuing..."; break;; # Break the loop and continue script
 				[Nn]* ) echo "Stopping installer..."; exit;; # Exit the script
@@ -117,7 +119,8 @@ if [ -d "$INSTALL_DIR/$APP_NAME.app" ]; then
 	echo "Removing previously installed dist..."
 	if [[ -n "$INSTALL_DIR/$APP_NAME.app" ]] && [[ "$INSTALL_DIR/$APP_NAME.app" != "$HOME" ]] && [[ "$INSTALL_DIR/$APP_NAME.app" != "/" ]]; then
 		while true; do
-			read -r -u 3 -p "Neoprisma is already installed in the target location ($INSTALL_DIR/$APP_NAME.app). If you are updating the app, this is normal. Replace the existing app and proceed with installation? [y/n] " yn < /dev/tty
+			printf "Neoprisma is already installed in the target location ($INSTALL_DIR/$APP_NAME.app). If you are updating the app, this is normal. Replace the existing app and proceed with installation? [y/n] " > /dev/tty
+			read -r yn < /dev/tty
 			case $yn in
 				[Yy]* ) echo "Continuing..."; break;; # Break the loop and continue script
 				[Nn]* ) echo "Stopping installer..."; exit;; # Exit the script
