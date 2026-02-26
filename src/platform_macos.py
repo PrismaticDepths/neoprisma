@@ -80,7 +80,7 @@ def run_updater():
 	import sys
 	import subprocess
 
-	command = f"#!/bin/zsh\ncurl -fsSL https://raw.githubusercontent.com/PrismaticDepths/neoprisma/stable/install.sh | bash {'-s -- -i '+EXEPATH if EXEPATH != '' else ''}; bye"
+	command = f"#!/bin/zsh\ncurl -fsSL https://raw.githubusercontent.com/PrismaticDepths/neoprisma/stable/install.sh | bash {'-s -- -i '+os.path.dirname(EXEPATH) if EXEPATH != '' else ''}; open -a neoprisma"
 	with tempfile.NamedTemporaryFile(suffix=".command",delete=False,mode="w") as f:
 		f.write(command)
 		tmpath=f.name
