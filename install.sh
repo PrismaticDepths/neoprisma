@@ -187,7 +187,7 @@ $PYTHON_EXE -m PyInstaller \
 	--osx-bundle-identifier "$BUNDLE_ID" \
 	--add-data "src:src" \
 	--add-data "src/assets:assets" \
-	--add-binary "src/playback*$EXT_SUFFIX:src" \
+	--add-binary src/playback*"${EXT_SUFFIX}":src \
 	--hidden-import=Quartz \
 	--hidden-import=Quartz.CoreGraphics \
 	--hidden-import=Quartz.CoreText \
