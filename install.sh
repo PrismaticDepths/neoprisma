@@ -1,6 +1,7 @@
 #! /usr/bin/env bash
 exec $SHELL
 
+setopt SH_WORD_SPLIT
 set -euo pipefail
 exec 3</dev/tty
 
