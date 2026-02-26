@@ -161,6 +161,8 @@ $PIP install -r requirements.txt
 $PIP install pyinstaller
 cd src
 
+PYTHON_EXE=$(which python3 || which python)
+
 echo "Building binaries..."
 
 clang++ -arch $ARCH -O3 -Wall -shared -std=c++17 -undefined dynamic_lookup $(python3 -m pybind11 --includes) playback.cpp -o playback$(python3-config --extension-suffix) automation_macos.cpp
@@ -171,7 +173,7 @@ cd ..
 
 echo "Building application bundle..."
 
-pyinstaller \
+$PYTHON_EXE -m PyInstaller \
 	--windowed \
 	--name "$APP_NAME" \
 	--icon "src/assets/ico-dark.icns" \
