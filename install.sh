@@ -6,7 +6,7 @@ exec 3</dev/tty
 
 while true; do
 	printf "This installer will build/compile Neoprisma locally and install it. Python >= 3.10 is recommended. Proceed? [y/n] "
-	read -r yn -u 3
+	read -r yn
 	case $yn in
 		[Yy]* ) echo "Installing..."; break;; # Break the loop and continue script
 		[Nn]* ) echo "Exiting..."; exit;; # Exit the script
