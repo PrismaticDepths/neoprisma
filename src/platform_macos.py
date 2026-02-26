@@ -269,7 +269,7 @@ class Main(QObject):
 		#QMessageBox.information(None,"Update available!",f"A new version of Neoprisma is available.\n\nYou currently have version {__version__}, and a newer version {self.latest_version} is now available for download.\n\nVisit the project's GitHub repository for more information.",QMessageBox.StandardButton.Ok)
 		win=QWidget()
 
-		win.setWindowTitle(f"Updater ({__version__} -> {self.latest_version})")
+		win.setWindowTitle(f"Installer ({__version__} -> {self.latest_version})")
 		winl = QVBoxLayout()
 		footl = QHBoxLayout()
 		win.setLayout(winl)
