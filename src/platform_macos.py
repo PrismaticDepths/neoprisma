@@ -1,8 +1,10 @@
 import os, sys
 
 if getattr(sys, "frozen", False):
+	EXEPATH = sys.executable
 	BASE = sys._MEIPASS
 else:
+	EXEPATH = ""
 	BASE = os.path.dirname(__file__)
 
 SRC = os.path.join(BASE, "src")
@@ -71,6 +73,20 @@ def version_dif(inp):
 			return False, inp
 	return False, inp
 
+def run_updater():
+
+	import tempfile
+	import os
+	import sys
+	import subprocess
+
+	command = f"#!/bin/zsh\ncurl -fsSL https://raw.githubusercontent.com/PrismaticDepths/neoprisma/stable/install.sh | bash {'-s -- -i '+EXEPATH if EXEPATH != '' else ''}; bye"
+	with tempfile.NamedTemporaryFile(suffix=".command",delete=False,mode="w") as f:
+		f.write(command)
+		tmpath=f.name
+	os.chmod(tmpath, 0o755)
+	subprocess.Popen(["open", tmpath])
+
 class Emitter(QObject):
 	error = pyqtSignal(str)
 
@@ -113,7 +129,7 @@ class Main(QObject):
 				self.hotkeys[key] = set(int(i) for i in self.conf_data[key].split(" "))
 
 		self.error_emitter = Emitter()
-		self.error_emitter.error.connect(lambda msg: QMessageBox.critical(None,"neoprisma: an error occured",msg if len(msg) <= 300 else msg[:300],QMessageBox.StandardButton.Ok))
+		self.error_emitter.error.connect(lambda msg: QMessageBox.critical(None,"neoprisma: an error occured",msg if len(msg) <= 350 else msg[:350],QMessageBox.StandardButton.Ok))
 
 		self.app.setQuitOnLastWindowClosed(False)
 
@@ -204,13 +220,11 @@ class Main(QObject):
 
 		self.kqueue = queue.Queue()
 		self.run_workers = True
+		self.auto_thread = None
 
 		QTimer.singleShot(0,self.start_hotkeys)
 		QTimer.singleShot(0,self.init_recorder_and_simulator)
 		
-		self.worker_queue = Thread(target=self.listener_queue)
-		#self.worker_queue.start()
-
 		if self.update_available:
 			QTimer.singleShot(0,self.prompt_update)
 
@@ -220,7 +234,43 @@ class Main(QObject):
 
 	def prompt_update(self):
 
-		QMessageBox.information(None,"Update available!",f"A new version of Neoprisma is available.\n\nYou currently have version {__version__}, and a newer version {self.latest_version} is now available for download.\n\nVisit the project's GitHub repository for more information.",QMessageBox.StandardButton.Ok)
+		#QMessageBox.information(None,"Update available!",f"A new version of Neoprisma is available.\n\nYou currently have version {__version__}, and a newer version {self.latest_version} is now available for download.\n\nVisit the project's GitHub repository for more information.",QMessageBox.StandardButton.Ok)
+		win=QWidget()
+
+		win.setWindowTitle(f"Updater ({__version__} -> {self.latest_version})")
+		winl = QVBoxLayout()
+		footl = QHBoxLayout()
+		win.setLayout(winl)
+		
+		header_label = QLabel(f"A new version of Neoprisma is available!\n")
+		version_label = QLabel(f"Currently installed: {__version__}\nLatest version: {self.latest_version}")
+		footer_label = QLabel(f"<a href='https://github.com/PrismaticDepths/neoprisma/releases/tag/{self.latest_version}'>View Release</a>  ❖  <a href='https://github.com/PrismaticDepths/neoprisma/compare/{__version__}...{self.latest_version}'>Full Changelog</a>")
+		footer_label.setOpenExternalLinks(True)
+		header_label.setAlignment(Qt.AlignmentFlag.AlignHCenter)
+		version_label.setAlignment(Qt.AlignmentFlag.AlignHCenter)
+		footer_label.setAlignment(Qt.AlignmentFlag.AlignHCenter)
+		dismiss_button = QPushButton("Dismiss")
+		update_button = QPushButton("Update")
+		winl.addWidget(header_label)
+		winl.addWidget(version_label)
+		winl.addWidget(footer_label)
+		footl.addWidget(update_button)
+		footl.addWidget(dismiss_button)
+		winl.addLayout(footl)
+
+		def close_window():
+			win.destroy()
+		def update():
+			win.destroy()
+			run_updater()
+			self.shutdown()
+
+		dismiss_button.clicked.connect(close_window)
+		update_button.clicked.connect(update)
+
+		win.show()
+		win.activateWindow()
+		win.raise_()
 
 	def settingsw_popup(self):
 		self.settingsw.show()
@@ -243,22 +293,6 @@ class Main(QObject):
 			if hk == "KEYBIND_TOGGLE_RECORD": self.recorder.update_hk(self.hotkeys[hk])
 			if hk.startswith("KEYBIND"): 
 				self.conf_data[hk] = " ".join([str(i) for i in self.keysdown])
-
-	def listener_queue(self):
-		while self.run_workers:
-			etype, key, i = self.kqueue.get()
-			if etype:
-				self.listener_hotkeysv2_handlekeypress(key,i)
-			else:
-				self.listener_hotkeysv2_handlekeyrelease(key,i)
-			self.kqueue.task_done()
-
-	def _keypressed(self,key,i):
-		if i: return
-		self.kqueue.put((True,key,i))
-	def _keyreleased(self,key,i):
-		if i: return
-		self.kqueue.put((False,key,i))
 
 	def listener_hotkeysv2_handlekeypress(self,key:pynput.keyboard.Key|pynput.keyboard.KeyCode,i=False): # this is a very long name
 		try:
@@ -367,20 +401,20 @@ class Main(QObject):
 			else:
 				self.tray.setIcon(self.icon_auto)
 				self.state_autoclicker = True
-				def inner():
-					while self.state_autoclicker:
-						
-						playback.mouseButtonStatus(1,int(self.m_simulator.position[0]),int(self.m_simulator.position[1]),True)
-						time.sleep(self.cps)
-						playback.mouseButtonStatus(1,int(self.m_simulator.position[0]),int(self.m_simulator.position[1]),False)
-						time.sleep(self.cps)
-				t = Thread(target=inner)
-				t.start()
+				self.auto_thread = Thread(target=self._INNER_toggle_autoclicker)
+				self.auto_thread.start()
 				
-
 		except Exception:
 			self.error_emitter.error.emit(traceback.format_exc())
 			
+	def _INNER_toggle_autoclicker(self):
+		while self.state_autoclicker:
+			playback.mouseButtonStatus(1,int(self.m_simulator.position[0]),int(self.m_simulator.position[1]),True)
+			time.sleep(self.cps)
+			if not self.state_autoclicker: break
+			playback.mouseButtonStatus(1,int(self.m_simulator.position[0]),int(self.m_simulator.position[1]),False)
+			time.sleep(self.cps)
+
 	def load(self):
 
 		try:
