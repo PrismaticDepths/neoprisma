@@ -1,4 +1,4 @@
-#! /usr/bin/env bash
+#! /usr/bin/env zsh
 
 set -euo pipefail
 exec 3</dev/tty
