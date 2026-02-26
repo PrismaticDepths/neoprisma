@@ -162,10 +162,11 @@ $PIP install pyinstaller
 cd src
 
 PYTHON_EXE=$(which python3 || which python)
+EXT_SUFFIX=$($PYTHON_EXE -c "import sysconfig; print(sysconfig.get_config_var('EXT_SUFFIX'))")
 
 echo "Building binaries..."
 
-clang++ -arch $ARCH -O3 -Wall -shared -std=c++17 -undefined dynamic_lookup $(python3 -m pybind11 --includes) playback.cpp -o playback$(python3-config --extension-suffix) automation_macos.cpp
+clang++ -arch $ARCH -O3 -Wall -shared -std=c++17 -undefined dynamic_lookup $($PYTHON_EXE -m pybind11 --includes) playback.cpp -o playback$($EXT_SUFFIX) automation_macos.cpp
 
 ls
 
