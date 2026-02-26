@@ -130,6 +130,8 @@ if [ -d "$INSTALL_DIR/$APP_NAME.app" ]; then
 	fi
 fi
 
+exec $SHELL
+
 echo "Cloning repo into build dir..."
 
 git clone -b "$BRANCH" https://github.com/PrismaticDepths/neoprisma "$BUILD_DIR"
