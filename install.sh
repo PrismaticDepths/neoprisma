@@ -1,10 +1,12 @@
 #! /usr/bin/env bash
+exec $SHELL
 
 set -euo pipefail
 exec 3</dev/tty
 
 while true; do
-	read -r -u 3 -p "This installer will build/compile Neoprisma locally and install it. Python >= 3.10 is recommended. Proceed? [y/n] " yn < /dev/tty
+	printf "This installer will build/compile Neoprisma locally and install it. Python >= 3.10 is recommended. Proceed? [y/n] "
+	read -r yn -u 3
 	case $yn in
 		[Yy]* ) echo "Installing..."; break;; # Break the loop and continue script
 		[Nn]* ) echo "Exiting..."; exit;; # Exit the script
@@ -129,8 +131,6 @@ if [ -d "$INSTALL_DIR/$APP_NAME.app" ]; then
 		die "INSTALL_DIR/APP_NAME.app is empty or home. Installing to those locations is unsafe."
 	fi
 fi
-
-exec $SHELL
 
 echo "Cloning repo into build dir..."
 
