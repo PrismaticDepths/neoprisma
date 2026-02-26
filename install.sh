@@ -1,5 +1,4 @@
 #! /usr/bin/env bash
-exec "$SHELL"
 
 set -euo pipefail
 exec 3</dev/tty
