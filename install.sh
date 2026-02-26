@@ -21,6 +21,7 @@ INSTALL_DIR="$HOME/Applications"
 APP_NAME="neoprisma"
 BUNDLE_ID="com.prismaticdepths.neoprisma"
 BRANCH="stable"
+OPTIND=1
 
 while getopts ":b:i:r:" opt; do
 	case "$opt" in
