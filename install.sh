@@ -116,7 +116,6 @@ require_cmd clang++
 echo "\r  [\033[32mOK\033[0m] Checking for dependencies... "
 
 if [ -d "$BUILD_DIR" ]; then
-	echo "Cleaning build dir..."
 	if [[ -n "$BUILD_DIR" ]] && [[ "$BUILD_DIR" != "$HOME" ]] && [[ "$BUILD_DIR" != "/" ]]; then
 		while true; do
 			printf "The given BUILD_DIR ($BUILD_DIR) exists and is not empty. Delete it and install here anyways? [y/n] " > /dev/tty
@@ -134,7 +133,6 @@ if [ -d "$BUILD_DIR" ]; then
 fi
 
 if [ -d "$INSTALL_DIR/$APP_NAME.app" ]; then
-	echo "Removing previously installed dist..."
 	if [[ -n "$INSTALL_DIR/$APP_NAME.app" ]] && [[ "$INSTALL_DIR/$APP_NAME.app" != "$HOME" ]] && [[ "$INSTALL_DIR/$APP_NAME.app" != "/" ]]; then
 		while true; do
 			printf "Neoprisma is already installed in the target location ($INSTALL_DIR/$APP_NAME.app). If you are updating the app, this is normal. Replace the existing app and proceed with installation? [y/n] " > /dev/tty
@@ -145,13 +143,16 @@ if [ -d "$INSTALL_DIR/$APP_NAME.app" ]; then
 				* ) echo "Please answer yes or no.";; # Loop back for invalid input
 			esac
 		done
-		tccutil reset Accessibility "$BUNDLE_ID"
-		tccutil reset ListenEvent "$BUNDLE_ID"
+		run_step "Resetting Accessibility approval status for $BUNDLE_ID" tccutil reset Accessibility "$BUNDLE_ID"
+		run_step "Resetting ListenEvent approval status for $BUNDLE_ID" tccutil reset ListenEvent "$BUNDLE_ID"
 		rm -rf "$INSTALL_DIR/$APP_NAME.app"
 	else
 		die "INSTALL_DIR/APP_NAME.app is empty or home. Installing to those locations is unsafe."
 	fi
 fi
+echo 
+
+echo "Downl
 
 run_step "Cloning repo into build dir..." git clone -b "$BRANCH" https://github.com/PrismaticDepths/neoprisma "$BUILD_DIR"
 
@@ -162,10 +163,10 @@ LATEST_VERSION=$(curl -s "https://api.github.com/repos/PrismaticDepths/neoprisma
 	sed -E 's/.*"([^"]+)".*/\1/')
 
 if [[ -z "$LATEST_VERSION" ]]; then
-    echo "Failed to fetch latest version, defaulting to '0.0.1'"
+    echo "  [\033[33mWARN\033[0m] Failed to fetch latest version, defaulting to '0.0.1'"
     LATEST_VERSION="0.0.1"
 else
-	echo "Latest release version: $LATEST_VERSION"
+	echo "  [\033[32mOK\033[0m] Latest release version: $LATEST_VERSION"
 fi
 
 
@@ -187,6 +188,8 @@ cd src
 
 PYTHON_EXE=$(which python3 || which python)
 EXT_SUFFIX=$($PYTHON_EXE -c "import sysconfig; print(sysconfig.get_config_var('EXT_SUFFIX'))")
+
+echo "
 
 run_step "Building binaries... " clang++ -arch $ARCH -O3 -Wall -shared -std=c++17 -undefined dynamic_lookup $($PYTHON_EXE -m pybind11 --includes) playback.cpp -o playback$EXT_SUFFIX automation_macos.cpp
 
