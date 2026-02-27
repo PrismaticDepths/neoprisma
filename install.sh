@@ -1,5 +1,4 @@
-#! /usr/bin/env zsh
-#exec $SHELL
+#! /usr/bin/env bash
 
 setopt SH_WORD_SPLIT
 set -euo pipefail
