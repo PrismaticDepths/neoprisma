@@ -193,7 +193,6 @@ run_step "Installing from requirements.txt" $PIP install -r requirements.txt
 run_step "Installing pyinstaller" $PIP install pyinstaller 
 cd src
 
-echo $(which python3)
 PYTHON_EXE=$(which python3 || which python)
 EXT_SUFFIX=$($PYTHON_EXE -c "import sysconfig; print(sysconfig.get_config_var('EXT_SUFFIX'))")
 
