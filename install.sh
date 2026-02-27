@@ -14,7 +14,21 @@ while true; do
 	esac
 done
 
-VERBOSE_OUT="/dev/null"
+LOG_FILE = $(mktemp /tmp/neoprisma_installer.XXXX)
+
+run_step() {
+	local msg="$1"
+    shift
+    printf "  [..] %s" "$msg"
+
+	if "$@" > "$LOG_FILE" 2>&1; then
+		printf "\r  [\033[32mOK\033[0m] %s\n" "$msg"
+	else
+		printf "\r  [\033[31mFAIL\033[0m] %s\n" "$msg"
+		cat "$LOG_FILE"
+		exit 1
+	fi
+}
 
 BUILD_DIR="$HOME/.neoprisma-build"
 INSTALL_DIR="$HOME/Applications"
@@ -139,10 +153,7 @@ if [ -d "$INSTALL_DIR/$APP_NAME.app" ]; then
 	fi
 fi
 
-echo -n "Cloning repo into build dir... "
-
-git clone -b "$BRANCH" https://github.com/PrismaticDepths/neoprisma "$BUILD_DIR" > $VERBOSE_OUT 2>&1
-echo "\033[32mOK\033[0m"
+run_step "Cloning repo into build dir..." git clone -b "$BRANCH" https://github.com/PrismaticDepths/neoprisma "$BUILD_DIR"
 
 cd "$BUILD_DIR"
 
@@ -171,30 +182,22 @@ echo "Installing Python dependencies... "
 python3 -m venv .venv
 source .venv/bin/activate
 PIP="python3 -m pip"
-$PIP install --upgrade pip > $VERBOSE_OUT 2>&1
-echo "↳ pip upgrade \033[32mOK\033[0m"
-$PIP install -r requirements.txt
-echo "↳ requirements.txt \033[32mOK\033[0m"
-$PIP install pyinstaller 
-echo "↳ pyinstaller \033[32mOK\033[0m"
+run_step "↳ pip... " $PIP install --upgrade pip
+run_step "↳ requirements.txt... " $PIP install -r requirements.txt
+run_step "↳ pyinstaller... " $PIP install pyinstaller 
 
 cd src
-
-echo -n "Building binaries... "
 
 PYTHON_EXE=$(which python3 || which python)
 EXT_SUFFIX=$($PYTHON_EXE -c "import sysconfig; print(sysconfig.get_config_var('EXT_SUFFIX'))")
 
-clang++ -arch $ARCH -O3 -Wall -shared -std=c++17 -undefined dynamic_lookup $($PYTHON_EXE -m pybind11 --includes) playback.cpp -o playback$EXT_SUFFIX automation_macos.cpp
-echo "\033[32mOK\033[0m"
+run_step "Building binaries... " clang++ -arch $ARCH -O3 -Wall -shared -std=c++17 -undefined dynamic_lookup $($PYTHON_EXE -m pybind11 --includes) playback.cpp -o playback$EXT_SUFFIX automation_macos.cpp
 
 cd ..
 
-echo -n "Building application bundle... "
-
 PLAYBACK_FILE=(src/playback*"${EXT_SUFFIX}")
 
-$PYTHON_EXE -m PyInstaller \
+run_step "Building application bundle... " $PYTHON_EXE -m PyInstaller \
 	--windowed \
 	--name "$APP_NAME" \
 	--icon "src/assets/ico-dark.icns" \
@@ -207,9 +210,7 @@ $PYTHON_EXE -m PyInstaller \
 	--hidden-import=Quartz.CoreText \
 	--hidden-import=Cocoa \
 	--hidden-import=ApplicationServices \
-	src/main.py > $VERBOSE_OUT 2>&1
-
-echo "\033[32mOK\033[0m"
+	src/main.py
 
 echo "Moving dist to installation dir..."
 
@@ -248,17 +249,15 @@ cat > "$ENTITLEMENTS" <<'EOF'
 </plist>
 EOF
 
+run_step "Signing app..." codesign --force --deep --sign - --options runtime  --entitlements "$ENTITLEMENTS" "$INSTALL_DIR/$APP_NAME.app" 
 
-echo "Signing app..."
-codesign --force --deep --sign - --options runtime  --entitlements "$ENTITLEMENTS" "$INSTALL_DIR/$APP_NAME.app" 
-
-echo "Installed dist at $INSTALL_DIR/$APP_NAME.app"
-echo "Cleaning BUILD_DIR ($BUILD_DIR)"
+echo -n "Cleaning up... "
 if [ -d "$BUILD_DIR" ]; then
 	if [[ -n "$BUILD_DIR" ]] && [[ "$BUILD_DIR" != "$HOME" ]] && [[ "$BUILD_DIR" != "/" ]]; then
 		rm -rf "$BUILD_DIR"
+		echo "\033[32mOK\033[0m"
 	else
-		die "BUILD_DIR is empty or home. Cannot clean."
+		die "\033[31mFAIL\033[0m\nBUILD_DIR is empty or home. Cannot clean."
 	fi
 fi
 
