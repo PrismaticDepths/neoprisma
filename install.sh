@@ -188,9 +188,9 @@ echo "Installing Python dependencies... "
 python3 -m venv .venv
 source .venv/bin/activate
 PIP="python3 -m pip"
-run_step "↳ pip" $PIP install --upgrade pip
-run_step "↳ requirements.txt" $PIP install -r requirements.txt
-run_step "↳ pyinstaller" $PIP install pyinstaller 
+run_step "pip install --upgrade pip" $PIP install --upgrade pip
+run_step "pip install -r requirements.txt" $PIP install -r requirements.txt
+run_step "pip install pyinstaller" $PIP install pyinstaller 
 
 cd src
 
