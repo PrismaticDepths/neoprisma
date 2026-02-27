@@ -14,7 +14,7 @@ while true; do
 	esac
 done
 
-LOG_FILE = $(mktemp /tmp/neoprisma_installer.XXXX)
+LOG_FILE=$(mktemp /tmp/neoprisma_installer.XXXX)
 
 run_step() {
 	local msg="$1"
