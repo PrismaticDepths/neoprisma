@@ -97,7 +97,7 @@ require_cmd git
 require_cmd python3
 require_cmd clang++
 
-
+echo "\033[32mOK\033[0m all dependencies are installed"
 
 if [ -d "$BUILD_DIR" ]; then
 	echo "Cleaning build dir..."
@@ -140,6 +140,8 @@ fi
 echo "Cloning repo into build dir..."
 
 git clone -b "$BRANCH" https://github.com/PrismaticDepths/neoprisma "$BUILD_DIR" > $VERBOSE_OUT 2>&1
+echo "\033[32mOK\033[0m cloned branch $BRANCH into $BUILD_DIR"
+
 cd "$BUILD_DIR"
 
 echo "Fetching latest release version..."
@@ -166,16 +168,23 @@ python3 -m venv .venv
 source .venv/bin/activate
 PIP="python3 -m pip"
 $PIP install --upgrade pip > $VERBOSE_OUT 2>&1
+
 $PIP install -r requirements.txt
+echo "\033[32mOK\033[0m installed dependencies"
 $PIP install pyinstaller 
+echo "\033[32mOK\033[0m installed pyinstaller"
+
 cd src
+
+
+echo "Building binaries..."
 
 PYTHON_EXE=$(which python3 || which python)
 EXT_SUFFIX=$($PYTHON_EXE -c "import sysconfig; print(sysconfig.get_config_var('EXT_SUFFIX'))")
 
-echo "Building binaries..."
 
 clang++ -arch $ARCH -O3 -Wall -shared -std=c++17 -undefined dynamic_lookup $($PYTHON_EXE -m pybind11 --includes) playback.cpp -o playback$EXT_SUFFIX automation_macos.cpp
+echo "\033[32mOK\033[0m built playback binaries"
 
 cd ..
 
