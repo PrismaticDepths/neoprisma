@@ -219,33 +219,35 @@ run_step "Moving dist to installation dir" mv "$BUILD_DIR/dist/$APP_NAME.app" "$
 
 ENTITLEMENTS="$BUILD_DIR/entitlements.plist"
 
-run_step "Generating entitlements.plist..." cat > "$ENTITLEMENTS" <<'EOF'
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
- "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-  <key>com.apple.security.cs.disable-library-validation</key>
-  <true/>
+generate_entitlements_tmp() {
+	cat > "$ENTITLEMENTS" <<'EOF'
+	<?xml version="1.0" encoding="UTF-8"?>
+	<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+	"http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+	<plist version="1.0">
+	<dict>
+	<key>com.apple.security.cs.disable-library-validation</key>
+	<true/>
 
-  <key>com.apple.security.cs.allow-jit</key>
-  <true/>
+	<key>com.apple.security.cs.allow-jit</key>
+	<true/>
 
-  <key>com.apple.security.cs.allow-unsigned-executable-memory</key>
-  <true/>
+	<key>com.apple.security.cs.allow-unsigned-executable-memory</key>
+	<true/>
 
-  <key>com.apple.security.accessibility</key>
-  <true/>
+	<key>com.apple.security.accessibility</key>
+	<true/>
 
-  <key>com.apple.security.device.keyboard</key>
-  <true/>
+	<key>com.apple.security.device.keyboard</key>
+	<true/>
 
-  <key>com.apple.security.device.mouse</key>
-  <true/>
-</dict>
-</plist>
-EOF
-
+	<key>com.apple.security.device.mouse</key>
+	<true/>
+	</dict>
+	</plist>
+	EOF
+}
+run_step "Generating entitlements.plist" generate_entitlements_tmp
 run_step "Signing app" codesign --force --deep --sign - --options runtime  --entitlements "$ENTITLEMENTS" "$INSTALL_DIR/$APP_NAME.app" 
 
 echo "Cleaning up... "
