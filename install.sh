@@ -14,6 +14,7 @@ while true; do
 	esac
 done
 
+VERBOSE_OUT="/dev/null"
 
 BUILD_DIR="$HOME/.neoprisma-build"
 INSTALL_DIR="$HOME/Applications"
@@ -138,7 +139,7 @@ fi
 
 echo "Cloning repo into build dir..."
 
-git clone -b "$BRANCH" https://github.com/PrismaticDepths/neoprisma "$BUILD_DIR"
+git clone -b "$BRANCH" https://github.com/PrismaticDepths/neoprisma "$BUILD_DIR" > $VERBOSE_OUT 2>&1
 cd "$BUILD_DIR"
 
 echo "Fetching latest release version..."
@@ -164,9 +165,9 @@ echo "Installing Python dependencies..."
 python3 -m venv .venv
 source .venv/bin/activate
 PIP="python3 -m pip"
-$PIP install --upgrade pip
+$PIP install --upgrade pip > $VERBOSE_OUT 2>&1
 $PIP install -r requirements.txt
-$PIP install pyinstaller
+$PIP install pyinstaller 
 cd src
 
 PYTHON_EXE=$(which python3 || which python)
@@ -195,7 +196,7 @@ $PYTHON_EXE -m PyInstaller \
 	--hidden-import=Quartz.CoreText \
 	--hidden-import=Cocoa \
 	--hidden-import=ApplicationServices \
-	src/main.py
+	src/main.py > $VERBOSE_OUT 2>&1
 
 mkdir -p "$INSTALL_DIR"
 
