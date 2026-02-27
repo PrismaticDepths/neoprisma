@@ -191,13 +191,13 @@ EXT_SUFFIX=$($PYTHON_EXE -c "import sysconfig; print(sysconfig.get_config_var('E
 
 echo "Building from source... "
 
-run_step "Building binaries... " clang++ -arch $ARCH -O3 -Wall -shared -std=c++17 -undefined dynamic_lookup $($PYTHON_EXE -m pybind11 --includes) playback.cpp -o playback$EXT_SUFFIX automation_macos.cpp
+run_step "Building binaries" clang++ -arch $ARCH -O3 -Wall -shared -std=c++17 -undefined dynamic_lookup $($PYTHON_EXE -m pybind11 --includes) playback.cpp -o playback$EXT_SUFFIX automation_macos.cpp
 
 cd ..
 
 PLAYBACK_FILE=(src/playback*"${EXT_SUFFIX}")
 
-run_step "Building application bundle... " $PYTHON_EXE -m PyInstaller \
+run_step "Building application bundle" $PYTHON_EXE -m PyInstaller \
 	--windowed \
 	--name "$APP_NAME" \
 	--icon "src/assets/ico-dark.icns" \
@@ -212,17 +212,14 @@ run_step "Building application bundle... " $PYTHON_EXE -m PyInstaller \
 	--hidden-import=ApplicationServices \
 	src/main.py
 
-echo "Moving dist to installation dir..."
+echo "Finalizing... "
 
 mkdir -p "$INSTALL_DIR"
-
-mv "$BUILD_DIR/dist/$APP_NAME.app" "$INSTALL_DIR/"
-
-echo "Generating entitlements.plist..."
+run_step "Moving dist to installation dir" mv "$BUILD_DIR/dist/$APP_NAME.app" "$INSTALL_DIR/"
 
 ENTITLEMENTS="$BUILD_DIR/entitlements.plist"
 
-cat > "$ENTITLEMENTS" <<'EOF'
+run_step "Generating entitlements.plist..." cat > "$ENTITLEMENTS" <<'EOF'
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -251,13 +248,12 @@ EOF
 
 run_step "Signing app" codesign --force --deep --sign - --options runtime  --entitlements "$ENTITLEMENTS" "$INSTALL_DIR/$APP_NAME.app" 
 
-echo -n "Cleaning up... "
+echo "Cleaning up... "
 if [ -d "$BUILD_DIR" ]; then
 	if [[ -n "$BUILD_DIR" ]] && [[ "$BUILD_DIR" != "$HOME" ]] && [[ "$BUILD_DIR" != "/" ]]; then
 		rm -rf "$BUILD_DIR"
-		echo "\033[32mOK\033[0m"
 	else
-		die "\033[31mFAIL\033[0m\nBUILD_DIR is empty or home. Cannot clean."
+		die "BUILD_DIR is empty or home. Cannot clean. The app has still been installed."
 	fi
 fi
 
