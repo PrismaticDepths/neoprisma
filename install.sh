@@ -151,6 +151,13 @@ if [ -d "$INSTALL_DIR/$APP_NAME.app" ]; then
 	fi
 fi 
 
+if [ "python3 -c import sys; sys.exit(0) if sys.version_info >= (3,10) else sys.exit(1)" ]; then
+	echo "  [\033[32mOK\033[0m] Python version >= 3.10"
+else
+	echo "  [\033[31mFAIL\033[0m] Python 3.10+ required (found $(python3 --version)) "
+	exit 1
+fi
+
 echo "Fetching source..."
 
 run_step "Cloning repo into build dir" git clone -b "$BRANCH" https://github.com/PrismaticDepths/neoprisma "$BUILD_DIR"
