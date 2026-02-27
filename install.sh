@@ -151,10 +151,11 @@ if [ -d "$INSTALL_DIR/$APP_NAME.app" ]; then
 	fi
 fi 
 
-if [ "python3 -c import sys; sys.exit(0) if sys.version_info >= (3,10) else sys.exit(1)" ]; then
-	echo "  [\033[32mOK\033[0m] Python version >= 3.10"
+if python3 -c "import sys; sys.exit(0) if sys.version_info >= (3,10) else sys.exit(1)"; then
+	echo "  [\033[32mOK\033[0m] Python install: $(python3 --version)"
 else
 	echo "  [\033[31mFAIL\033[0m] Python 3.10+ required (found $(python3 --version)) "
+	echo "         ↳ See https://python.org/downloads for information"
 	exit 1
 fi
 
