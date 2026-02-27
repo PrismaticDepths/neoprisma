@@ -68,7 +68,7 @@ if [ "$#" -gt 0 ]; then
 		printf "The installer was invoked with flags that can modify its behaviour. Install anyways? [y/n] " > /dev/tty
 		read -r yn < /dev/tty
 		case $yn in
-			[Yy]* ) echo "Installing..."; break;; # Break the loop and continue script
+			[Yy]* ) break;; # Break the loop and continue script
 			[Nn]* ) echo "Exiting..."; exit;; # Exit the script
 			* ) echo "Please answer yes or no.";; # Loop back for invalid input
 		esac
@@ -121,7 +121,7 @@ if [ -d "$BUILD_DIR" ]; then
 			printf "The given BUILD_DIR ($BUILD_DIR) exists and is not empty. Delete it and install here anyways? [y/n] " > /dev/tty
 			read -r yn < /dev/tty
 			case $yn in
-				[Yy]* ) echo "Continuing..."; break;; # Break the loop and continue script
+				[Yy]* ) break;; # Break the loop and continue script
 				[Nn]* ) echo "Stopping installer..."; exit;; # Exit the script
 				* ) echo "Please answer yes or no.";; # Loop back for invalid input
 			esac
@@ -138,7 +138,7 @@ if [ -d "$INSTALL_DIR/$APP_NAME.app" ]; then
 			printf "Neoprisma is already installed in the target location ($INSTALL_DIR/$APP_NAME.app). If you are updating the app, this is normal. Replace the existing app and proceed with installation? [y/n] " > /dev/tty
 			read -r yn < /dev/tty
 			case $yn in
-				[Yy]* ) echo "Continuing..."; break;; # Break the loop and continue script
+				[Yy]* ) echo break;; # Break the loop and continue script
 				[Nn]* ) echo "Stopping installer..."; exit;; # Exit the script
 				* ) echo "Please answer yes or no.";; # Loop back for invalid input
 			esac
@@ -152,7 +152,7 @@ if [ -d "$INSTALL_DIR/$APP_NAME.app" ]; then
 fi
 echo 
 
-echo "Downl
+echo "Fetching source..."
 
 run_step "Cloning repo into build dir..." git clone -b "$BRANCH" https://github.com/PrismaticDepths/neoprisma "$BUILD_DIR"
 
