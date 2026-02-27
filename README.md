@@ -19,7 +19,7 @@ You may inspect `install.sh` in the stable branch of this repository to make sur
 If you are satisfied, execute the following in your terminal:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/PrismaticDepths/neoprisma/stable/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/PrismaticDepths/neoprisma/stable/install.sh | $SHELL
 ```
 
 Once the install finishes, grant the application "Input Monitoring" and "Accessibility" permissions in System Settings.
