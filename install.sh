@@ -75,10 +75,10 @@ if [ "$#" -gt 0 ]; then
 	done
 fi
 
-echo -n "Checking OS and arch... "
+echo -n "  [..] Checking OS and arch... "
 
 die() {
-	echo "ERROR: $*" >&2
+	echo "$*" >&2
 	exit 1
 }
 
@@ -87,33 +87,33 @@ version_ge() {
 }
 
 # OS check
-[[ "$(uname)" == "Darwin" ]] || die "\033[31mFAIL\033[0m\ninvalid OS (must be on macOS)"
+[[ "$(uname)" == "Darwin" ]] || die "\r  [\033[31mFAIL\033[0m] Checking OS and arch... \nERROR: invalid OS (must be on macOS)"
 
 # macOS version check
 REQUIRED_MACOS="12.0"
 INSTALLED_MACOS=$(sw_vers -productVersion)
 
 version_ge "$INSTALLED_MACOS" "$REQUIRED_MACOS" \
-	|| die "\033[31mFAIL\033[0m\nmacOS $REQUIRED_MACOS+ required (found $INSTALLED_MACOS)"
+	|| die "\r  [\033[31mFAIL\033[0m] Checking OS and arch... \nERROR: macOS $REQUIRED_MACOS+ required (found $INSTALLED_MACOS)"
 
 # Architecture check
 ARCH=$(uname -m)
 [[ "$ARCH" == "arm64" || "$ARCH" == "x86_64" ]] \
-	|| die "\033[31mFAIL\033[0m\nunsupported CPU architecture $ARCH (must be arm64 or x86_64)"
+	|| die "\r  [\033[31mFAIL\033[0m] Checking OS and arch... \nERROR: unsupported CPU architecture $ARCH (must be arm64 or x86_64)"
 
-echo "\033[32mOK\033[0m"
+echo "  [\033[32mOK\033[0m] Checking OS and arch... "
 
 echo -n "Checking for dependencies... "
 
 require_cmd() {
-	command -v "$1" >/dev/null 2>&1 || die "\033[31mFAIL\033[0m\nmissing dependency $1"
+	command -v "$1" >/dev/null 2>&1 || die "\r  [\033[31mFAIL\033[0m] Checking for dependencies... \nERROR: missing dependency $1"
 }
 
 require_cmd git
 require_cmd python3
 require_cmd clang++
 
-echo "\033[32mOK\033[0m"
+echo "\r  [\033[32mOK\033[0m] Checking for dependencies... "
 
 if [ -d "$BUILD_DIR" ]; then
 	echo "Cleaning build dir..."
@@ -157,17 +157,17 @@ run_step "Cloning repo into build dir..." git clone -b "$BRANCH" https://github.
 
 cd "$BUILD_DIR"
 
-echo -n "Fetching latest release version... "
+echo -n "  [..] Fetching latest release version... "
 
 LATEST_VERSION=$(curl -s "https://api.github.com/repos/PrismaticDepths/neoprisma/releases/latest" | \
                  grep '"tag_name":' | \
                  sed -E 's/.*"([^"]+)".*/\1/')
 
 if [[ -z "$LATEST_VERSION" ]]; then
-    echo "\033[33mWARN\033[0m\nFailed to fetch latest version, defaulting to '0.0.1'"
+    echo "\r  [\033[33mWARN\033[0m] Fetching latest release version...\nFailed to fetch latest version, defaulting to '0.0.1'"
     LATEST_VERSION="0.0.1"
 else
-	echo "\033[32mOK\033[0m"
+	echo "\r  [\033[32mOK\033[0m] Fetching latest release version..."
 fi
 
 echo "↳ Latest release version: $LATEST_VERSION"
