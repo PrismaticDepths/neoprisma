@@ -1,7 +1,7 @@
 import os, sys
 
 if getattr(sys, "frozen", False):
-	EXEPATH = sys.executable
+	EXEPATH = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(sys.executable))))
 	BASE = sys._MEIPASS
 else:
 	EXEPATH = ""
