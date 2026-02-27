@@ -82,8 +82,6 @@ INSTALLED_MACOS=$(sw_vers -productVersion)
 version_ge "$INSTALLED_MACOS" "$REQUIRED_MACOS" \
 	|| die "\033[31mFAIL\033[0m\nmacOS $REQUIRED_MACOS+ required (found $INSTALLED_MACOS)"
 
-echo "\033[32mOK\033[0m"
-
 # Architecture check
 ARCH=$(uname -m)
 [[ "$ARCH" == "arm64" || "$ARCH" == "x86_64" ]] \
@@ -161,7 +159,7 @@ else
 	echo "\033[32mOK\033[0m"
 fi
 
-echo "Latest release version: $LATEST_VERSION"
+echo "↳ Latest release version: $LATEST_VERSION"
 
 cat <<EOF > src/version.py
 __version__ = "$LATEST_VERSION"
@@ -174,10 +172,11 @@ python3 -m venv .venv
 source .venv/bin/activate
 PIP="python3 -m pip"
 $PIP install --upgrade pip > $VERBOSE_OUT 2>&1
+echo "↳ pip upgrade \033[32mOK\033[0m"
 $PIP install -r requirements.txt
-echo "\033[32mOK\033[0m installed dependencies"
+echo "↳ requirements.txt \033[32mOK\033[0m"
 $PIP install pyinstaller 
-echo "\033[32mOK\033[0m installed pyinstaller"
+echo "↳ pyinstaller \033[32mOK\033[0m"
 
 cd src
 
