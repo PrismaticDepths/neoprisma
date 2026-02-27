@@ -118,7 +118,7 @@ class Main(QObject):
 		self.recording_hotkey = False
 		self.hotkey_record_buffer = set()
 		self.hotkey_edit_label = ""
-		self.cps = 100
+		self.cps = 75
 		self.keysdown = set()
 		self.hotkeys = {
 			"KEYBIND_TOGGLE_RECORD": set(),
@@ -192,6 +192,8 @@ class Main(QObject):
 		#self.settingsw_speedslider.setValue(1)
 		#self.settingsw_speedslider.valueChanged.connect()
 
+		self.settingsw_hk_layout = QVBoxLayout()
+
 		self.settingsw_hk_rec_layout = QHBoxLayout()
 		self.settingsw_hk_rec = QPushButton("Edit RECORD hotkey",self.settingsw)
 		self.settingsw_hk_rec_disp = QLabel(" + ".join([self.vk_to_name(i) for i in self.hotkeys["KEYBIND_TOGGLE_RECORD"]]))
@@ -216,9 +218,12 @@ class Main(QObject):
 		self.settingsw_hk_rec.clicked.connect(lambda: self.set_hk("KEYBIND_TOGGLE_RECORD"))
 		self.settingsw_hk_play.clicked.connect(lambda: self.set_hk("KEYBIND_TOGGLE_PLAYBACK"))
 		self.settingsw_hk_auto.clicked.connect(lambda: self.set_hk("KEYBIND_TOGGLE_AUTOCLICK"))
-		self.settingsw_layout.addLayout(self.settingsw_hk_rec_layout)
-		self.settingsw_layout.addLayout(self.settingsw_hk_play_layout)
-		self.settingsw_layout.addLayout(self.settingsw_hk_auto_layout)
+		self.settingsw_hk_layout.addLayout(self.settingsw_hk_rec_layout)
+		self.settingsw_hk_layout.addLayout(self.settingsw_hk_play_layout)
+		self.settingsw_hk_layout.addLayout(self.settingsw_hk_auto_layout)
+		self.settingsw_hk_layout.setSpacing(1)
+		self.settingsw_hk_layout.setContentsMargins(0, 0, 0, 0)
+		self.settingsw_layout.addLayout(self.settingsw_hk_layout)
 
 		self.settingsw_speededit = QWidget()
 		self.settingsw_speededit_layout = QHBoxLayout()
@@ -237,13 +242,16 @@ class Main(QObject):
 		self.settingsw_cpsedit.setLayout(self.settingsw_cpsedit_layout)
 		self.settingsw_cpsedit_input = QDoubleSpinBox()
 		self.settingsw_cpsedit_input.setRange(0.01,2200)
-		self.settingsw_cpsedit_input.setValue(100)
+		self.settingsw_cpsedit_input.setValue(75)
 		self.settingsw_cpsedit_input.valueChanged.connect(self.upd_cps)
 		self.settingsw_cpsedit_label = QLabel("(Autoclick) Target clicks/second:",self.settingsw_cpsedit)
 		self.settingsw_cpsedit_layout.addWidget(self.settingsw_cpsedit_label)
 		self.settingsw_cpsedit_layout.addWidget(self.settingsw_cpsedit_input)
 		self.settingsw_layout.addWidget(self.settingsw_cpsedit)
 		self.settingsw_layout.addWidget(self.settingsw_speededit)
+
+		self.settingsw_layout.setSpacing(5)
+		self.settingsw_hk_layout.setContentsMargins(0, 0, 0, 0)
 
 		self.settingsw_save = QPushButton("Save configurations",self.settingsw)
 		self.settingsw_save.clicked.connect(self.save_configurations)
