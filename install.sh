@@ -101,9 +101,9 @@ ARCH=$(uname -m)
 [[ "$ARCH" == "arm64" || "$ARCH" == "x86_64" ]] \
 	|| die "\r  [\033[31mFAIL\033[0m] Checking OS and arch... \nERROR: unsupported CPU architecture $ARCH (must be arm64 or x86_64)"
 
-echo "  [\033[32mOK\033[0m] Checking OS and arch... "
+echo "\r  [\033[32mOK\033[0m] Checking OS and arch... "
 
-echo -n "Checking for dependencies... "
+echo -n "  [..] Checking for dependencies... "
 
 require_cmd() {
 	command -v "$1" >/dev/null 2>&1 || die "\r  [\033[31mFAIL\033[0m] Checking for dependencies... \nERROR: missing dependency $1"
@@ -157,20 +157,17 @@ run_step "Cloning repo into build dir..." git clone -b "$BRANCH" https://github.
 
 cd "$BUILD_DIR"
 
-echo -n "  [..] Fetching latest release version... "
-
 LATEST_VERSION=$(curl -s "https://api.github.com/repos/PrismaticDepths/neoprisma/releases/latest" | \
-                 grep '"tag_name":' | \
-                 sed -E 's/.*"([^"]+)".*/\1/')
+	grep '"tag_name":' | \
+	sed -E 's/.*"([^"]+)".*/\1/')
 
 if [[ -z "$LATEST_VERSION" ]]; then
-    echo "\r  [\033[33mWARN\033[0m] Fetching latest release version...\nFailed to fetch latest version, defaulting to '0.0.1'"
+    echo "Failed to fetch latest version, defaulting to '0.0.1'"
     LATEST_VERSION="0.0.1"
 else
-	echo "\r  [\033[32mOK\033[0m] Fetching latest release version..."
+	echo "Latest release version: $LATEST_VERSION"
 fi
 
-echo "↳ Latest release version: $LATEST_VERSION"
 
 cat <<EOF > src/version.py
 __version__ = "$LATEST_VERSION"
