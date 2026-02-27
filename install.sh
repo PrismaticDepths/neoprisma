@@ -61,7 +61,7 @@ if [ "$#" -gt 0 ]; then
 	done
 fi
 
-echo "Checking OS and arch..."
+echo -n "Checking OS and arch... "
 
 die() {
 	echo "ERROR: $*" >&2
@@ -73,31 +73,35 @@ version_ge() {
 }
 
 # OS check
-[[ "$(uname)" == "Darwin" ]] || die "invalid OS (must be on macOS)"
+[[ "$(uname)" == "Darwin" ]] || die "\033[31mFAIL\033[0m\ninvalid OS (must be on macOS)"
 
 # macOS version check
 REQUIRED_MACOS="12.0"
 INSTALLED_MACOS=$(sw_vers -productVersion)
 
 version_ge "$INSTALLED_MACOS" "$REQUIRED_MACOS" \
-	|| die "macOS $REQUIRED_MACOS+ required (found $INSTALLED_MACOS)"
+	|| die "\033[31mFAIL\033[0m\nmacOS $REQUIRED_MACOS+ required (found $INSTALLED_MACOS)"
+
+echo "\033[32mOK\033[0m"
 
 # Architecture check
 ARCH=$(uname -m)
 [[ "$ARCH" == "arm64" || "$ARCH" == "x86_64" ]] \
-	|| die "unsupported CPU architecture $ARCH (must be arm64 or x86_64)"
+	|| die "\033[31mFAIL\033[0m\nunsupported CPU architecture $ARCH (must be arm64 or x86_64)"
 
-echo "Checking for dependencies..."
+echo "\033[32mOK\033[0m"
+
+echo -n "Checking for dependencies... "
 
 require_cmd() {
-	command -v "$1" >/dev/null 2>&1 || die "missing dependency $1"
+	command -v "$1" >/dev/null 2>&1 || die "\033[31mFAIL\033[0m\nmissing dependency $1"
 }
 
 require_cmd git
 require_cmd python3
 require_cmd clang++
 
-echo "\033[32mOK\033[0m all dependencies are installed"
+echo "\033[32mOK\033[0m"
 
 if [ -d "$BUILD_DIR" ]; then
 	echo "Cleaning build dir..."
@@ -137,22 +141,24 @@ if [ -d "$INSTALL_DIR/$APP_NAME.app" ]; then
 	fi
 fi
 
-echo "Cloning repo into build dir..."
+echo -n "Cloning repo into build dir... "
 
 git clone -b "$BRANCH" https://github.com/PrismaticDepths/neoprisma "$BUILD_DIR" > $VERBOSE_OUT 2>&1
-echo "\033[32mOK\033[0m cloned branch $BRANCH into $BUILD_DIR"
+echo "\033[32mOK\033[0m"
 
 cd "$BUILD_DIR"
 
-echo "Fetching latest release version..."
+echo -n "Fetching latest release version... "
 
 LATEST_VERSION=$(curl -s "https://api.github.com/repos/PrismaticDepths/neoprisma/releases/latest" | \
                  grep '"tag_name":' | \
                  sed -E 's/.*"([^"]+)".*/\1/')
 
 if [[ -z "$LATEST_VERSION" ]]; then
-    echo "Failed to fetch latest version, defaulting to '0.0.1'"
+    echo "\033[33mWARN\033[0m\nFailed to fetch latest version, defaulting to '0.0.1'"
     LATEST_VERSION="0.0.1"
+else
+	echo "\033[32mOK\033[0m"
 fi
 
 echo "Latest release version: $LATEST_VERSION"
@@ -162,13 +168,12 @@ __version__ = "$LATEST_VERSION"
 EOF
 
 
-echo "Installing Python dependencies..."
+echo "Installing Python dependencies... "
 
 python3 -m venv .venv
 source .venv/bin/activate
 PIP="python3 -m pip"
 $PIP install --upgrade pip > $VERBOSE_OUT 2>&1
-
 $PIP install -r requirements.txt
 echo "\033[32mOK\033[0m installed dependencies"
 $PIP install pyinstaller 
@@ -176,19 +181,17 @@ echo "\033[32mOK\033[0m installed pyinstaller"
 
 cd src
 
-
-echo "Building binaries..."
+echo -n "Building binaries... "
 
 PYTHON_EXE=$(which python3 || which python)
 EXT_SUFFIX=$($PYTHON_EXE -c "import sysconfig; print(sysconfig.get_config_var('EXT_SUFFIX'))")
 
-
 clang++ -arch $ARCH -O3 -Wall -shared -std=c++17 -undefined dynamic_lookup $($PYTHON_EXE -m pybind11 --includes) playback.cpp -o playback$EXT_SUFFIX automation_macos.cpp
-echo "\033[32mOK\033[0m built playback binaries"
+echo "\033[32mOK\033[0m"
 
 cd ..
 
-echo "Building application bundle..."
+echo -n "Building application bundle... "
 
 PLAYBACK_FILE=(src/playback*"${EXT_SUFFIX}")
 
@@ -207,9 +210,11 @@ $PYTHON_EXE -m PyInstaller \
 	--hidden-import=ApplicationServices \
 	src/main.py > $VERBOSE_OUT 2>&1
 
-mkdir -p "$INSTALL_DIR"
+echo "\033[32mOK\033[0m"
 
 echo "Moving dist to installation dir..."
+
+mkdir -p "$INSTALL_DIR"
 
 mv "$BUILD_DIR/dist/$APP_NAME.app" "$INSTALL_DIR/"
 
