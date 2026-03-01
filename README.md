@@ -3,12 +3,16 @@
 Neoprisma is a fast, clean, and reliable autoclicker & macro for MacOS (hopefully coming to Windows soon).
 It is the successor to Prism's Autoclicker 4.0.
 
-| | nprisma | prism's autoclicker |
+## Roadmap
+
+| Feature | Done | Description |
 | - | - | - |
-| Autoclick | <ul><li>- [x] Customisable delay, only left click. </li></ul> | <ul><li>- [x] LMB, RMB, and most keys. Customizable delay. </li></ul> |
-| Tasks | <ul><li>- [x] Keyboard, mouse, including mouse drag events. Adjustable playback speed. </li></ul> | <ul><li>- [x] Supports saving/loading to files, recording, and playback. </li></ul> |
-| Interface | <ul><li>- [x] QT based System tray UI. </li></ul> | <ul><li>- [x] Very simple GUI using TkInter. No tray UI. </li></ul> |
-| Easy Installation | <ul><li>- [x] Only a recent python release & git should be needed. The install script does the rest. Also checks for new versions automatically and can update itself. </li></ul> | <ul><li>- [ ] Had prebuilt binaries, but required manual de-quarantining. Currently requires a full manual build. </li></ul> |
+| Autoclick | <ul><li>- [ ] </li></ul> | Delay can be adjusted, but only left clicking is supported. | 
+| Tasks/Macros | <ul><li>- [x] </li></ul> | Record keyboard, mouse, including mouse drag events. Adjustable playback speed. |
+| Scripting/Full automation | <ul><li>- [ ] </li></ul> | Planned. |
+| Interface | <ul><li>- [x] </li></ul> | QT based. Interface works fine, though more polish is planned. |
+| Hotkeys | <ul><li>- [x] </li></ul> | Configurable. They work, but can get caught in recordings and sometimes get stuck. |
+| Installer | <ul><li>- [ ] </li></ul> | Difficulties may arise if your Python install is not well configured. Otherwise, it is smooth sailing. |
 
 ## Installation
 
@@ -23,10 +27,11 @@ curl -fsSL https://raw.githubusercontent.com/PrismaticDepths/neoprisma/stable/in
 
 *Once the install finishes, grant Neoprisma "Input Monitoring" and "Accessibility" permissions in System Settings.*
 
-> Please note that you will need to install Python, pip, and Apple's Command Line Tools as a prerequisite for installing neoprisma. Pip is usually bundled with Python. If you have already installed these in the past, you may skip this step.
->
-> - Official downloads for Python: https://www.python.org/downloads/
-> - See this page for info on the Command Line Tools: https://developer.apple.com/documentation/xcode/installing-the-command-line-tools/
+### Caveats
+
+Please note that you will need to install Python, pip, and Apple's Command Line Tools as a prerequisite for installing neoprisma. Pip is usually bundled with Python. If you have already installed these in the past, you may skip this step.
+ - Official downloads for Python: https://www.python.org/downloads/
+ - See this page for info on the Command Line Tools: https://developer.apple.com/documentation/xcode/installing-the-command-line-tools/
 
 ## Hotkeys / Usage
 
