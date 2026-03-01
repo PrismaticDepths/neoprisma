@@ -8,7 +8,7 @@ It is the successor to Prism's Autoclicker 4.0.
 | Feature | Done | Description |
 | - | - | - |
 | Autoclick | <ul><li>- [ ] </li></ul> | Delay can be adjusted, but only left clicking is supported. | 
-| Tasks/Macros | <ul><li>- [x] </li></ul> | Record keyboard, mouse, including mouse drag events. Adjustable playback speed. |
+| Tasks/Macros | <ul><li>- [x] </li></ul> | Record keyboard and mouse, including mouse drag events. Adjustable playback speed. |
 | Scripting/Full automation | <ul><li>- [ ] </li></ul> | Planned. |
 | Interface | <ul><li>- [x] </li></ul> | QT based. Interface works fine, though more polish is planned. |
 | Hotkeys | <ul><li>- [x] </li></ul> | Configurable. They work, but can get caught in recordings and sometimes get stuck. |
