@@ -29,21 +29,30 @@ curl -fsSL https://raw.githubusercontent.com/PrismaticDepths/neoprisma/stable/in
 
 ### Caveats
 
-Please note that you will need to install Python, pip, and Apple's Command Line Tools as a prerequisite for installing neoprisma. Pip is usually bundled with Python. If you have already installed these in the past, you may skip this step.
- - Official downloads for Python: https://www.python.org/downloads/
- - See this page for info on the Command Line Tools: https://developer.apple.com/documentation/xcode/installing-the-command-line-tools/
+| Dependencies |
+| - |
+| You will need to install Python, pip, and Apple's Command Line Tools as a prerequisite for installing neoprisma. Pip is usually bundled with Python. If you have already installed these in the past, you may skip this step. |
+| Official downloads for Python: https://www.python.org/downloads/ |
+| See this page for info on the Command Line Tools: https://developer.apple.com/documentation/xcode/installing-the-command-line-tools/ |
+
+| Permissions |
+| - |
+| Neoprisma requires *"Input Monitoring"* and *"Accessibility"* permissions to operate. You must re-grant these permissions every time you install or update Neoprisma. |
+| *"Input Monitoring"* allows Neoprisma to monitor keyboard input. This is used for hotkeys, and the recording of tasks. |
+| *"Accessibility"* allows, among other things, for Neoprisma to control your mouse and keyboard. This is used for autoclicking and playing back tasks. |
+| You can grant these permissions in the "Privacy & Security" section of System Settings. |
 
 ## Hotkeys / Usage
 
 Hotkeys are configurable in the settings menu.
 
+| Default Keybind | Action |
+| - | - |
+|`<ctrl><fn><f7>` | toggle recording |
+|`<ctrl><fn><f8>` | toggle autoclicker |
+|`<ctrl><fn><f9>` | toggle playback |
+
 You can reset hotkeys and other configuration data by deleting the hidden file named `.neoprisma` in your home directory. To show hidden files, you can use the keyboard shortcut `<cmd>+<shift>+<.>` in Finder.
-
-All default hotkeys are in the range of `<ctrl>+<fn>+<f7-f9>` (or `<ctrl>+<f7-f9>` if you have configured the function keys to need fn to do their special action)
-
-`<ctrl><fn><f7>` - toggle recording\
-`<ctrl><fn><f8>` - toggle autoclicker\
-`<ctrl><fn><f9>` - toggle playback
 
 ## Known Issues
 
