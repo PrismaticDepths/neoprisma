@@ -167,8 +167,7 @@ cd "$BUILD_DIR"
 
 LATEST_VERSION="${$(curl -s "https://api.github.com/repos/PrismaticDepths/neoprisma/releases/latest" | \
     grep '"tag_name":' | \
-    sed -E 's/.*"([^"]+)".*/\1/'):-}"
-
+    sed -E 's/.*"([^"]+)".*/\1/'):-}" || true
 
 if [[ -z "$LATEST_VERSION" ]]; then
     echo "  [\033[33mWARN\033[0m] Failed to fetch latest version, defaulting to '0.0.1'"
