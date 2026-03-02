@@ -151,6 +151,14 @@ if [ -d "$INSTALL_DIR/$APP_NAME.app" ]; then
 	fi
 fi 
 
+if python3 -c "import sys; sys.exit(0) if sys.version_info >= (3,10) else sys.exit(1)"; then
+	echo "  [\033[32mOK\033[0m] Python install: $(python3 --version)"
+else
+	echo "  [\033[31mFAIL\033[0m] Python 3.10+ required (found $(python3 --version)) "
+	echo "         ↳ See https://python.org/downloads for information"
+	exit 1
+fi
+
 echo "Fetching source..."
 
 run_step "Cloning repo into build dir" git clone -b "$BRANCH" https://github.com/PrismaticDepths/neoprisma "$BUILD_DIR"
@@ -180,10 +188,9 @@ echo "Installing Python dependencies... "
 python3 -m venv .venv
 source .venv/bin/activate
 PIP="python3 -m pip"
-run_step "↳ pip" $PIP install --upgrade pip
-run_step "↳ requirements.txt" $PIP install -r requirements.txt
-run_step "↳ pyinstaller" $PIP install pyinstaller 
-
+run_step "Installing pip" $PIP install --upgrade pip
+run_step "Installing from requirements.txt" $PIP install -r requirements.txt
+run_step "Installing pyinstaller" $PIP install pyinstaller 
 cd src
 
 PYTHON_EXE=$(which python3 || which python)

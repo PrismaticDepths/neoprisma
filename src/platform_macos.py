@@ -55,7 +55,7 @@ MACOS_VK_MAP = {
     15: 'r', 1: 's', 17: 't', 32: 'u', 9: 'v', 13: 'w', 7: 'x', 16: 'y', 6: 'z',
     29: '0', 18: '1', 19: '2', 20: '3', 21: '4', 23: '5', 22: '6', 26: '7', 28: '8', 25: '9',
     49: 'space', 36: 'newline', 48: 'tab',
-    24: '=', 27: '-', 33: '[', 30: ']', 42: '\\', 41: ';', 39: "'", 43: ',', 47: '.', 44: '/'
+    24: '=', 27: '-', 33: '[', 30: ']', 42: '\\', 41: ';', 39: "'", 43: ',', 47: '.', 44: '/', 50: '`'
 }
 
 
@@ -360,7 +360,10 @@ class Main(QObject):
 		if pynput.keyboard.KeyCode.from_vk(vk) in pynput.keyboard.Key:
 			return pynput.keyboard.Key(pynput.keyboard.KeyCode.from_vk(vk)).name
 		else:
-			return MACOS_VK_MAP[vk]
+			try:
+				return MACOS_VK_MAP[vk]
+			except Exception:
+				return f"<{vk}>"
 
 	def listener_hotkeysv2_handlekeypress(self,key:pynput.keyboard.Key|pynput.keyboard.KeyCode,i=False): # this is a very long name
 		try:
