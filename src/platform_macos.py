@@ -360,7 +360,10 @@ class Main(QObject):
 		if pynput.keyboard.KeyCode.from_vk(vk) in pynput.keyboard.Key:
 			return pynput.keyboard.Key(pynput.keyboard.KeyCode.from_vk(vk)).name
 		else:
-			return MACOS_VK_MAP[vk]
+			try:
+				return MACOS_VK_MAP[vk]
+			except Exception:
+				return f"<{vk}>"
 
 	def listener_hotkeysv2_handlekeypress(self,key:pynput.keyboard.Key|pynput.keyboard.KeyCode,i=False): # this is a very long name
 		try:
