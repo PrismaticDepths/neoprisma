@@ -20,7 +20,6 @@ import globalconfwizard
 import pynput
 import requests
 import copy
-import queue
 import traceback
 import time
 import sys
@@ -58,6 +57,13 @@ MACOS_VK_MAP = {
     24: '=', 27: '-', 33: '[', 30: ']', 42: '\\', 41: ';', 39: "'", 43: ',', 47: '.', 44: '/', 50: '`'
 }
 
+CONFIGURATION_DEFAULTS = {
+	"DOC":"NEOPRISMA CONFIGURATION DATA",
+	"KEYBIND_TOGGLE_RECORD":"59 98",
+	"KEYBIND_TOGGLE_AUTOCLICK":"59 100",
+	"KEYBIND_TOGGLE_PLAYBACK":"59 101",
+	"RELEASE_CHANNEL":"stable"
+}
 
 def latest():
 	url = f"https://api.github.com/repos/prismaticdepths/neoprisma/releases/latest"
@@ -107,8 +113,6 @@ class Main(QObject):
 
 		self.app = QApplication(sys.argv)
 
-		self.update_available, self.latest_version = version_dif(latest())
-
 		self.arr = bytearray(b"<NEOPRISMA>\x01")
 		self.compiled_arr:list[playback.EventPacket] = []
 		self.state_recording = False
@@ -118,28 +122,27 @@ class Main(QObject):
 		self.recording_hotkey = False
 		self.hotkey_record_buffer = set()
 		self.hotkey_edit_label = ""
-		self.cps = 75
+		self.cps = 1/100
 		self.keysdown = set()
 		self.hotkeys = {
 			"KEYBIND_TOGGLE_RECORD": set(),
 			"KEYBIND_TOGGLE_PLAYBACK": set(),
 			"KEYBIND_TOGGLE_AUTOCLICK": set()
 		}
-
+		self.conf_data=copy.deepcopy(CONFIGURATION_DEFAULTS)
 		if os.path.exists(os.path.expanduser("~/.neoprisma")):
-			self.conf_data=globalconfwizard.unpack(os.path.expanduser("~/.neoprisma"))
+			conf_data=globalconfwizard.unpack(os.path.expanduser("~/.neoprisma"))
+			for key,value in conf_data.items():
+				self.conf_data[key] = value
 		else:
-			self.conf_data={
-				"DOC":"NEOPRISMA CONFIGURATION DATA",
-				"KEYBIND_TOGGLE_RECORD":"59 98",
-				"KEYBIND_TOGGLE_AUTOCLICK":"59 100",
-				"KEYBIND_TOGGLE_PLAYBACK":"59 101"
-			}
+			self.conf_data=CONFIGURATION_DEFAULTS
 			globalconfwizard.pack(os.path.expanduser("~/.neoprisma"),self.conf_data)
 
 		for key in self.conf_data.keys():
 			if key.startswith("KEYBIND"):
 				self.hotkeys[key] = set(int(i) for i in self.conf_data[key].split(" "))
+
+		self.update_available, self.latest_version = version_dif(latest())
 
 		self.error_emitter = Emitter()
 		self.error_emitter.error.connect(lambda msg: QMessageBox.critical(None,"neoprisma: an error occured",msg if len(msg) <= 350 else msg[:350],QMessageBox.StandardButton.Ok))
@@ -155,7 +158,6 @@ class Main(QObject):
 		self.tray.setIcon(self.icon_static)
 		self.tray.setVisible(True)
 
-		# Create the menu
 		self.menu = QMenu()
 
 		self.toggle_rec_widget = QAction("Toggle Recording")
@@ -174,7 +176,6 @@ class Main(QObject):
 
 		self.menu.addActions([self.toggle_rec_widget,self.toggle_play_widget,self.toggle_auto_widget,self.load_widget,self.save_widget,self.conf_widget])
 
-		# Add a Quit option to the menu.
 		self.quitaction = QAction("Quit")
 		self.quitaction.triggered.connect(self.shutdown)
 		self.menu.addAction(self.quitaction)
@@ -235,19 +236,22 @@ class Main(QObject):
 		self.settingsw_speededit_label = QLabel("(Playback) Speed multiplier:",self.settingsw_speededit)
 		self.settingsw_speededit_layout.addWidget(self.settingsw_speededit_label)
 		self.settingsw_speededit_layout.addWidget(self.settingsw_speededit_input)
-		self.settingsw_layout.addWidget(self.settingsw_speededit)
+
+		
 
 		self.settingsw_cpsedit = QWidget()
 		self.settingsw_cpsedit_layout = QHBoxLayout()
 		self.settingsw_cpsedit.setLayout(self.settingsw_cpsedit_layout)
 		self.settingsw_cpsedit_input = QDoubleSpinBox()
 		self.settingsw_cpsedit_input.setRange(0.01,2200)
-		self.settingsw_cpsedit_input.setValue(75)
+		self.settingsw_cpsedit_input.setValue(100)
 		self.settingsw_cpsedit_input.valueChanged.connect(self.upd_cps)
 		self.settingsw_cpsedit_label = QLabel("(Autoclick) Target clicks/second:",self.settingsw_cpsedit)
 		self.settingsw_cpsedit_layout.addWidget(self.settingsw_cpsedit_label)
 		self.settingsw_cpsedit_layout.addWidget(self.settingsw_cpsedit_input)
+
 		self.settingsw_layout.addWidget(self.settingsw_cpsedit)
+
 		self.settingsw_layout.addWidget(self.settingsw_speededit)
 
 		self.settingsw_layout.setSpacing(5)
@@ -256,9 +260,9 @@ class Main(QObject):
 		self.settingsw_save = QPushButton("Save configurations",self.settingsw)
 		self.settingsw_save.clicked.connect(self.save_configurations)
 		self.settingsw_layout.addWidget(self.settingsw_save)
+
 		self.tray.setContextMenu(self.menu)
 
-		self.kqueue = queue.Queue()
 		self.run_workers = True
 		self.auto_thread = None
 
@@ -320,9 +324,10 @@ class Main(QObject):
 	def upd_speed(self,x):
 		if x == 0: return
 		self.timestamp_multiplier=1/x
+
 	def upd_cps(self,x):
 		if x == 0: return
-		self.cps = 1/(2*x)
+		self.cps = 1/x
 
 	def save_configurations(self):
 		globalconfwizard.pack(os.path.expanduser("~/.neoprisma"),self.conf_data)
@@ -365,9 +370,10 @@ class Main(QObject):
 			except Exception:
 				return f"<{vk}>"
 
-	def listener_hotkeysv2_handlekeypress(self,key:pynput.keyboard.Key|pynput.keyboard.KeyCode,i=False): # this is a very long name
+	def listener_hotkeysv2_handlekeypress(self,key:pynput.keyboard.Key|pynput.keyboard.KeyCode,injected=False): # this is a very long name
+		# Injected: Whether the event is authentic or software generated. We can detect our own key events with this. Pynput 1.8.0+
 		try:
-			if i or key is None: return
+			if (injected==True) or (key is None): return
 			vk = key.vk if isinstance(key,pynput.keyboard.KeyCode) else key.value.vk
 			self.keysdown.add(vk)
 			if self.recording_hotkey and len(self.hotkey_record_buffer) < 5:
@@ -390,8 +396,8 @@ class Main(QObject):
 		except Exception:
 			self.error_emitter.error.emit(traceback.format_exc())
 
-	def listener_hotkeysv2_handlekeyrelease(self,key:pynput.keyboard.Key|pynput.keyboard.KeyCode,i=False): # this is a very long name too
-		if i: return
+	def listener_hotkeysv2_handlekeyrelease(self,key:pynput.keyboard.Key|pynput.keyboard.KeyCode,injected=False): # this is a very long name too
+		if injected==True: return
 		vk = key.vk if isinstance(key,pynput.keyboard.KeyCode) else key.value.vk
 		self.keysdown.discard(vk)
 
@@ -493,8 +499,8 @@ class Main(QObject):
 		while self.state_autoclicker:
 			playback.mouseButtonStatus(1,int(self.m_simulator.position[0]),int(self.m_simulator.position[1]),True)
 			time.sleep(self.cps)
-			if not self.state_autoclicker: break
 			playback.mouseButtonStatus(1,int(self.m_simulator.position[0]),int(self.m_simulator.position[1]),False)
+			if not self.state_autoclicker: break
 			time.sleep(self.cps)
 
 	def load(self):

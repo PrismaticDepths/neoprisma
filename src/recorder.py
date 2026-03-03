@@ -80,18 +80,22 @@ class OneShotRecorder:
 		if not self.running: return
 		self.buffer.extend(struct.pack(EVENT_HEADER_FMT+PAYLOAD_FMTS[event],timestamp,event,*payload))
 
-	def captured_key_press(self,key:pynput.keyboard.Key|pynput.keyboard.KeyCode,i=False):
+	def captured_key_press(self,key:pynput.keyboard.Key|pynput.keyboard.KeyCode,injected=False):
+		# Injected: Whether the event is authentic or software generated. We can detect our own key events with this. Pynput 1.8.0+
 		t=time.perf_counter_ns()-self.starting_time
-		if i: return
+		if injected==True: return
 		
 		vk = key.vk if isinstance(key,pynput.keyboard.KeyCode) else key.value.vk
 		self.keysdown.add(vk)
 
+		if self.keysdown == self.known_hotkey: return
+
 		self.log_event(t,Events.KEY_DOWN,vk)
 
-	def captured_key_release(self,key:pynput.keyboard.Key|pynput.keyboard.KeyCode,i=False):
+	def captured_key_release(self,key:pynput.keyboard.Key|pynput.keyboard.KeyCode,injected=False):
 		t=time.perf_counter_ns()-self.starting_time
-		if i: return
+		if injected==True: return
+
 		vk = key.vk if isinstance(key,pynput.keyboard.KeyCode) else key.value.vk
 
 		if vk not in self.keysdown: return
