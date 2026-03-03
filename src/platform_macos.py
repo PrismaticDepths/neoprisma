@@ -62,6 +62,7 @@ CONFIGURATION_DEFAULTS = {
 	"KEYBIND_TOGGLE_RECORD":"59 98",
 	"KEYBIND_TOGGLE_AUTOCLICK":"59 100",
 	"KEYBIND_TOGGLE_PLAYBACK":"59 101",
+	"RELEASE_CHANNEL":"stable"
 }
 
 def latest():
@@ -112,8 +113,6 @@ class Main(QObject):
 
 		self.app = QApplication(sys.argv)
 
-		self.update_available, self.latest_version = version_dif(latest())
-
 		self.arr = bytearray(b"<NEOPRISMA>\x01")
 		self.compiled_arr:list[playback.EventPacket] = []
 		self.state_recording = False
@@ -142,6 +141,8 @@ class Main(QObject):
 		for key in self.conf_data.keys():
 			if key.startswith("KEYBIND"):
 				self.hotkeys[key] = set(int(i) for i in self.conf_data[key].split(" "))
+
+		self.update_available, self.latest_version = version_dif(latest())
 
 		self.error_emitter = Emitter()
 		self.error_emitter.error.connect(lambda msg: QMessageBox.critical(None,"neoprisma: an error occured",msg if len(msg) <= 350 else msg[:350],QMessageBox.StandardButton.Ok))
