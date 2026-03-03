@@ -2,15 +2,17 @@
 #include <cstdint>
 #include "automation.h"
 
+static CGEventSourceRef source = CGEventSourceCreate(kCGEventSourceStateHIDSystemState);
+
 void keyStatus(uint16_t vk_code, bool status) {
-	CGEventRef keyStroke = CGEventCreateKeyboardEvent(NULL, (CGKeyCode)vk_code, status);
+	CGEventRef keyStroke = CGEventCreateKeyboardEvent(source, (CGKeyCode)vk_code, status);
 	CGEventPost(kCGHIDEventTap, keyStroke);
 	CFRelease(keyStroke);
 }
 
 void moveMouseAbsolute(uint16_t x, uint16_t y) {
 	CGPoint destination = CGPointMake(x, y);
-	CGEventRef motion = CGEventCreateMouseEvent(NULL,kCGEventMouseMoved,destination,kCGMouseButtonLeft);
+	CGEventRef motion = CGEventCreateMouseEvent(source,kCGEventMouseMoved,destination,kCGMouseButtonLeft);
 	CGEventPost(kCGHIDEventTap, motion);
 	CFRelease(motion);
 }
@@ -37,7 +39,7 @@ void mouseDragAbsolute(uint8_t button, uint16_t x, uint16_t y) {
 			dragType = kCGEventOtherMouseDragged;
 			break;
 	}
-	CGEventRef motion = CGEventCreateMouseEvent(NULL,dragType,destination,mouseButton);
+	CGEventRef motion = CGEventCreateMouseEvent(source,dragType,destination,mouseButton);
 	CGEventPost(kCGHIDEventTap, motion);
 	CFRelease(motion);
 }
@@ -82,7 +84,7 @@ void mouseButtonStatus(uint16_t button, uint16_t x, uint16_t y, bool status) {
 			break;
 	}
 
-	CGEventRef click = CGEventCreateMouseEvent(NULL,statusEvent,destination,mouseButton);
+	CGEventRef click = CGEventCreateMouseEvent(source,statusEvent,destination,mouseButton);
 	if (button > 3 || button == 2) {
 		CGEventSetIntegerValueField(click, kCGMouseEventButtonNumber, button);
 	}
@@ -94,7 +96,7 @@ void mouseButtonStatus(uint16_t button, uint16_t x, uint16_t y, bool status) {
 void mouseScroll(uint16_t x, uint16_t y, uint16_t dx, uint16_t dy) {
 
 	CGPoint location = CGPointMake(x,y);
-	CGEventRef motion = CGEventCreateScrollWheelEvent(NULL, kCGScrollEventUnitPixel,2,dx,dy);
+	CGEventRef motion = CGEventCreateScrollWheelEvent(source, kCGScrollEventUnitPixel,2,dx,dy);
 	CGEventSetLocation(motion,location);
 	CGEventPost(kCGHIDEventTap,motion);
 	CFRelease(motion);

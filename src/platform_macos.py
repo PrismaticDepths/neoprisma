@@ -58,6 +58,12 @@ MACOS_VK_MAP = {
     24: '=', 27: '-', 33: '[', 30: ']', 42: '\\', 41: ';', 39: "'", 43: ',', 47: '.', 44: '/', 50: '`'
 }
 
+CONFIGURATION_DEFAULTS = {
+	"DOC":"NEOPRISMA CONFIGURATION DATA",
+	"KEYBIND_TOGGLE_RECORD":"59 98",
+	"KEYBIND_TOGGLE_AUTOCLICK":"59 100",
+	"KEYBIND_TOGGLE_PLAYBACK":"59 101",
+}
 
 def latest():
 	url = f"https://api.github.com/repos/prismaticdepths/neoprisma/releases/latest"
@@ -125,16 +131,13 @@ class Main(QObject):
 			"KEYBIND_TOGGLE_PLAYBACK": set(),
 			"KEYBIND_TOGGLE_AUTOCLICK": set()
 		}
-
+		self.conf_data=copy.deepcopy(CONFIGURATION_DEFAULTS)
 		if os.path.exists(os.path.expanduser("~/.neoprisma")):
-			self.conf_data=globalconfwizard.unpack(os.path.expanduser("~/.neoprisma"))
+			conf_data=globalconfwizard.unpack(os.path.expanduser("~/.neoprisma"))
+			for key,value in conf_data.items():
+				self.conf_data[key] = value
 		else:
-			self.conf_data={
-				"DOC":"NEOPRISMA CONFIGURATION DATA",
-				"KEYBIND_TOGGLE_RECORD":"59 98",
-				"KEYBIND_TOGGLE_AUTOCLICK":"59 100",
-				"KEYBIND_TOGGLE_PLAYBACK":"59 101"
-			}
+			self.conf_data=CONFIGURATION_DEFAULTS
 			globalconfwizard.pack(os.path.expanduser("~/.neoprisma"),self.conf_data)
 
 		for key in self.conf_data.keys():
@@ -155,7 +158,6 @@ class Main(QObject):
 		self.tray.setIcon(self.icon_static)
 		self.tray.setVisible(True)
 
-		# Create the menu
 		self.menu = QMenu()
 
 		self.toggle_rec_widget = QAction("Toggle Recording")
@@ -174,7 +176,6 @@ class Main(QObject):
 
 		self.menu.addActions([self.toggle_rec_widget,self.toggle_play_widget,self.toggle_auto_widget,self.load_widget,self.save_widget,self.conf_widget])
 
-		# Add a Quit option to the menu.
 		self.quitaction = QAction("Quit")
 		self.quitaction.triggered.connect(self.shutdown)
 		self.menu.addAction(self.quitaction)
@@ -365,9 +366,10 @@ class Main(QObject):
 			except Exception:
 				return f"<{vk}>"
 
-	def listener_hotkeysv2_handlekeypress(self,key:pynput.keyboard.Key|pynput.keyboard.KeyCode,i=False): # this is a very long name
+	def listener_hotkeysv2_handlekeypress(self,key:pynput.keyboard.Key|pynput.keyboard.KeyCode,injected=False): # this is a very long name
+		# Injected: Whether the event is authentic or software generated. We can detect our own key events with this. Pynput 1.8.0+
 		try:
-			if i or key is None: return
+			if (injected==True) or (key is None): return
 			vk = key.vk if isinstance(key,pynput.keyboard.KeyCode) else key.value.vk
 			self.keysdown.add(vk)
 			if self.recording_hotkey and len(self.hotkey_record_buffer) < 5:
@@ -390,8 +392,8 @@ class Main(QObject):
 		except Exception:
 			self.error_emitter.error.emit(traceback.format_exc())
 
-	def listener_hotkeysv2_handlekeyrelease(self,key:pynput.keyboard.Key|pynput.keyboard.KeyCode,i=False): # this is a very long name too
-		if i: return
+	def listener_hotkeysv2_handlekeyrelease(self,key:pynput.keyboard.Key|pynput.keyboard.KeyCode,injected=False): # this is a very long name too
+		if injected==True: return
 		vk = key.vk if isinstance(key,pynput.keyboard.KeyCode) else key.value.vk
 		self.keysdown.discard(vk)
 
