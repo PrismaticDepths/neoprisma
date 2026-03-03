@@ -20,7 +20,6 @@ import globalconfwizard
 import pynput
 import requests
 import copy
-import queue
 import traceback
 import time
 import sys
@@ -124,7 +123,7 @@ class Main(QObject):
 		self.recording_hotkey = False
 		self.hotkey_record_buffer = set()
 		self.hotkey_edit_label = ""
-		self.cps = 75
+		self.cps = 1/100
 		self.keysdown = set()
 		self.hotkeys = {
 			"KEYBIND_TOGGLE_RECORD": set(),
@@ -236,19 +235,22 @@ class Main(QObject):
 		self.settingsw_speededit_label = QLabel("(Playback) Speed multiplier:",self.settingsw_speededit)
 		self.settingsw_speededit_layout.addWidget(self.settingsw_speededit_label)
 		self.settingsw_speededit_layout.addWidget(self.settingsw_speededit_input)
-		self.settingsw_layout.addWidget(self.settingsw_speededit)
+
+		
 
 		self.settingsw_cpsedit = QWidget()
 		self.settingsw_cpsedit_layout = QHBoxLayout()
 		self.settingsw_cpsedit.setLayout(self.settingsw_cpsedit_layout)
 		self.settingsw_cpsedit_input = QDoubleSpinBox()
 		self.settingsw_cpsedit_input.setRange(0.01,2200)
-		self.settingsw_cpsedit_input.setValue(75)
+		self.settingsw_cpsedit_input.setValue(100)
 		self.settingsw_cpsedit_input.valueChanged.connect(self.upd_cps)
 		self.settingsw_cpsedit_label = QLabel("(Autoclick) Target clicks/second:",self.settingsw_cpsedit)
 		self.settingsw_cpsedit_layout.addWidget(self.settingsw_cpsedit_label)
 		self.settingsw_cpsedit_layout.addWidget(self.settingsw_cpsedit_input)
+
 		self.settingsw_layout.addWidget(self.settingsw_cpsedit)
+
 		self.settingsw_layout.addWidget(self.settingsw_speededit)
 
 		self.settingsw_layout.setSpacing(5)
@@ -257,9 +259,9 @@ class Main(QObject):
 		self.settingsw_save = QPushButton("Save configurations",self.settingsw)
 		self.settingsw_save.clicked.connect(self.save_configurations)
 		self.settingsw_layout.addWidget(self.settingsw_save)
+
 		self.tray.setContextMenu(self.menu)
 
-		self.kqueue = queue.Queue()
 		self.run_workers = True
 		self.auto_thread = None
 
@@ -321,9 +323,10 @@ class Main(QObject):
 	def upd_speed(self,x):
 		if x == 0: return
 		self.timestamp_multiplier=1/x
+
 	def upd_cps(self,x):
 		if x == 0: return
-		self.cps = 1/(2*x)
+		self.cps = 1/x
 
 	def save_configurations(self):
 		globalconfwizard.pack(os.path.expanduser("~/.neoprisma"),self.conf_data)
@@ -495,8 +498,8 @@ class Main(QObject):
 		while self.state_autoclicker:
 			playback.mouseButtonStatus(1,int(self.m_simulator.position[0]),int(self.m_simulator.position[1]),True)
 			time.sleep(self.cps)
-			if not self.state_autoclicker: break
 			playback.mouseButtonStatus(1,int(self.m_simulator.position[0]),int(self.m_simulator.position[1]),False)
+			if not self.state_autoclicker: break
 			time.sleep(self.cps)
 
 	def load(self):
