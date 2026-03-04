@@ -145,6 +145,8 @@ class Main(QObject):
 			if key.startswith("KEYBIND"):
 				self.hotkeys[key] = set(int(i) for i in self.conf_data[key].split(" "))
 
+		self.rebuild_hotkey_lookup()
+
 		self.update_available, self.latest_version = version_dif(latest())
 
 		self.error_emitter = Emitter()
@@ -278,6 +280,12 @@ class Main(QObject):
 		self.run_workers = False
 		self.app.quit()
 
+	def rebuild_hotkey_lookup(self):
+		self.hotkey_lookup.clear()
+		self.hotkey_lookup[frozenset(self.hotkeys["KEYBIND_TOGGLE_RECORD"])] = self.toggle_recording
+		self.hotkey_lookup[frozenset(self.hotkeys["KEYBIND_TOGGLE_PLAYBACK"])] = self.toggle_playback
+		self.hotkey_lookup[frozenset(self.hotkeys["KEYBIND_TOGGLE_AUTOCLICK"])] = self.toggle_autoclicker
+
 	def prompt_update(self):
 
 		#QMessageBox.information(None,"Update available!",f"A new version of Neoprisma is available.\n\nYou currently have version {__version__}, and a newer version {self.latest_version} is now available for download.\n\nVisit the project's GitHub repository for more information.",QMessageBox.StandardButton.Ok)
@@ -358,6 +366,7 @@ class Main(QObject):
 				self.settingsw_hk_auto.setText("Edit AUTOCLICK hotkey")
 			if len(self.hotkey_record_buffer) > 0:
 				self.hotkeys[hk] = copy.deepcopy(self.hotkey_record_buffer)
+				self.rebuild_hotkey_lookup()
 				if hk == "KEYBIND_TOGGLE_RECORD": self.recorder.update_hk(self.hotkeys[hk])
 				if hk.startswith("KEYBIND"): 
 					self.conf_data[hk] = " ".join([str(i) for i in self.hotkey_record_buffer])
@@ -389,12 +398,9 @@ class Main(QObject):
 					self.settingsw_hk_auto_disp.setText(text)
 			if self.settingsw.isActiveWindow(): return
 
-			if self.keysdown == self.hotkeys["KEYBIND_TOGGLE_RECORD"]:
-				self.toggle_recording()
-			elif self.keysdown == self.hotkeys["KEYBIND_TOGGLE_PLAYBACK"]:
-				self.toggle_playback()
-			elif self.keysdown == self.hotkeys["KEYBIND_TOGGLE_AUTOCLICK"]:
-				self.toggle_autoclicker()
+			trigger = self.hotkey_lookup.get(frozenset(self.keysdown))
+			if trigger: trigger()
+
 		except Exception:
 			self.error_emitter.error.emit(traceback.format_exc())
 
