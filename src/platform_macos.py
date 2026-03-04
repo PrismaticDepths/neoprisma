@@ -23,9 +23,9 @@ import copy
 import traceback
 import time
 import sys
-from threading import Thread, Event
+from threading import Thread
 from PyQt6.QtGui import QAction,QIcon
-from PyQt6.QtCore import QObject,pyqtSignal, QTimer, QMetaObject, Qt, QThread
+from PyQt6.QtCore import QObject,pyqtSignal, QTimer, Qt
 from PyQt6.QtWidgets import (
 	QApplication,
 	QSystemTrayIcon,
@@ -83,9 +83,9 @@ def version_dif(inp):
 	current = __version__.split(".")
 	latest = inp.split(".")
 	for i in range(3):
-		if latest[i] > current[i]: 
+		if int(latest[i]) > int(current[i]): 
 			return True, inp
-		elif latest[i] < current[i]:
+		elif int(latest[i]) < int(current[i]):
 			return False, inp
 	return False, inp
 
@@ -111,6 +111,8 @@ class Main(QObject):
 	def __init__(self):
 		super().__init__()
 
+		
+
 		self.app = QApplication(sys.argv)
 
 		self.arr = bytearray(b"<NEOPRISMA>\x01")
@@ -121,6 +123,7 @@ class Main(QObject):
 		self.timestamp_multiplier = 1
 		self.recording_hotkey = False
 		self.hotkey_record_buffer = set()
+		self.hotkey_lookup = {}
 		self.hotkey_edit_label = ""
 		self.cps = 1/100
 		self.keysdown = set()
@@ -237,7 +240,6 @@ class Main(QObject):
 		self.settingsw_speededit_layout.addWidget(self.settingsw_speededit_label)
 		self.settingsw_speededit_layout.addWidget(self.settingsw_speededit_input)
 
-		
 
 		self.settingsw_cpsedit = QWidget()
 		self.settingsw_cpsedit_layout = QHBoxLayout()
@@ -368,7 +370,7 @@ class Main(QObject):
 			try:
 				return MACOS_VK_MAP[vk]
 			except Exception:
-				return f"<{vk}>"
+				return f"⍰<{vk}>"
 
 	def listener_hotkeysv2_handlekeypress(self,key:pynput.keyboard.Key|pynput.keyboard.KeyCode,injected=False): # this is a very long name
 		# Injected: Whether the event is authentic or software generated. We can detect our own key events with this. Pynput 1.8.0+
@@ -385,8 +387,8 @@ class Main(QObject):
 					self.settingsw_hk_play_disp.setText(text)
 				elif self.hotkey_edit_label == "KEYBIND_TOGGLE_AUTOCLICK":
 					self.settingsw_hk_auto_disp.setText(text)
-				
 			if self.settingsw.isActiveWindow(): return
+
 			if self.keysdown == self.hotkeys["KEYBIND_TOGGLE_RECORD"]:
 				self.toggle_recording()
 			elif self.keysdown == self.hotkeys["KEYBIND_TOGGLE_PLAYBACK"]:
