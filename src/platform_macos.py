@@ -65,6 +65,8 @@ CONFIGURATION_DEFAULTS = {
 	"RELEASE_CHANNEL":"stable"
 }
 
+MAX_HOTKEY_LEN = 5
+
 def latest():
 	url = f"https://api.github.com/repos/prismaticdepths/neoprisma/releases/latest"
 	try:
@@ -385,9 +387,11 @@ class Main(QObject):
 		# Injected: Whether the event is authentic or software generated. We can detect our own key events with this. Pynput 1.8.0+
 		try:
 			if (injected==True) or (key is None): return
+
 			vk = key.vk if isinstance(key,pynput.keyboard.KeyCode) else key.value.vk
 			self.keysdown.add(vk)
-			if self.recording_hotkey and len(self.hotkey_record_buffer) < 5:
+
+			if self.recording_hotkey and len(self.hotkey_record_buffer) < MAX_HOTKEY_LEN:
 				self.hotkey_record_buffer.add(vk)
 				text = " + ".join([self.vk_to_name(i) for i in self.hotkey_record_buffer])
 				if self.hotkey_edit_label == "KEYBIND_TOGGLE_RECORD":
@@ -396,7 +400,9 @@ class Main(QObject):
 					self.settingsw_hk_play_disp.setText(text)
 				elif self.hotkey_edit_label == "KEYBIND_TOGGLE_AUTOCLICK":
 					self.settingsw_hk_auto_disp.setText(text)
-			if self.settingsw.isActiveWindow(): return
+				return
+			
+			if (len(self.keysdown) > MAX_HOTKEY_LEN) or (self.settingsw.isActiveWindow()): return
 
 			trigger = self.hotkey_lookup.get(frozenset(self.keysdown))
 			if trigger: trigger()
@@ -525,7 +531,7 @@ class Main(QObject):
 						self.error_emitter.error.emit(str(e))
 					else: 
 						self.arr = bytearray(dat)
-					
+					   
 		except Exception:
 			self.error_emitter.error.emit(traceback.format_exc())
 
