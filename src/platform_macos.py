@@ -59,19 +59,20 @@ from PyQt6.QtWidgets import (
 	QSlider,
 	QPushButton,
 	QVBoxLayout,
-	QHBoxLayout
+	QHBoxLayout,
+	QMenuBar
 )
 from resources import resource_path
 import version
 __version__ = version.__version__
 
 MACOS_VK_MAP = {
-    0: 'a', 11: 'b', 8: 'c', 2: 'd', 14: 'e', 3: 'f', 5: 'g', 4: 'h', 34: 'i',
-    38: 'j', 40: 'k', 37: 'l', 46: 'm', 45: 'n', 31: 'o', 35: 'p', 12: 'q',
-    15: 'r', 1: 's', 17: 't', 32: 'u', 9: 'v', 13: 'w', 7: 'x', 16: 'y', 6: 'z',
-    29: '0', 18: '1', 19: '2', 20: '3', 21: '4', 23: '5', 22: '6', 26: '7', 28: '8', 25: '9',
-    49: 'space', 36: 'newline', 48: 'tab',
-    24: '=', 27: '-', 33: '[', 30: ']', 42: '\\', 41: ';', 39: "'", 43: ',', 47: '.', 44: '/', 50: '`'
+	0: 'a', 11: 'b', 8: 'c', 2: 'd', 14: 'e', 3: 'f', 5: 'g', 4: 'h', 34: 'i',
+	38: 'j', 40: 'k', 37: 'l', 46: 'm', 45: 'n', 31: 'o', 35: 'p', 12: 'q',
+	15: 'r', 1: 's', 17: 't', 32: 'u', 9: 'v', 13: 'w', 7: 'x', 16: 'y', 6: 'z',
+	29: '0', 18: '1', 19: '2', 20: '3', 21: '4', 23: '5', 22: '6', 26: '7', 28: '8', 25: '9',
+	49: 'space', 36: 'newline', 48: 'tab',
+	24: '=', 27: '-', 33: '[', 30: ']', 42: '\\', 41: ';', 39: "'", 43: ',', 47: '.', 44: '/', 50: '`'
 }
 
 CONFIGURATION_DEFAULTS = {
@@ -133,11 +134,19 @@ class Main(QObject):
 		
 
 		self.app = QApplication(sys.argv)
-		self.app.setApplicationName("neoprisma")
 
-		try:
+		try: # force the "about" pane to appear on the left of the system menu bar
 			import AppKit
 			AppKit.NSApp.setActivationPolicy_(AppKit.NSApplicationActivationPolicyRegular)
+			self.app.setApplicationName("neoprisma")
+			self.menu_bar = QMenuBar(None) 
+			self.about_action = QAction("About neoprisma", None)
+			self.about_action.setMenuRole(QAction.MenuRole.AboutRole)
+			self.about_action.triggered.connect(
+				lambda: AppKit.NSApp.orderFrontStandardAboutPanel_(None)
+			)
+			self.dummy_menu = self.menu_bar.addMenu("App")
+			self.dummy_menu.addAction(self.about_action)
 		except Exception:
 			pass
 
