@@ -225,8 +225,6 @@ mkdir -p "$INSTALL_DIR"
 run_step "Moving dist to installation dir" mv "$BUILD_DIR/dist/$APP_NAME.app" "$INSTALL_DIR/"
 
 ENTITLEMENTS="$BUILD_DIR/entitlements.plist"
-INFO="$BUILD_DIR/Info.plist"
-
 generate_entitlements_tmp() {
 cat > "$ENTITLEMENTS" <<'EOF'
 <?xml version="1.0" encoding="UTF-8"?>
@@ -256,27 +254,14 @@ cat > "$ENTITLEMENTS" <<'EOF'
 EOF
 }
 
-generate_info_tmp() {
-cat > "$INFO" <<'EOF'
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-    <key>CFBundleName</key>
-    <string>$APP_NAME</string>
-    <key>CFBundleIdentifier</key>
-    <string>$BUNDLE_ID</string>
-    <key>NSHumanReadableCopyright</key>
-    <string>Copyright (C) 2026 PrismaticDepths</string>
-    <key>CFBundleShortVersionString</key>
-    <string>$LATEST_VERSION</string>
-</dict>
-</plist>
-EOF
+fix_plist() {
+PLIST_PATH="$INSTALL_DIR/$APP_NAME.app/Contents/Info.plist"
+plutil -replace NSHumanReadableCopyright -string "Copyright (C) 2026 PrismaticDepths" "$PLIST_PATH"
+plutil -replace CFBundleShortVersionString -string "$LATEST_VERSION" "$PLIST_PATH"
+plutil -replace CFBundleIdentifier -string "$BUNDLE_ID" "$PLIST_PATH"
 }
 
-run_step "Generating Info.plist" generate_info_tmp
-cp "$INFO" "$INSTALL_DIR/$APP_NAME.app/Contents/Info.plist"
+run_step "Generating Info.plist" fix_plist
 run_step "Generating entitlements.plist" generate_entitlements_tmp
 run_step "Signing app" codesign --force --deep --sign - --options runtime  --entitlements "$ENTITLEMENTS" "$INSTALL_DIR/$APP_NAME.app" 
 
