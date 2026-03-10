@@ -135,6 +135,12 @@ class Main(QObject):
 		self.app = QApplication(sys.argv)
 		self.app.setApplicationName("neoprisma")
 
+		try:
+			import AppKit
+			AppKit.NSApp.setActivationPolicy_(AppKit.NSApplicationActivationPolicyRegular)
+		except Exception:
+			pass
+
 		self.arr = bytearray(b"<NEOPRISMA>\x01")
 		self.compiled_arr:list[playback.EventPacket] = []
 		self.state_recording = False
