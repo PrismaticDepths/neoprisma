@@ -23,9 +23,9 @@ import copy
 import traceback
 import time
 import sys
-from threading import Thread, Event
+from threading import Thread
 from PyQt6.QtGui import QAction,QIcon
-from PyQt6.QtCore import QObject,pyqtSignal, QTimer, QMetaObject, Qt, QThread
+from PyQt6.QtCore import QObject,pyqtSignal, QTimer, Qt
 from PyQt6.QtWidgets import (
 	QApplication,
 	QSystemTrayIcon,
@@ -65,6 +65,8 @@ CONFIGURATION_DEFAULTS = {
 	"RELEASE_CHANNEL":"stable"
 }
 
+MAX_HOTKEY_LEN = 5
+
 def latest():
 	url = f"https://api.github.com/repos/prismaticdepths/neoprisma/releases/latest"
 	try:
@@ -83,9 +85,9 @@ def version_dif(inp):
 	current = __version__.split(".")
 	latest = inp.split(".")
 	for i in range(3):
-		if latest[i] > current[i]: 
+		if int(latest[i]) > int(current[i]): 
 			return True, inp
-		elif latest[i] < current[i]:
+		elif int(latest[i]) < int(current[i]):
 			return False, inp
 	return False, inp
 
@@ -111,6 +113,8 @@ class Main(QObject):
 	def __init__(self):
 		super().__init__()
 
+		
+
 		self.app = QApplication(sys.argv)
 
 		self.arr = bytearray(b"<NEOPRISMA>\x01")
@@ -121,6 +125,7 @@ class Main(QObject):
 		self.timestamp_multiplier = 1
 		self.recording_hotkey = False
 		self.hotkey_record_buffer = set()
+		self.hotkey_lookup = {}
 		self.hotkey_edit_label = ""
 		self.cps = 1/100
 		self.keysdown = set()
@@ -141,6 +146,8 @@ class Main(QObject):
 		for key in self.conf_data.keys():
 			if key.startswith("KEYBIND"):
 				self.hotkeys[key] = set(int(i) for i in self.conf_data[key].split(" "))
+
+		self.rebuild_hotkey_lookup()
 
 		self.update_available, self.latest_version = version_dif(latest())
 
@@ -237,7 +244,6 @@ class Main(QObject):
 		self.settingsw_speededit_layout.addWidget(self.settingsw_speededit_label)
 		self.settingsw_speededit_layout.addWidget(self.settingsw_speededit_input)
 
-		
 
 		self.settingsw_cpsedit = QWidget()
 		self.settingsw_cpsedit_layout = QHBoxLayout()
@@ -275,6 +281,12 @@ class Main(QObject):
 	def shutdown(self):
 		self.run_workers = False
 		self.app.quit()
+
+	def rebuild_hotkey_lookup(self):
+		self.hotkey_lookup.clear()
+		self.hotkey_lookup[frozenset(self.hotkeys["KEYBIND_TOGGLE_RECORD"])] = self.toggle_recording
+		self.hotkey_lookup[frozenset(self.hotkeys["KEYBIND_TOGGLE_PLAYBACK"])] = self.toggle_playback
+		self.hotkey_lookup[frozenset(self.hotkeys["KEYBIND_TOGGLE_AUTOCLICK"])] = self.toggle_autoclicker
 
 	def prompt_update(self):
 
@@ -356,6 +368,7 @@ class Main(QObject):
 				self.settingsw_hk_auto.setText("Edit AUTOCLICK hotkey")
 			if len(self.hotkey_record_buffer) > 0:
 				self.hotkeys[hk] = copy.deepcopy(self.hotkey_record_buffer)
+				self.rebuild_hotkey_lookup()
 				if hk == "KEYBIND_TOGGLE_RECORD": self.recorder.update_hk(self.hotkeys[hk])
 				if hk.startswith("KEYBIND"): 
 					self.conf_data[hk] = " ".join([str(i) for i in self.hotkey_record_buffer])
@@ -368,15 +381,17 @@ class Main(QObject):
 			try:
 				return MACOS_VK_MAP[vk]
 			except Exception:
-				return f"<{vk}>"
+				return f"⍰<{vk}>"
 
 	def listener_hotkeysv2_handlekeypress(self,key:pynput.keyboard.Key|pynput.keyboard.KeyCode,injected=False): # this is a very long name
 		# Injected: Whether the event is authentic or software generated. We can detect our own key events with this. Pynput 1.8.0+
 		try:
 			if (injected==True) or (key is None): return
+
 			vk = key.vk if isinstance(key,pynput.keyboard.KeyCode) else key.value.vk
 			self.keysdown.add(vk)
-			if self.recording_hotkey and len(self.hotkey_record_buffer) < 5:
+
+			if self.recording_hotkey and len(self.hotkey_record_buffer) < MAX_HOTKEY_LEN:
 				self.hotkey_record_buffer.add(vk)
 				text = " + ".join([self.vk_to_name(i) for i in self.hotkey_record_buffer])
 				if self.hotkey_edit_label == "KEYBIND_TOGGLE_RECORD":
@@ -385,14 +400,13 @@ class Main(QObject):
 					self.settingsw_hk_play_disp.setText(text)
 				elif self.hotkey_edit_label == "KEYBIND_TOGGLE_AUTOCLICK":
 					self.settingsw_hk_auto_disp.setText(text)
-				
-			if self.settingsw.isActiveWindow(): return
-			if self.keysdown == self.hotkeys["KEYBIND_TOGGLE_RECORD"]:
-				self.toggle_recording()
-			elif self.keysdown == self.hotkeys["KEYBIND_TOGGLE_PLAYBACK"]:
-				self.toggle_playback()
-			elif self.keysdown == self.hotkeys["KEYBIND_TOGGLE_AUTOCLICK"]:
-				self.toggle_autoclicker()
+				return
+			
+			if (len(self.keysdown) > MAX_HOTKEY_LEN) or (self.settingsw.isActiveWindow()): return
+
+			trigger = self.hotkey_lookup.get(frozenset(self.keysdown))
+			if trigger: trigger()
+
 		except Exception:
 			self.error_emitter.error.emit(traceback.format_exc())
 
@@ -517,7 +531,7 @@ class Main(QObject):
 						self.error_emitter.error.emit(str(e))
 					else: 
 						self.arr = bytearray(dat)
-					
+					   
 		except Exception:
 			self.error_emitter.error.emit(traceback.format_exc())
 
