@@ -133,6 +133,7 @@ class Main(QObject):
 		
 
 		self.app = QApplication(sys.argv)
+		self.app.setApplicationName("neoprisma")
 
 		self.arr = bytearray(b"<NEOPRISMA>\x01")
 		self.compiled_arr:list[playback.EventPacket] = []
