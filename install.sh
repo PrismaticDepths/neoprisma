@@ -143,8 +143,8 @@ if [ -d "$INSTALL_DIR/$APP_NAME.app" ]; then
 				* ) echo "Please answer yes or no.";; # Loop back for invalid input
 			esac
 		done
-		run_step "Resetting Accessibility approval status for $BUNDLE_ID" tccutil reset Accessibility "$BUNDLE_ID"
-		run_step "Resetting ListenEvent approval status for $BUNDLE_ID" tccutil reset ListenEvent "$BUNDLE_ID"
+		run_step "Resetting Accessibility approval status for $BUNDLE_ID" tccutil reset Accessibility "$BUNDLE_ID" || true
+		run_step "Resetting ListenEvent approval status for $BUNDLE_ID" tccutil reset ListenEvent "$BUNDLE_ID" || true
 		rm -rf "$INSTALL_DIR/$APP_NAME.app"
 	else
 		die "INSTALL_DIR/APP_NAME.app is empty or home. Installing to those locations is unsafe."
