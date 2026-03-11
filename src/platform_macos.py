@@ -140,7 +140,7 @@ class Main(QObject):
 			AppKit.NSApp.setActivationPolicy_(AppKit.NSApplicationActivationPolicyRegular)
 			self.app.setApplicationName("neoprisma")
 			self.menu_bar = QMenuBar(None) 
-			self.about_action = QAction("About neoprisma", None)
+			self.about_action = QAction("About Neoprisma", None)
 			self.about_action.setMenuRole(QAction.MenuRole.AboutRole)
 			self.about_action.triggered.connect(
 				lambda: AppKit.NSApp.orderFrontStandardAboutPanel_(None)
