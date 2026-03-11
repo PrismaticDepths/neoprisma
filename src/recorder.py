@@ -76,7 +76,7 @@ modifiers = [
 
 class OneShotRecorder:
 	def __init__(self):
-
+		
 		self.keysdown = set()
 		self.clicks = []
 		self.starting_time = 0
