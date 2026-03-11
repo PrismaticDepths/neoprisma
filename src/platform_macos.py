@@ -31,9 +31,7 @@ if SRC not in sys.path:
 import objc, CoreFoundation
 objc.registerCFSignature("CFStringRef", b"^{__CFString=}", CoreFoundation.CFStringGetTypeID(), "NSString")
 
-import playback
-import recorder
-import globalconfwizard
+
 import pynput
 import requests
 import copy
@@ -62,9 +60,23 @@ from PyQt6.QtWidgets import (
 	QHBoxLayout,
 	QMenuBar
 )
+
 from resources import resource_path
-import version
-__version__ = version.__version__
+try:
+	import playback
+	import recorder
+	import globalconfwizard
+except Exception:
+	tmp=QApplication(sys.argv)
+	QMessageBox.critical(None,"Failed to start Neoprisma!","Fatal error while importing a project component (please report this to the developers!): "+traceback.format_exc(300), QMessageBox.StandardButton.Abort)
+	sys.exit(70)
+
+try:
+	import version
+except Exception:
+	__version__ = "0.0.0"
+else:
+	__version__ = version.__version__
 
 MACOS_VK_MAP = {
 	0: 'a', 11: 'b', 8: 'c', 2: 'd', 14: 'e', 3: 'f', 5: 'g', 4: 'h', 34: 'i',
@@ -579,6 +591,10 @@ class Main(QObject):
 		except Exception:
 			self.error_emitter.error.emit(traceback.format_exc())
 
-
-m = Main()
+try:
+	m = Main()
+except Exception:
+	if QApplication.instance() is None: tmp=QApplication(sys.argv)
+	QMessageBox.critical(None,"Failed to start Neoprisma!","Uncaught exception in class initiation: "+traceback.format_exc(300), QMessageBox.StandardButton.Abort)
+	sys.exit(70)
 sys.exit(m.app.exec())
