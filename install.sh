@@ -220,7 +220,6 @@ run_step "Building application bundle" $PYTHON_EXE -m PyInstaller \
 	--windowed \
 	--name "$APP_NAME" \
 	--icon "src/assets/AppIcon.icns" \
-	
 	--osx-bundle-identifier "$BUNDLE_ID" \
 	--add-data "src:src" \
 	--add-data "src/assets/Assets.car:."
