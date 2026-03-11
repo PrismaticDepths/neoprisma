@@ -222,7 +222,7 @@ run_step "Building application bundle" $PYTHON_EXE -m PyInstaller \
 	--icon "src/assets/AppIcon.icns" \
 	--osx-bundle-identifier "$BUNDLE_ID" \
 	--add-data "src:src" \
-	--add-data "src/assets/Assets.car:."
+	--add-data "src/assets/Assets.car:." \
 	--add-data "src/assets/Credits.rtf:." \
 	--add-data "src/assets:assets" \
 	--add-binary "${PLAYBACK_FILE}:src" \
