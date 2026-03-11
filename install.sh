@@ -269,7 +269,7 @@ EOF
 
 fix_plist() {
 PLIST_PATH="$INSTALL_DIR/$APP_NAME.app/Contents/Info.plist" # (probably)
-plutil -replace NSHumanReadableCopyright -string "Copyright (C) 2026 PrismaticDepths" "$PLIST_PATH"
+plutil -replace NSHumanReadableCopyright -string "© 2026 PrismaticDepths" "$PLIST_PATH"
 plutil -replace CFBundleShortVersionString -string "$LATEST_VERSION" "$PLIST_PATH"
 plutil -replace CFBundleIdentifier -string "$BUNDLE_ID" "$PLIST_PATH"
 }
