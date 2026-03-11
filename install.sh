@@ -219,9 +219,11 @@ PLAYBACK_FILE=(src/playback*"${EXT_SUFFIX}")
 run_step "Building application bundle" $PYTHON_EXE -m PyInstaller \
 	--windowed \
 	--name "$APP_NAME" \
-	--icon "src/assets/spectrum.icns" \
+	--icon "src/assets/AppIcon.icns" \
+	
 	--osx-bundle-identifier "$BUNDLE_ID" \
 	--add-data "src:src" \
+	--add-data "src/assets/Assets.car:."
 	--add-data "src/assets/Credits.rtf:." \
 	--add-data "src/assets:assets" \
 	--add-binary "${PLAYBACK_FILE}:src" \
@@ -272,6 +274,8 @@ PLIST_PATH="$INSTALL_DIR/$APP_NAME.app/Contents/Info.plist" # (probably)
 plutil -replace NSHumanReadableCopyright -string "© 2026 PrismaticDepths" "$PLIST_PATH"
 plutil -replace CFBundleShortVersionString -string "$LATEST_VERSION" "$PLIST_PATH"
 plutil -replace CFBundleIdentifier -string "$BUNDLE_ID" "$PLIST_PATH"
+plutil -replace CFBundleIconName -string "AppIcon" "$PLIST_PATH"
+plutil -replace NSRequiresAquaSystemAppearance -bool false "$PLIST_PATH"
 }
 
 run_step "Generating Info.plist" fix_plist
