@@ -219,7 +219,7 @@ PLAYBACK_FILE=(src/playback*"${EXT_SUFFIX}")
 run_step "Building application bundle" $PYTHON_EXE -m PyInstaller \
 	--windowed \
 	--name "$APP_NAME" \
-	--icon "src/assets/ico-dark.icns" \
+	--icon "src/assets/spectrum.icns" \
 	--osx-bundle-identifier "$BUNDLE_ID" \
 	--add-data "src:src" \
 	--add-data "src/assets/Credits.rtf:." \
