@@ -1,3 +1,20 @@
+""" 
+Neoprisma Copyright (C) 2026 PrismaticDepths <prismaticdepths@gmail.com>
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <https://www.gnu.org/licenses/>
+"""
+
 import os, sys
 
 if getattr(sys, "frozen", False):
@@ -42,19 +59,20 @@ from PyQt6.QtWidgets import (
 	QSlider,
 	QPushButton,
 	QVBoxLayout,
-	QHBoxLayout
+	QHBoxLayout,
+	QMenuBar
 )
 from resources import resource_path
 import version
 __version__ = version.__version__
 
 MACOS_VK_MAP = {
-    0: 'a', 11: 'b', 8: 'c', 2: 'd', 14: 'e', 3: 'f', 5: 'g', 4: 'h', 34: 'i',
-    38: 'j', 40: 'k', 37: 'l', 46: 'm', 45: 'n', 31: 'o', 35: 'p', 12: 'q',
-    15: 'r', 1: 's', 17: 't', 32: 'u', 9: 'v', 13: 'w', 7: 'x', 16: 'y', 6: 'z',
-    29: '0', 18: '1', 19: '2', 20: '3', 21: '4', 23: '5', 22: '6', 26: '7', 28: '8', 25: '9',
-    49: 'space', 36: 'newline', 48: 'tab',
-    24: '=', 27: '-', 33: '[', 30: ']', 42: '\\', 41: ';', 39: "'", 43: ',', 47: '.', 44: '/', 50: '`'
+	0: 'a', 11: 'b', 8: 'c', 2: 'd', 14: 'e', 3: 'f', 5: 'g', 4: 'h', 34: 'i',
+	38: 'j', 40: 'k', 37: 'l', 46: 'm', 45: 'n', 31: 'o', 35: 'p', 12: 'q',
+	15: 'r', 1: 's', 17: 't', 32: 'u', 9: 'v', 13: 'w', 7: 'x', 16: 'y', 6: 'z',
+	29: '0', 18: '1', 19: '2', 20: '3', 21: '4', 23: '5', 22: '6', 26: '7', 28: '8', 25: '9',
+	49: 'space', 36: 'newline', 48: 'tab',
+	24: '=', 27: '-', 33: '[', 30: ']', 42: '\\', 41: ';', 39: "'", 43: ',', 47: '.', 44: '/', 50: '`'
 }
 
 CONFIGURATION_DEFAULTS = {
@@ -116,6 +134,21 @@ class Main(QObject):
 		
 
 		self.app = QApplication(sys.argv)
+
+		try: # force the "about" pane to appear on the left of the system menu bar
+			import AppKit
+			AppKit.NSApp.setActivationPolicy_(AppKit.NSApplicationActivationPolicyRegular)
+			self.app.setApplicationName("neoprisma")
+			self.menu_bar = QMenuBar(None) 
+			self.about_action = QAction("About Neoprisma", None)
+			self.about_action.setMenuRole(QAction.MenuRole.AboutRole)
+			self.about_action.triggered.connect(
+				lambda: AppKit.NSApp.orderFrontStandardAboutPanel_(None)
+			)
+			self.dummy_menu = self.menu_bar.addMenu("App")
+			self.dummy_menu.addAction(self.about_action)
+		except Exception:
+			pass
 
 		self.arr = bytearray(b"<NEOPRISMA>\x01")
 		self.compiled_arr:list[playback.EventPacket] = []

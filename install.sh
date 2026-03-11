@@ -30,6 +30,19 @@ run_step() {
 	fi
 }
 
+run_step_permissive() {
+	local msg="$1"
+    shift
+    printf "  [..] %s" "$msg"
+
+	if "$@" > "$LOG_FILE" 2>&1; then
+		printf "\r  [\033[32mOK\033[0m] %s\n" "$msg"
+	else
+		printf "\r  [\033[33mWARN\033[0m] %s\n" "$msg"
+		cat "$LOG_FILE"
+	fi
+}
+
 BUILD_DIR="$HOME/.neoprisma-build"
 INSTALL_DIR="$HOME/Applications"
 APP_NAME="neoprisma"
@@ -143,8 +156,8 @@ if [ -d "$INSTALL_DIR/$APP_NAME.app" ]; then
 				* ) echo "Please answer yes or no.";; # Loop back for invalid input
 			esac
 		done
-		run_step "Resetting Accessibility approval status for $BUNDLE_ID" tccutil reset Accessibility "$BUNDLE_ID"
-		run_step "Resetting ListenEvent approval status for $BUNDLE_ID" tccutil reset ListenEvent "$BUNDLE_ID"
+		run_step_permissive "Resetting Accessibility approval status for $BUNDLE_ID" tccutil reset Accessibility "$BUNDLE_ID" 
+		run_step_permissive "Resetting ListenEvent approval status for $BUNDLE_ID" tccutil reset ListenEvent "$BUNDLE_ID"
 		rm -rf "$INSTALL_DIR/$APP_NAME.app"
 	else
 		die "INSTALL_DIR/APP_NAME.app is empty or home. Installing to those locations is unsafe."
@@ -206,9 +219,11 @@ PLAYBACK_FILE=(src/playback*"${EXT_SUFFIX}")
 run_step "Building application bundle" $PYTHON_EXE -m PyInstaller \
 	--windowed \
 	--name "$APP_NAME" \
-	--icon "src/assets/ico-dark.icns" \
+	--icon "src/assets/AppIcon.icns" \
 	--osx-bundle-identifier "$BUNDLE_ID" \
 	--add-data "src:src" \
+	--add-data "src/assets/Assets.car:." \
+	--add-data "src/assets/Credits.rtf:." \
 	--add-data "src/assets:assets" \
 	--add-binary "${PLAYBACK_FILE}:src" \
 	--hidden-import=Quartz \
@@ -224,7 +239,6 @@ mkdir -p "$INSTALL_DIR"
 run_step "Moving dist to installation dir" mv "$BUILD_DIR/dist/$APP_NAME.app" "$INSTALL_DIR/"
 
 ENTITLEMENTS="$BUILD_DIR/entitlements.plist"
-
 generate_entitlements_tmp() {
 cat > "$ENTITLEMENTS" <<'EOF'
 <?xml version="1.0" encoding="UTF-8"?>
@@ -253,6 +267,17 @@ cat > "$ENTITLEMENTS" <<'EOF'
 </plist>
 EOF
 }
+
+fix_plist() {
+PLIST_PATH="$INSTALL_DIR/$APP_NAME.app/Contents/Info.plist" # (probably)
+plutil -replace NSHumanReadableCopyright -string "© 2026 PrismaticDepths" "$PLIST_PATH"
+plutil -replace CFBundleShortVersionString -string "$LATEST_VERSION" "$PLIST_PATH"
+plutil -replace CFBundleIdentifier -string "$BUNDLE_ID" "$PLIST_PATH"
+plutil -replace CFBundleIconName -string "AppIcon" "$PLIST_PATH"
+plutil -replace NSRequiresAquaSystemAppearance -bool false "$PLIST_PATH"
+}
+
+run_step "Generating Info.plist" fix_plist
 run_step "Generating entitlements.plist" generate_entitlements_tmp
 run_step "Signing app" codesign --force --deep --sign - --options runtime  --entitlements "$ENTITLEMENTS" "$INSTALL_DIR/$APP_NAME.app" 
 
@@ -265,4 +290,4 @@ if [ -d "$BUILD_DIR" ]; then
 	fi
 fi
 
-echo "Installation complete! Remember to grant the app Accessibility & Input Monitoring permissions, even if you just reinstalled or updated the app."
+echo "\033[32mInstallation complete!\033[0m Remember to grant the app Accessibility & Input Monitoring permissions, even if you just reinstalled or updated the app."
