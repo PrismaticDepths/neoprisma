@@ -274,6 +274,7 @@ plutil -replace NSHumanReadableCopyright -string "© 2026 PrismaticDepths" "$PLI
 plutil -replace CFBundleShortVersionString -string "$LATEST_VERSION" "$PLIST_PATH"
 plutil -replace CFBundleIdentifier -string "$BUNDLE_ID" "$PLIST_PATH"
 plutil -replace CFBundleIconName -string "AppIcon" "$PLIST_PATH"
+plutil -replace LSUIElement -string "1" "$PLIST_PATH"
 plutil -replace NSRequiresAquaSystemAppearance -bool false "$PLIST_PATH"
 }
 
