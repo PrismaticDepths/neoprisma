@@ -84,16 +84,15 @@ else:
 
 MASTER_STYLESHEET = """
 	QWidget {
-		background-color: #3B3B3B;
+		background-color: #303030;
 		color: #DEDEDE;
-		font-family: 'Segoe UI', sans-serif;
 		font-size: 13px;
 	}
 
 	QPushButton {
 		background-color: #535353;
-		border: 1px solid #53535D;
-		border-radius: 1px;
+		border: 0px solid #000000;
+		border-radius: 4px;
 		padding: 4px 8px;
 		color: #E0E0E0;
 	}
@@ -125,13 +124,12 @@ MASTER_STYLESHEET = """
 		width: 16px;
 		height: 16px;
 		background-color: #1A1A1A;
-		border: 1px solid #444444;
-		border-radius: 2px;
+		border: 2px solid #444444;
+		border-radius: 4px;
 	}
 
 	QCheckBox::indicator:checked {
-		background-color: #E0E0E0;
-		border: 1px solid #FFFFFF;
+		background-color: #00B467;
 	}
 
 	QScrollBar:vertical {
@@ -456,6 +454,8 @@ class Main(QObject):
 
 		self.settingsw_layout.setSpacing(5)
 		self.settingsw_hk_layout.setContentsMargins(0, 0, 0, 0)
+
+		self.settingsw_layout.addSpacing(15)
 
 		self.settingsw_save = QPushButton("Save configurations",self.settingsw)
 		self.settingsw_save.clicked.connect(self.save_configurations)
