@@ -108,7 +108,7 @@ MASTER_STYLESHEET = """
 		border: 1px solid #222222;
 	}
 
-	QLineEdit, QTextEdit, QPlainTextEdit, QScrollArea {
+	QLineEdit, QTextEdit, QPlainTextEdit {
 		background-color: #1A1A1A;
 		border: 1px solid #2A2A2A;
 		border-radius: 1px;
@@ -345,10 +345,15 @@ class Main(QObject):
 		self.menu.addAction(self.quitaction)
 
 		self.settingsw = QWidget()
-		self.settingsw.setBaseSize(300,500)
+		
 		self.settingsw_layout = QVBoxLayout()
 		self.settingsw.setLayout(self.settingsw_layout)
 		self.settingsw.setWindowTitle("Settings")
+
+		self.settingsw_scroll = QScrollArea()
+		self.settingsw_scroll.setWidgetResizable(True)
+		self.settingsw_scroll.setWidget(self.settingsw)
+		self.settingsw_scroll.setBaseSize(300,500)
 
 		self.settingsw_label_hkheader = QLabel("Hotkeys",self.settingsw)
 		self.settingsw_label_hkheader.setStyleSheet("font-weight: bold; color: white;")
@@ -467,6 +472,8 @@ class Main(QObject):
 		self.settingsw_save.clicked.connect(self.save_configurations)
 		self.settingsw_layout.addWidget(self.settingsw_save)
 
+		self.settingsw_layout.addSpacing(8)
+
 		self.settingsw.closeEvent = self.anyw_close
 
 		self.tray.setContextMenu(self.menu)
@@ -539,9 +546,11 @@ class Main(QObject):
 
 	def settingsw_popup(self):
 		self.anyw_open()
+		self.settingsw_scroll.show()
 		self.settingsw.show()
 		self.settingsw.activateWindow()
 		self.settingsw.raise_()
+		self.settingsw_scroll.raise_()
 
 	def anyw_open(self):
 		import AppKit
