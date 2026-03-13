@@ -92,13 +92,13 @@ MASTER_STYLESHEET = """
 	QPushButton {
 		background-color: #535353;
 		border: 0px solid #000000;
-		border-radius: 4px;
+		border-radius: 6px;
 		padding: 4px 8px;
 		color: #E0E0E0;
 	}
 
 	QPushButton:hover {
-		background-color: #303030;
+		background-color: #404046;
 		border: 1px solid #444444;
 		color: #FFFFFF;
 	}
@@ -387,7 +387,7 @@ class Main(QObject):
 		self.settingsw_hk_layout.addLayout(self.settingsw_hk_rec_layout)
 		self.settingsw_hk_layout.addLayout(self.settingsw_hk_play_layout)
 		self.settingsw_hk_layout.addLayout(self.settingsw_hk_auto_layout)
-		self.settingsw_hk_layout.setSpacing(0)
+		self.settingsw_hk_layout.setSpacing(2)
 		self.settingsw_hk_layout.setContentsMargins(0, 0, 0, 0)
 		self.settingsw_layout.addLayout(self.settingsw_hk_layout)
 
@@ -458,7 +458,7 @@ class Main(QObject):
 		self.settingsw_layout.addLayout(self.settingsw_configbools_layout)
 
 
-		self.settingsw_layout.setSpacing(5)
+		self.settingsw_layout.setSpacing(4)
 		self.settingsw_hk_layout.setContentsMargins(0, 0, 0, 0)
 
 		self.settingsw_layout.addSpacing(15)
