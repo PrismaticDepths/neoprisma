@@ -58,7 +58,9 @@ from PyQt6.QtWidgets import (
 	QPushButton,
 	QVBoxLayout,
 	QHBoxLayout,
-	QMenuBar
+	QMenuBar,
+	QSizePolicy,
+	QScrollArea
 )
 
 from resources import resource_path
@@ -79,6 +81,81 @@ except Exception:
 	__version__ = "0.0.0"
 else:
 	__version__ = version.__version__
+
+MASTER_STYLESHEET = """
+	QWidget {
+		background-color: #3B3B3B;
+		color: #DEDEDE;
+		font-family: 'Segoe UI', sans-serif;
+		font-size: 13px;
+	}
+
+	QPushButton {
+		background-color: #535353;
+		border: 1px solid #53535D;
+		border-radius: 1px;
+		padding: 4px 8px;
+		color: #E0E0E0;
+	}
+
+	QPushButton:hover {
+		background-color: #303030;
+		border: 1px solid #444444;
+		color: #FFFFFF;
+	}
+
+	QPushButton:pressed {
+		background-color: #1A1A1A;
+		border: 1px solid #222222;
+	}
+
+	QLineEdit, QTextEdit, QPlainTextEdit, QScrollArea {
+		background-color: #1A1A1A;
+		border: 1px solid #2A2A2A;
+		border-radius: 1px;
+		padding: 5px;
+		color: #FFFFFF;
+	}
+
+	QLineEdit:focus {
+		border: 1px solid #555555;
+	}
+
+	QCheckBox::indicator {
+		width: 16px;
+		height: 16px;
+		background-color: #1A1A1A;
+		border: 1px solid #444444;
+		border-radius: 2px;
+	}
+
+	QCheckBox::indicator:checked {
+		background-color: #E0E0E0;
+		border: 1px solid #FFFFFF;
+	}
+
+	QScrollBar:vertical {
+		border: none;
+		background: #121212;
+		width: 8px;
+	}
+
+	QScrollBar::handle:vertical {
+		background: #333333;
+		min-height: 20px;
+		border-radius: 4px;
+	}
+
+	QScrollBar::handle:vertical:hover {
+		background: #444444;
+	}
+
+	QLabel#heading {
+		color: #FFFFFF;
+		font-weight: bold;
+		font-size: 16px;
+	}
+"""
 
 MACOS_VK_MAP = {
 	0: 'a', 11: 'b', 8: 'c', 2: 'd', 14: 'e', 3: 'f', 5: 'g', 4: 'h', 34: 'i',
@@ -150,6 +227,7 @@ class Main(QObject):
 		
 
 		self.app = QApplication(sys.argv)
+		self.app.setStyleSheet(MASTER_STYLESHEET)
 
 		try: # force the "about" pane to appear on the left of the system menu bar
 			import AppKit
@@ -267,9 +345,19 @@ class Main(QObject):
 		self.settingsw_layout = QVBoxLayout()
 		self.settingsw.setLayout(self.settingsw_layout)
 		self.settingsw.setWindowTitle("Settings")
+
+		self.settingsw_label_hkheader = QLabel("Hotkeys",self.settingsw)
+		self.settingsw_label_hkheader.setStyleSheet("font-weight: bold; color: white;")
+		self.settingsw_label_hkheader.setAlignment(Qt.AlignmentFlag.AlignCenter)
+		self.settingsw_layout.addWidget(self.settingsw_label_hkheader)
+
 		self.settingsw_label = QLabel("Hotkeys are disabled while this window is active.",self.settingsw)
-		self.settingsw_layout.addWidget(self.settingsw_label)
+		self.settingsw_label.setStyleSheet("color: gray;")
 		self.settingsw_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+		self.settingsw_layout.addWidget(self.settingsw_label)
+		
+		self.settingsw_layout.addSpacing(10)
+
 		self.settingsw_hk_layout = QVBoxLayout()
 		self.settingsw_hk_rec_layout = QHBoxLayout()
 		self.settingsw_hk_rec = QPushButton("Edit RECORD hotkey",self.settingsw)
@@ -295,9 +383,18 @@ class Main(QObject):
 		self.settingsw_hk_layout.addLayout(self.settingsw_hk_rec_layout)
 		self.settingsw_hk_layout.addLayout(self.settingsw_hk_play_layout)
 		self.settingsw_hk_layout.addLayout(self.settingsw_hk_auto_layout)
-		self.settingsw_hk_layout.setSpacing(1)
+		self.settingsw_hk_layout.setSpacing(0)
 		self.settingsw_hk_layout.setContentsMargins(0, 0, 0, 0)
 		self.settingsw_layout.addLayout(self.settingsw_hk_layout)
+
+
+		self.settingsw_layout.addSpacing(10)
+		self.settingsw_label_speedheader = QLabel("Speed Adjust",self.settingsw)
+		self.settingsw_label_speedheader.setStyleSheet("font-weight: bold; color: white;")
+		self.settingsw_label_speedheader.setAlignment(Qt.AlignmentFlag.AlignCenter)
+		self.settingsw_layout.addWidget(self.settingsw_label_speedheader)
+		self.settingsw_layout.addSpacing(10)
+
 		self.settingsw_speededit = QWidget()
 		self.settingsw_speededit_layout = QHBoxLayout()
 		self.settingsw_speededit.setLayout(self.settingsw_speededit_layout)
@@ -305,9 +402,10 @@ class Main(QObject):
 		self.settingsw_speededit_input.setRange(0.01,100)
 		self.settingsw_speededit_input.setValue(1)
 		self.settingsw_speededit_input.valueChanged.connect(self.upd_speed)
-		self.settingsw_speededit_label = QLabel("(Playback) Speed multiplier:",self.settingsw_speededit)
+		self.settingsw_speededit_label = QLabel("Playback Speed Multiplier:",self.settingsw_speededit)
 		self.settingsw_speededit_layout.addWidget(self.settingsw_speededit_label)
-		self.settingsw_speededit_layout.addWidget(self.settingsw_speededit_input)
+		self.settingsw_speededit_layout.addWidget(self.settingsw_speededit_input,alignment=Qt.AlignmentFlag.AlignRight)
+		self.settingsw_speededit_layout.setContentsMargins(0, 0, 0, 0)
 		self.settingsw_cpsedit = QWidget()
 		self.settingsw_cpsedit_layout = QHBoxLayout()
 		self.settingsw_cpsedit.setLayout(self.settingsw_cpsedit_layout)
@@ -315,11 +413,20 @@ class Main(QObject):
 		self.settingsw_cpsedit_input.setRange(0.01,2200)
 		self.settingsw_cpsedit_input.setValue(100)
 		self.settingsw_cpsedit_input.valueChanged.connect(self.upd_cps)
-		self.settingsw_cpsedit_label = QLabel("(Autoclick) Target clicks/second:",self.settingsw_cpsedit)
+		self.settingsw_cpsedit_label = QLabel("Autoclick Target Clicks/Second:",self.settingsw_cpsedit)
 		self.settingsw_cpsedit_layout.addWidget(self.settingsw_cpsedit_label)
-		self.settingsw_cpsedit_layout.addWidget(self.settingsw_cpsedit_input)
+		self.settingsw_cpsedit_layout.addWidget(self.settingsw_cpsedit_input,alignment=Qt.AlignmentFlag.AlignRight)
+		self.settingsw_cpsedit_layout.setContentsMargins(0, 0, 0, 0)
 		self.settingsw_layout.addWidget(self.settingsw_cpsedit)
 		self.settingsw_layout.addWidget(self.settingsw_speededit)
+
+		self.settingsw_layout.addSpacing(10)
+		self.settingsw_label_cbools = QLabel("App Behaviour",self.settingsw)
+		self.settingsw_label_cbools.setStyleSheet("font-weight: bold; color: white;")
+		self.settingsw_label_cbools.setAlignment(Qt.AlignmentFlag.AlignCenter)
+		self.settingsw_layout.addWidget(self.settingsw_label_cbools)
+		self.settingsw_layout.addSpacing(10)
+		
 
 		self.settingsw_configbools_layout = QVBoxLayout()
 
@@ -329,11 +436,12 @@ class Main(QObject):
 				tmp.setLayout(tmplayout)
 				nice_label = key.strip().replace("_"," ").title()
 				tmp1=QLabel(nice_label,tmp)
+				tmp1.setAlignment(Qt.AlignmentFlag.AlignLeft)
 				tmp2=QCheckBox()
 				tmp2.setChecked(value.real_value)
 				tmp2.checkStateChanged.connect(lambda t: self.conf_data[key].set_value(False if t==Qt.CheckState.Unchecked else True))
 				tmplayout.addWidget(tmp1)
-				tmplayout.addWidget(tmp2)
+				tmplayout.addWidget(tmp2,alignment=Qt.AlignmentFlag.AlignRight)
 				tmplayout.setContentsMargins(0, 0, 0, 0)
 				self.settingsw_configbools_layout.addWidget(tmp)
 
