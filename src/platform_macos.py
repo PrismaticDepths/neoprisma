@@ -120,7 +120,7 @@ MASTER_STYLESHEET = """
 		border: 1px solid #555555;
 	}
 
-	QCheckBox::indicator {
+	/*QCheckBox::indicator {
 		width: 16px;
 		height: 16px;
 		background-color: #1A1A1A;
@@ -130,7 +130,13 @@ MASTER_STYLESHEET = """
 
 	QCheckBox::indicator:checked {
 		background-color: #00B467;
+	}*/
+
+	QCheckBox::indicator {
+    	width: 16px;
+   		height: 16px;
 	}
+
 
 	QScrollBar:vertical {
 		border: none;
