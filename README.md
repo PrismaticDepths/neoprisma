@@ -59,7 +59,9 @@ You can reset hotkeys and other configuration data by deleting the hidden file n
 Hotkeys used to toggle recording are written into recordings. Neoprisma has safeguards to prevent any hotkeys contained in recordings from activating anything within itself, however if a hotkey in a recording conflicts with a hotkey from a different app, there is no guarantee that said app will ignore it. I plan to address this later.
 
 Hotkeys sometimes become unresponsive. The only solution I have found to this is to spam all of the hotkeys. \
+Alternatively, the "Abort Playback On Input" setting can be used, which will stop playback if you press a key. The apps own inputs should not trigger this.
 You can also use the command-tab switcher to go to Neoprisma and quit it with `<command>+<q>` if you need.
+
 
 ## Performance
 
