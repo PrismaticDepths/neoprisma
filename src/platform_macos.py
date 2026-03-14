@@ -475,6 +475,7 @@ class Main(QObject):
 		self.settingsw_layout.addSpacing(8)
 
 		self.settingsw.closeEvent = self.anyw_close
+		self.settingsw_scroll.closeEvent = self.anyw_close
 
 		self.tray.setContextMenu(self.menu)
 
