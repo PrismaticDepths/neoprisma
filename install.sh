@@ -44,7 +44,7 @@ run_step_permissive() {
 }
 
 BUILD_DIR="$HOME/.neoprisma-build"
-INSTALL_DIR="$HOME/Applications"
+INSTALL_DIR="/Applications"
 APP_NAME="neoprisma"
 BUNDLE_ID="com.prismaticdepths.neoprisma"
 BRANCH="stable"
