@@ -1,3 +1,24 @@
+<div align="center">
+
+  <img src="src/assets/preview.png" alt="App Icon">
+
+  <h1>Neoprisma</h1>
+
+  <p>
+    Lightweight macro & autoclick utility for MacOS
+  </p>
+
+  <p>
+    <img src="https://img.shields.io/badge/license-GPLv3.0-blue?style=flat" alt="License">
+    <img alt="GitHub top language" src="https://img.shields.io/github/languages/top/prismaticdepths/neoprisma?style=flat">
+    <img alt="GitHub language count" src="https://img.shields.io/github/languages/count/prismaticdepths/neoprisma">
+    <img alt="GitHub Actions Workflow Status" src="https://img.shields.io/github/actions/workflow/status/prismaticdepths/neoprisma/.github%2Fworkflows%2Fbuild.yml">
+    <img alt="GitHub Repo stars" src="https://img.shields.io/github/stars/prismaticdepths/neoprisma?style=flat&color=yellow">
+    <img alt="GitHub Tag" src="https://img.shields.io/github/v/tag/prismaticdepths/neoprisma">
+  </p>
+
+</div>
+
 # Neoprisma / nprisma
 
 Neoprisma is a fast, clean, and reliable autoclicker & macro for MacOS (hopefully coming to Windows soon).
