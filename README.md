@@ -21,48 +21,61 @@
 
 # Neoprisma / nprisma
 
-Neoprisma is a fast, clean, and reliable autoclicker & macro for MacOS (hopefully coming to Windows soon).
-It is the successor to Prism's Autoclicker 4.0.
+Neoprisma is a simple, reliable, and open source autoclicker/macro utility for MacOS
+
+For too long, sketchy, malware-infected TinyTask versions have ruled the internet in terms of automation. Neoprisma changes that.\
+Neoprisma is open-source, so you can actually see the code you are running, meaning no more trusting random blobs you can't see the internals of. Additionally, the app works on Mac!\
+Ironically, only MacOS is currently supported, however cross-platform support is a future goal. Neoprisma is an active project, and updates are released very frequently.
+
+## Features
+
+* ✅ Record & play back any keyboard and mouse inputs
+* ✅ Save recordings to files and load them anytime
+* ✅ Autoclick at high speeds 
+* ✅ Fully configurable hotkeys
+* ✅ Adjustable playback speeds
 
 ## Roadmap
 
 | Feature | Done | Description |
 | - | - | - |
 | Autoclick | <ul><li>- [ ] </li></ul> | Delay can be adjusted, but only left clicking is supported. | 
-| Tasks/Macros | <ul><li>- [x] </li></ul> | Record keyboard and mouse, including mouse drag events. Adjustable playback speed. |
+| Tasks/Macros | <ul><li>- [x] </li></ul> | Record nearly any sequence of keyboard and mouse inputs. Adjustable playback speed. Tasks can be saved and loaded from files.  |
 | Scripting/Full automation | <ul><li>- [ ] </li></ul> | Planned. |
-| Interface | <ul><li>- [x] </li></ul> | QT based. Interface works fine, though more polish is planned. |
-| Hotkeys | <ul><li>- [x] </li></ul> | Configurable. They work, but can get caught in recordings and sometimes get stuck. |
-| Installer | <ul><li>- [ ] </li></ul> | Difficulties may arise if your Python install is not well configured. Otherwise, it is smooth sailing. |
+| Interface | <ul><li>- [x] </li></ul> | Primarily system tray based, but has normal UI too. Features automatic update prompting, and dedicated settings window. Icon auto-hides from the dock. |
+| Hotkeys | <ul><li>- [x] </li></ul> | Highly configurable. Bugs are still present, however they will be worked out sooner than later. |
+| Installer | <ul><li>- [x] </li></ul> | Build from source or download precompiled bundles. The installer will do everything for you with helpful visuals along the way. |
 
 ## Installation
 
-Neoprisma can be built or installed with its dedicated installer script.\
-Support for installation via Homebrew is planned to be added soon.
+Neoprisma can be built from source or installed with its dedicated installer script.\
+*Once the install finishes, grant Neoprisma "Input Monitoring" and "Accessibility" permissions in System Settings.*
 
-For most users, building from source is not necessary, and a standard install will suffice.
-You may inspect `install.sh` in the stable branch of this repository to make sure the code you are about to run is trustworthy.
+Before running, inspect `install.sh` in the stable branch of this repository to make sure the code you are about to run is trustworthy. Only proceed if you are satisfied.
 
+Install prebuilt bundle (recommended):
 ```bash
 curl -fsSL https://raw.githubusercontent.com/PrismaticDepths/neoprisma/stable/install.sh | $SHELL
 ```
 
-*Once the install finishes, grant Neoprisma "Input Monitoring" and "Accessibility" permissions in System Settings.*
 
-### Installer Flags
-
-Alternatively, you can build from source with the `-s` flag:
-
+Build from source:
 ```bash
 curl -fsSL https://raw.githubusercontent.com/PrismaticDepths/neoprisma/stable/install.sh | $SHELL -s  -- -s
 ```
 
-Other flags include:
+### Installer Flags
+
 ```
 -b BUILD_DIR (Set a different build directory. Absolute paths are recommended.)
 -i INSTALL_DIR (Set a different install directory. Absolute paths are recommended.)
 -r BRANCH (Clone from a different branch if building from source, such as 'main'.)
 -y (Runs in non-interactive mode and automatically accepts all prompts)
+-s (Build from source and do not attempt to download a bundle)
+---
+Example:
+curl -fsSL https://raw.githubusercontent.com/PrismaticDepths/neoprisma/stable/install.sh | $SHELL -s  -- -s -y -r main
+This would build from source, skip any prompts, and build from the main branch instead of the stable one.
 ```
 
 
@@ -89,7 +102,7 @@ You can reset hotkeys and other configuration data by deleting the hidden file n
 
 ## Known Issues
 
-Hotkeys used to toggle recording are written into recordings. Neoprisma has safeguards to prevent any hotkeys contained in recordings from activating anything within itself, however if a hotkey in a recording conflicts with a hotkey from a different app, there is no guarantee that said app will ignore it. I plan to address this later.
+Hotkeys used to toggle recording are written into recordings. Neoprisma has safeguards to prevent any hotkeys contained in recordings from activating anything within itself, however if a hotkey in a recording conflicts with a hotkey from a different app, there is no guarantee that said app will ignore it. I plan to address this later, and also add suppression so that hotkeys won't also go to other apps when you trigger them.
 
 Hotkeys sometimes become unresponsive. The only solution I have found to this is to spam all of the hotkeys. \
 Alternatively, the "Abort Playback On Input" setting can be used, which will stop playback if you press a key. The apps own inputs should not trigger this.
@@ -98,9 +111,12 @@ You can also use the command-tab switcher to go to Neoprisma and quit it with `<
 
 ## Performance
 
-CPU usage does not seem to be excessive, nor does battery usage.
-This is somewhat surprising considering that Neoprisma isn't optimized for either, and mostly optimized for accurate playback.
+When idle, CPU usage and RAM are very low. However, CPU usage spikes upon mouse movement and keyboard activity, to about 10% of a single core (tested on an M3 Pro). Neoprisma isn't actually optimized for either, and mostly optimized for accurate playback, however there is room to improve here and hence this will probably be improved someday.
 
-When testing with a recording of Geometry Dash gameplay (Stereo Madness), Neoprisma didn't do the best, getting as far as the middle of the first ship section after several tries.
+When testing with a recording of Geometry Dash gameplay (Stereo Madness), Neoprisma didn't do the best, getting as far as the middle of the first ship section after several tries. This was with an early version of Neoprisma; I have yet to see if there is any difference on later versions.
 
 Setting the process priority to 20 may help.
+
+## Acknowledgements
+
+Thank you to @xbytz for helping to port the majority of the C++ portion of the app to Windows.
