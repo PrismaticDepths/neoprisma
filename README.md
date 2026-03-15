@@ -16,9 +16,10 @@ It is the successor to Prism's Autoclicker 4.0.
 
 ## Installation
 
-Neoprisma can be built and installed with its dedicated installer script.\
+Neoprisma can be built or installed with its dedicated installer script.\
 Support for installation via Homebrew is planned to be added soon.
 
+For most users, building from source is not necessary, and a standard install will suffice.
 You may inspect `install.sh` in the stable branch of this repository to make sure the code you are about to run is trustworthy.
 
 ```bash
@@ -27,13 +28,24 @@ curl -fsSL https://raw.githubusercontent.com/PrismaticDepths/neoprisma/stable/in
 
 *Once the install finishes, grant Neoprisma "Input Monitoring" and "Accessibility" permissions in System Settings.*
 
-### Caveats
+### Installer Flags
 
-| Dependencies |
-| - |
-| You will need to install Python, pip, and Apple's Command Line Tools as a prerequisite for installing neoprisma. Pip is usually bundled with Python. If you have already installed these in the past, you may skip this step. |
-| Official downloads for Python: https://www.python.org/downloads/ |
-| See this page for info on the Command Line Tools: https://developer.apple.com/documentation/xcode/installing-the-command-line-tools/ |
+Alternatively, you can build from source with the `-s` flag:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/PrismaticDepths/neoprisma/stable/install.sh | $SHELL -s  -- -s
+```
+
+Other flags include:
+```
+-b BUILD_DIR (Set a different build directory. Absolute paths are recommended.)
+-i INSTALL_DIR (Set a different install directory. Absolute paths are recommended.)
+-r BRANCH (Clone from a different branch if building from source, such as 'main'.)
+-y (Runs in non-interactive mode and automatically accepts all prompts)
+```
+
+
+### Caveats
 
 | Permissions |
 | - |
