@@ -196,10 +196,10 @@ run_step_permissive "Resetting Accessibility approval status for $BUNDLE_ID" tcc
 run_step_permissive "Resetting ListenEvent approval status for $BUNDLE_ID" tccutil reset ListenEvent "$BUNDLE_ID"
 
 if [ "$FROM_SOURCE" -eq 0 ]; then
-	LATEST_VERSION="${$(curl -s "https://api.github.com/repos/PrismaticDepths/neoprisma/releases/latest" | \
+	TAG_NAME=$(curl -s "https://api.github.com/repos/PrismaticDepths/neoprisma/releases/latest" | \
 		grep '"tag_name":' | \
-		sed -E 's/.*"([^"]+)".*/\1/'):-}" || true
-
+		sed -E 's/.*"([^"]+)".*/\1/')
+	LATEST_VERSION="${TAG_NAME:-}"
 	if [[ -z "$LATEST_VERSION" ]]; then
 		echo "  [\033[31mWARN\033[0m] Failed to fetch latest version."
 		exit 1
@@ -252,9 +252,10 @@ run_step "Cloning repo into build dir" git clone -b "$BRANCH" https://github.com
 
 cd "$BUILD_DIR"
 
-LATEST_VERSION="${$(curl -s "https://api.github.com/repos/PrismaticDepths/neoprisma/releases/latest" | \
-    grep '"tag_name":' | \
-    sed -E 's/.*"([^"]+)".*/\1/'):-}" || true
+TAG_NAME=$(curl -s "https://api.github.com/repos/PrismaticDepths/neoprisma/releases/latest" | \
+	grep '"tag_name":' | \
+	sed -E 's/.*"([^"]+)".*/\1/')
+LATEST_VERSION="${TAG_NAME:-}"
 
 if [[ -z "$LATEST_VERSION" ]]; then
     echo "  [\033[33mWARN\033[0m] Failed to fetch latest version, defaulting to '0.0.1'"
