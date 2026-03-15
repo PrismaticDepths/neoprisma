@@ -1,8 +1,10 @@
 #! /usr/bin/env bash
 
-setopt SH_WORD_SPLIT
+if [ -n "$ZSH_VERSION" ]; then
+  setopt SH_WORD_SPLIT
+fi
 set -euo pipefail
-exec 3</dev/tty
+
 
 LOG_FILE=$(mktemp /tmp/neoprisma_installer.XXXX)
 
@@ -82,6 +84,7 @@ if [ "$#" -gt 0 ]; then
 fi
 
 if [ "$INTERACTIVE" = 1 ]; then
+	exec 3</dev/tty
 	while true; do
 		printf "This installer will $WELCOME_MESSAGE. Proceed? [y/n] " > /dev/tty
 		read -r yn < /dev/tty
