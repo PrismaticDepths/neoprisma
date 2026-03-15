@@ -70,7 +70,7 @@ while getopts ":b:i:r:y:s:" opt; do
 			;;
 		\?)
 			echo "Invalid option. Usage:
-curl -fsSL https://raw.githubusercontent.com/PrismaticDepths/neoprisma/stable/install.sh | $SHELL -s -- [-r BRANCH] [-b BUILD_DIR] [-i INSTALL_DIR]" >&2
+curl -fsSL https://raw.githubusercontent.com/PrismaticDepths/neoprisma/stable/install.sh | $SHELL -s -- [-r BRANCH] [-b BUILD_DIR] [-i INSTALL_DIR] [-s] [-y]" >&2
 			exit 1
 			;;
 		:)
@@ -174,6 +174,9 @@ if [ -d "$BUILD_DIR" ]; then
 	fi
 fi
 
+run_step_permissive "Resetting Accessibility approval status for $BUNDLE_ID" tccutil reset Accessibility "$BUNDLE_ID" 
+run_step_permissive "Resetting ListenEvent approval status for $BUNDLE_ID" tccutil reset ListenEvent "$BUNDLE_ID"
+
 if [ -d "$INSTALL_DIR/$APP_NAME.app" ]; then
 	if [[ -n "$INSTALL_DIR/$APP_NAME.app" ]] && [[ "$INSTALL_DIR/$APP_NAME.app" != "$HOME" ]] && [[ "$INSTALL_DIR/$APP_NAME.app" != "/" ]]; then
 		if [ "$INTERACTIVE" = 1 ]; then
@@ -193,9 +196,6 @@ if [ -d "$INSTALL_DIR/$APP_NAME.app" ]; then
 	fi
 fi 
 
-run_step_permissive "Resetting Accessibility approval status for $BUNDLE_ID" tccutil reset Accessibility "$BUNDLE_ID" 
-run_step_permissive "Resetting ListenEvent approval status for $BUNDLE_ID" tccutil reset ListenEvent "$BUNDLE_ID"
-
 if [ "$FROM_SOURCE" -eq 0 ]; then
 	TAG_NAME=$(curl -s "https://api.github.com/repos/PrismaticDepths/neoprisma/releases/latest" | \
 		grep '"tag_name":' | \
@@ -212,7 +212,7 @@ if [ "$FROM_SOURCE" -eq 0 ]; then
 		mkdir -p "$BUILD_DIR"
 		mkdir -p "$INSTALL_DIR"
 		mkdir -p "$BUILD_DIR/extract"
-		echo "Precompiled bundle found. Skipping build stage."
+		echo "Precompiled bundle found. Skipping build stage and using the bundle instead..."
 		run_step "Downloading precompiled bundle" curl -L "$BUNDLE_URL" -o "$BUILD_DIR/neoprisma.tar.xz"
 		run_step "Extracting precompiled bundle" tar -xJf "$BUILD_DIR/neoprisma.tar.xz" -C "$BUILD_DIR/extract"
 		EXTRACTED_APP=$(find "$BUILD_DIR/extract" -maxdepth 1 -name "*.app" -type d | head -n 1)
