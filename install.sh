@@ -51,6 +51,7 @@ while getopts ":b:i:r:y:s:" opt; do
 		b)
 			echo "Using BUILD_DIR $OPTARG"
 			BUILD_DIR="$OPTARG"
+			ENTITLEMENTS="$BUILD_DIR/entitlements.plist"
 			;;
 		i)
 			echo "Using INSTALL_DIR $OPTARG"
