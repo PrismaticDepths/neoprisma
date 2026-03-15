@@ -30,7 +30,7 @@ jobs:
 
       - name: Build
         run: |
-          curl -fsSL https://raw.githubusercontent.com/PrismaticDepths/neoprisma/main/install.sh | $SHELL -s -- -y -s -i $PWD/dist -b $PWD/build
+          curl -fsSL https://raw.githubusercontent.com/PrismaticDepths/neoprisma/stable/install.sh | $SHELL -s -- -y -s -i $PWD/dist -b $PWD/build
       
       - name: Tar app bundle
         run: |
