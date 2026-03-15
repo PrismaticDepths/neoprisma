@@ -8,6 +8,8 @@ on:
 jobs:
   build:
     runs-on: macos-latest
+    permissions:
+      contents: write
 
     steps:
       - name: Checkout repo
@@ -35,3 +37,9 @@ jobs:
         with:
           name: macos-app
           path: "npadist/neoprisma-macos.tar.xz"
+
+      - name: Upload to Release
+        uses: softprops/action-gh-release@v2
+        if: github.event_name == 'release'
+        with:
+          files: npadist/neoprisma-macos.tar.xz
