@@ -17,10 +17,11 @@ jobs:
 
       - name: Verify release is from stable branch
         run: |
-          if ! git branch --contains ${{ github.event.release.target_commitish }} | grep -q stable; then
+          if ! git branch -r --contains ${{ github.event.release.target_commitish }} | grep -q "origin/stable$"; then
             echo "Release is not from stable branch. Exiting."
             exit 1
           fi
+          echo "Release commit is on stable branch."
 
       - name: Use py 3.14
         uses: actions/setup-python@v4
