@@ -195,7 +195,7 @@ fi
 run_step_permissive "Resetting Accessibility approval status for $BUNDLE_ID" tccutil reset Accessibility "$BUNDLE_ID" 
 run_step_permissive "Resetting ListenEvent approval status for $BUNDLE_ID" tccutil reset ListenEvent "$BUNDLE_ID"
 
-if [ "$BUILD_FROM_SOURCE" -eq 0 ]; then
+if [ "$FROM_SOURCE" -eq 0 ]; then
 	BUNDLE_URL="https://github.com/PrismaticDepths/neoprisma/releases/download/${LATEST_VERSION}/neoprisma-macos.tar.xz"
 
 	if curl --head --fail "$BUNDLE_URL" >/dev/null 2>&1; then
