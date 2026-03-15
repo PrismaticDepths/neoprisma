@@ -196,8 +196,17 @@ run_step_permissive "Resetting Accessibility approval status for $BUNDLE_ID" tcc
 run_step_permissive "Resetting ListenEvent approval status for $BUNDLE_ID" tccutil reset ListenEvent "$BUNDLE_ID"
 
 if [ "$FROM_SOURCE" -eq 0 ]; then
-	BUNDLE_URL="https://github.com/PrismaticDepths/neoprisma/releases/download/${LATEST_VERSION}/neoprisma-macos.tar.xz"
+	LATEST_VERSION="${$(curl -s "https://api.github.com/repos/PrismaticDepths/neoprisma/releases/latest" | \
+		grep '"tag_name":' | \
+		sed -E 's/.*"([^"]+)".*/\1/'):-}" || true
 
+	if [[ -z "$LATEST_VERSION" ]]; then
+		echo "  [\033[31mWARN\033[0m] Failed to fetch latest version."
+		exit 1
+	else
+		echo "  [\033[32mOK\033[0m] Latest release version: $LATEST_VERSION"
+	fi
+	BUNDLE_URL="https://github.com/PrismaticDepths/neoprisma/releases/download/${LATEST_VERSION}/neoprisma-macos.tar.xz"
 	if curl --head --fail "$BUNDLE_URL" >/dev/null 2>&1; then
 		mkdir -p "$BUILD_DIR"
 		mkdir -p "$INSTALL_DIR"
