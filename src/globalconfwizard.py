@@ -32,10 +32,11 @@ class CNVType:
 	def from_packed(cls,packed):
 		return cls(cls._unpack(cls,packed))
 
-	def __init__(self,name,real_value):
+	def __init__(self,name,real_value,description=""):
 
 		self.name = name
 		self.real_value = real_value
+		self.description = description
 
 	def pack(self):
 		return self._pack()
@@ -55,8 +56,8 @@ class CNVType:
 
 class CNVBoolean(CNVType):
 
-	def __init__(self,value):
-		super().__init__("bool",value)
+	def __init__(self,value,description=""):
+		super().__init__("bool",value,description)
 
 	def _pack(self):
 		assert type(self.real_value)==type(True)
@@ -70,8 +71,8 @@ class CNVBoolean(CNVType):
 	
 class CNVString(CNVType):
 
-	def __init__(self,value):
-		super().__init__("string",value)
+	def __init__(self,value,**kwargs):
+		super().__init__("string",value,**kwargs)
 
 	def _pack(self):
 		return str(self.real_value)
@@ -80,8 +81,8 @@ class CNVString(CNVType):
 	
 class CNVInteger(CNVType):
 
-	def __init__(self,value,smin=None,smax=None):
-		super().__init__("int",value)
+	def __init__(self,value,smin=None,smax=None,description=""):
+		super().__init__("int",value,description)
 
 	def _pack(self):
 		return str(self.real_value)
@@ -90,8 +91,8 @@ class CNVInteger(CNVType):
 	
 class CNVKeyset(CNVType):
 
-	def __init__(self,value):
-		super().__init__("keyset",value)
+	def __init__(self,value,**kwargs):
+		super().__init__("keyset",value,**kwargs)
 
 	def _pack(self):
 		return " ".join([str(v) for v in self.real_value])
@@ -106,13 +107,21 @@ NAME_TO_TYPE = {
 	"int":CNVInteger,
 }
 
+FMT = [
+	"type",
+	"name",
+	"value"
+]
+
+SEP = "&"
+
 def unpack(fpath):
 		
 	with open(fpath,"r") as cfile:
 		data = {}
 			
 		for line in cfile.readlines():
-			tmp = line.split("&",2)
+			tmp = line.split(SEP,len(FMT)-1)
 			typ = tmp[0].strip().lower()
 			try:
 				key = tmp[1].strip().upper()

@@ -40,7 +40,7 @@ import time
 import sys
 from threading import Thread
 from PyQt6.QtGui import QAction,QIcon
-from PyQt6.QtCore import QObject,pyqtSignal, QTimer, Qt, QEvent
+from PyQt6.QtCore import QObject,pyqtSignal, QTimer, Qt, QEvent,QPoint
 from PyQt6.QtWidgets import (
 	QApplication,
 	QSystemTrayIcon,
@@ -60,7 +60,8 @@ from PyQt6.QtWidgets import (
 	QHBoxLayout,
 	QMenuBar,
 	QSizePolicy,
-	QScrollArea
+	QScrollArea,
+	QToolTip
 )
 
 from resources import resource_path
@@ -159,6 +160,19 @@ MASTER_STYLESHEET = """
 		font-weight: bold;
 		font-size: 16px;
 	}
+	QPushButton#info-popup {
+		border-radius: 8px;
+		background-color: #535353;
+		border: 1px solid #000000;
+		width: 16px;
+   		height: 16px;
+		margin: 0;
+        padding: 0;
+	}
+	QPushButton:pressed#info-popup {
+	}
+	QPushButton:hover#info-popup {
+	}
 """
 
 MACOS_VK_MAP = {
@@ -177,8 +191,9 @@ CN_CONFIGURATION_DEFAULTS = {
 	"KEYBIND_TOGGLE_AUTOCLICK":CNVKeyset(set([59,100])),
 	"KEYBIND_TOGGLE_PLAYBACK":CNVKeyset(set([59,101])),
 	"RELEASE_CHANNEL":CNVString("stable"),
-	"ABORT_PLAYBACK_ON_INPUT":CNVBoolean(False),
-	"HIDE_APP_ICON":CNVBoolean(True),
+	"ABORT_PLAYBACK_ON_INPUT":CNVBoolean(False,description="Stops playback immediately upon any\nuser generated (authentic) keyboard input."),
+	"HIDE_APP_ICON":CNVBoolean(True,description="If no UI elements (like this settings window) are open,\nhides the app icon from the dock and excludes from the command-tab switcher."),
+	"USE_MOUSE_WARPING":CNVBoolean(False,description="Move the mouse instantly without emitting mouse movement events.\nCan fix issues with some video games."),
 }
 
 MAX_HOTKEY_LEN = 5
@@ -258,7 +273,7 @@ class Main(QObject):
 		self.hotkey_record_buffer = set()
 		self.hotkey_lookup = {}
 		self.hotkey_edit_label = ""
-		self.cps = 1/100
+		self.cps = (1/100)
 		self.keysdown = set()
 		self.hotkeys = {
 			"KEYBIND_TOGGLE_RECORD": set(),
@@ -296,6 +311,7 @@ class Main(QObject):
 			else:
 				for key,value in conf_data.items():
 					self.conf_data[key]=value
+					self.conf_data[key].description=CN_CONFIGURATION_DEFAULTS[key].description
 		else:
 			self.conf_data=copy.deepcopy(CN_CONFIGURATION_DEFAULTS)
 			globalconfwizard.pack(os.path.expanduser("~/.neoprisma"),self.conf_data)
@@ -450,6 +466,17 @@ class Main(QObject):
 				tmp2.setChecked(value.real_value)
 				tmp2.checkStateChanged.connect(lambda t: self.conf_data[key].set_value(False if t==Qt.CheckState.Unchecked else True))
 				tmplayout.addWidget(tmp1)
+				if self.conf_data[key].description != "":
+					tmp3 = QPushButton("?",tmp)
+					tmp3.setObjectName("info-popup")
+					tmp3.setFixedSize(16, 16)
+					tmp3.setCursor(Qt.CursorShape.PointingHandCursor)
+					def show_info():
+						pos = tmp3.mapToGlobal(QPoint(0, -5))
+						QToolTip.showText(pos, self.conf_data[key].description, tmp3)
+					tmp3.clicked.connect(show_info)
+					tmplayout.addWidget(tmp3,alignment=Qt.AlignmentFlag.AlignLeft)
+
 				tmplayout.addWidget(tmp2,alignment=Qt.AlignmentFlag.AlignRight)
 				tmplayout.setContentsMargins(0, 0, 0, 0)
 				self.settingsw_configbools_layout.addWidget(tmp)
@@ -493,6 +520,8 @@ class Main(QObject):
 	def shutdown(self):
 		self.run_workers = False
 		self.app.quit()
+
+
 
 	def rebuild_hotkey_lookup(self):
 		self.hotkey_lookup.clear()
@@ -571,7 +600,7 @@ class Main(QObject):
 
 	def upd_cps(self,x):
 		if x == 0: return
-		self.cps = 1/x
+		self.cps = (1/x)
 
 	def save_configurations(self):
 		globalconfwizard.pack(os.path.expanduser("~/.neoprisma"),self.conf_data)
@@ -718,7 +747,7 @@ class Main(QObject):
 						self.state_playback = False
 					while self.state_playback:
 						try:
-							playback.PlayEventList(self.compiled_arr,self.timestamp_multiplier)
+							playback.PlayEventList(self.compiled_arr,self.timestamp_multiplier,self.conf_data["USE_MOUSE_WARPING"].real_value)
 						except Exception as e:
 							self.error_emitter.error.emit(traceback.format_exc())
 							self.tray.setIcon(self.icon_static)
@@ -747,10 +776,9 @@ class Main(QObject):
 			
 	def _INNER_toggle_autoclicker(self):
 		while self.state_autoclicker:
-			playback.mouseButtonStatus(1,int(self.m_simulator.position[0]),int(self.m_simulator.position[1]),True)
-			time.sleep(self.cps)
-			playback.mouseButtonStatus(1,int(self.m_simulator.position[0]),int(self.m_simulator.position[1]),False)
-			if not self.state_autoclicker: break
+			playback.mouseButtonStatus(1,True)
+			time.sleep(0)
+			playback.mouseButtonStatus(1,False)
 			time.sleep(self.cps)
 
 	def load(self):

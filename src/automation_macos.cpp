@@ -31,6 +31,10 @@ void moveMouseAbsolute(uint16_t x, uint16_t y) {
 	CGEventPost(kCGHIDEventTap, motion);
 	CFRelease(motion);
 }
+void warpMouseAbsolute(uint16_t x, uint16_t y) {
+	CGPoint destination = CGPointMake(x, y);
+	CGWarpMouseCursorPosition(destination);
+}
 
 void mouseDragAbsolute(uint8_t button, uint16_t x, uint16_t y) {
 	CGPoint destination = CGPointMake(x, y);
@@ -59,6 +63,7 @@ void mouseDragAbsolute(uint8_t button, uint16_t x, uint16_t y) {
 	CFRelease(motion);
 }
 
+
 void mouseButtonStatus(uint16_t button, uint16_t x, uint16_t y, bool status) {
 	CGPoint destination = CGPointMake(x, y);
 	CGEventType statusEvent;
@@ -66,35 +71,19 @@ void mouseButtonStatus(uint16_t button, uint16_t x, uint16_t y, bool status) {
 
 	switch (button) {
 		case 1:
-			if (status) {
-				statusEvent = kCGEventLeftMouseDown;
-			} else {
-				statusEvent = kCGEventLeftMouseUp;
-			}
+			statusEvent = status ? kCGEventLeftMouseDown : kCGEventLeftMouseUp;
 			mouseButton = kCGMouseButtonLeft;
 			break;
 		case 3:
-			if (status) {
-				statusEvent = kCGEventRightMouseDown;
-			} else {
-				statusEvent = kCGEventRightMouseUp;
-			}
+			statusEvent = status ? kCGEventRightMouseDown : kCGEventRightMouseUp;
 			mouseButton = kCGMouseButtonRight;
 			break;
 		case 2:
-			if (status) {
-				statusEvent = kCGEventOtherMouseDown;
-			} else {
-				statusEvent = kCGEventOtherMouseUp;
-			}
+			statusEvent = status ? kCGEventOtherMouseDown : kCGEventOtherMouseUp;
 			mouseButton = kCGMouseButtonCenter;
 			break;
 		default:
-			if (status) {
-				statusEvent = kCGEventOtherMouseDown;
-			} else {
-				statusEvent = kCGEventOtherMouseUp;
-			}
+			statusEvent = status ?kCGEventOtherMouseDown : kCGEventOtherMouseUp;
 			mouseButton = (CGMouseButton)(button-1);
 			break;
 	}
@@ -107,6 +96,44 @@ void mouseButtonStatus(uint16_t button, uint16_t x, uint16_t y, bool status) {
 	CFRelease(click);  
 
 }
+
+void mouseButtonStatus(uint16_t button, bool status) {
+	CGEventRef event = CGEventCreate(source);
+    CGPoint loc = CGEventGetLocation(event);
+    CFRelease(event);
+
+	CGEventType statusEvent;
+	CGMouseButton mouseButton;
+
+	switch (button) {
+		case 1:
+			statusEvent = status ? kCGEventLeftMouseDown : kCGEventLeftMouseUp;
+			mouseButton = kCGMouseButtonLeft;
+			break;
+		case 3:
+			statusEvent = status ? kCGEventRightMouseDown : kCGEventRightMouseUp;
+			mouseButton = kCGMouseButtonRight;
+			break;
+		case 2:
+			statusEvent = status ? kCGEventOtherMouseDown : kCGEventOtherMouseUp;
+			mouseButton = kCGMouseButtonCenter;
+			break;
+		default:
+			statusEvent = status ?kCGEventOtherMouseDown : kCGEventOtherMouseUp;
+			mouseButton = (CGMouseButton)(button-1);
+			break;
+	}
+
+	CGEventRef click = CGEventCreateMouseEvent(source, statusEvent, loc, mouseButton);
+
+	if (button > 3 || button == 2) {
+		CGEventSetIntegerValueField(click, kCGMouseEventButtonNumber, button);
+	}
+	CGEventPost(kCGHIDEventTap,click);
+	CFRelease(click);  
+
+}
+
 
 void mouseScroll(uint16_t x, uint16_t y, uint16_t dx, uint16_t dy) {
 
