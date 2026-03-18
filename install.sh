@@ -73,9 +73,11 @@ while getopts ":b:i:r:y:s:" opt; do
 curl -fsSL https://raw.githubusercontent.com/PrismaticDepths/neoprisma/stable/install.sh | $SHELL -s -- [-r BRANCH] [-b BUILD_DIR] [-i INSTALL_DIR] [-s] [-y]" >&2
 			exit 1
 			;;
-		:)
-			echo "Option -$OPTARG requires an argument" >&2
-			exit 1
+		:)	
+			if "$OPTARG"!="s" then
+				echo "Option -$OPTARG requires an argument" >&2
+				exit 1
+			fi
 			;;
 	esac
 done
