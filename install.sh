@@ -74,7 +74,7 @@ curl -fsSL https://raw.githubusercontent.com/PrismaticDepths/neoprisma/stable/in
 			exit 1
 			;;
 		:)	
-			if "$OPTARG"!="s" then
+			if [[ "$OPTARG"!="s" ]]; then
 				echo "Option -$OPTARG requires an argument" >&2
 				exit 1
 			fi
