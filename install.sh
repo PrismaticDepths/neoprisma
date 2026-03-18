@@ -220,6 +220,14 @@ if [ "$FROM_SOURCE" -eq 0 ]; then
 		run_step "Moving app to $INSTALL_DIR" mv "$EXTRACTED_APP" "$INSTALL_DIR/$APP_NAME.app"
 		run_step "Generating entitlements.plist" generate_entitlements
 		run_step "Signing app" codesign --force --deep --sign - --options runtime  --entitlements "$ENTITLEMENTS" "$INSTALL_DIR/$APP_NAME.app" 
+		echo "Cleaning up... "
+		if [ -d "$BUILD_DIR" ]; then
+			if [[ -n "$BUILD_DIR" ]] && [[ "$BUILD_DIR" != "$HOME" ]] && [[ "$BUILD_DIR" != "/" ]]; then
+				rm -rf "$BUILD_DIR"
+			else
+				die "BUILD_DIR is empty or home. Cannot clean. The app has still been installed."
+			fi
+		fi
 		echo -e "\033[32mInstallation complete! Neoprisma has been installed at $INSTALL_DIR/$APP_NAME.app\n--> Caveats: \033[0m You must grant the app Accessibility & Input Monitoring permissions, even if you just reinstalled or updated the app."
 		exit 0
 	else
