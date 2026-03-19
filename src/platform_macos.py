@@ -154,6 +154,21 @@ MASTER_STYLESHEET = """
 	QScrollBar::handle:vertical:hover {
 		background: #444444;
 	}
+	QScrollBar:horizontal {
+		border: none;
+		background: #121212;
+		width: 8px;
+	}
+
+	QScrollBar::handle:horizontal {
+		background: #333333;
+		min-height: 20px;
+		border-radius: 4px;
+	}
+
+	QScrollBar::handle:horizontal:hover {
+		background: #444444;
+	}
 
 	QLabel#heading {
 		color: #FFFFFF;
