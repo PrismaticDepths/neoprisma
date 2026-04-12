@@ -61,20 +61,23 @@ curl -fsSL https://raw.githubusercontent.com/PrismaticDepths/neoprisma/stable/in
 
 Build from source:
 ```bash
-curl -fsSL https://raw.githubusercontent.com/PrismaticDepths/neoprisma/stable/install.sh | $SHELL -s  -- -s
+curl -fsSL https://raw.githubusercontent.com/PrismaticDepths/neoprisma/stable/install.sh | $SHELL -s  -- -s YES
 ```
 
 ### Installer Flags
+
+It's not necessary to pass any options.\
+For options with argument YES/NO, anything other than NO will trigger them. Passing NO has the same behaviour as ommitting the flag entirely. The reason for this odd behaviour is that it's required to pass an argument for every flag -- fixing this would be time consuming and there isn't actually any real problem with this behaviour anyways.
 
 ```
 -b BUILD_DIR (Set a different build directory. Absolute paths are recommended.)
 -i INSTALL_DIR (Set a different install directory. Absolute paths are recommended.)
 -r BRANCH (Clone from a different branch if building from source, such as 'main'.)
--y (Runs in non-interactive mode and automatically accepts all prompts)
--s (Build from source and do not attempt to download a bundle)
+-y YES/NO (Runs in non-interactive mode and automatically accepts all prompts)
+-s YES/NO (Build from source and do not attempt to download a bundle)
 ---
 Example:
-curl -fsSL https://raw.githubusercontent.com/PrismaticDepths/neoprisma/stable/install.sh | $SHELL -s  -- -s -y -r main
+curl -fsSL https://raw.githubusercontent.com/PrismaticDepths/neoprisma/stable/install.sh | $SHELL -s  -- -s YES -y YES -r main
 This would build from source, skip any prompts, and build from the main branch instead of the stable one.
 ```
 

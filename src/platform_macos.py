@@ -32,12 +32,78 @@ import objc, CoreFoundation
 objc.registerCFSignature("CFStringRef", b"^{__CFString=}", CoreFoundation.CFStringGetTypeID(), "NSString")
 
 
+try:
+	import version
+except Exception:
+	__version__ = "0.0.0"
+else:
+	__version__ = version.__version__
+
+def crash(headline="Neoprisma encountered an error and has to crash.",detail="No short details available.",error_msg="",exit_code=1):
+	from PyQt6.QtWidgets import (
+		QApplication,
+		QMessageBox
+	)
+	import os,sys,traceback
+	app = QApplication.instance()
+	if app is None: app = QApplication(sys.argv)
+	box = QMessageBox()
+	box.setIcon(QMessageBox.Icon.Critical)
+	box.setText(headline)
+	box.setInformativeText(f"Please report this issue to the developers!\n\nYou can press \"Show Details...\" to see the full crash report. Include the entire crash log if you file a bug report.\nPressing \"Abort\" or closing the crash dialog will terminate this process.")
+	box.setDetailedText(f"""--- Crash Summary ---
+Report generated in file: `{__name__}`
+Crash headline: {headline}
+Shorthand crash detail: {detail}
+Neoprisma version: {__version__}
+Exit code: {exit_code}
+--- Traceback ---
+{error_msg if error_msg != "" else traceback.format_exc()}""")
+	box.addButton(QMessageBox.StandardButton.Abort)
+	box.setStyleSheet("""QWidget {
+		background-color: #303030;
+		color: #DEDEDE;
+		font-size: 13px;
+	}
+
+	QPushButton {
+		background-color: #535353;
+		border: 0px solid #000000;
+		border-radius: 6px;
+		padding: 4px 8px;
+		color: #E0E0E0;
+	}
+
+	QPushButton:hover {
+		background-color: #404046;
+		border: 1px solid #444444;
+		color: #FFFFFF;
+	}
+	QLineEdit, QTextEdit, QPlainTextEdit {
+		background-color: #1A1A1A;
+		font-family: 'Courier New', monospace;
+		font-size: 10pt;
+		border: 1px solid #2A2A2A;
+		border-radius: 1px;
+		text-align: left;
+		padding: 5px;
+		color: #FFFFFF;
+	}""")
+	box.setWindowTitle("Neoprisma Crash Info")
+	print(error_msg if error_msg != "" else traceback.format_exc())
+	box.exec()
+	sys.exit(exit_code)
+def exception_hook(exctype, value, tb):
+	import traceback
+	error_msg = "".join(traceback.format_exception(exctype, value, tb))
+	crash(error_msg=error_msg)
+sys.excepthook = exception_hook
+
 import pynput
 import requests
 import copy
 import traceback
 import time
-import sys
 from threading import Thread
 from PyQt6.QtGui import QAction,QIcon
 from PyQt6.QtCore import QObject,pyqtSignal, QTimer, Qt, QEvent,QPoint
@@ -64,24 +130,19 @@ from PyQt6.QtWidgets import (
 	QToolTip
 )
 
+
+
 from resources import resource_path
 try:
 	import playback
 	import recorder
 	import globalconfwizard
+	# Extensions
+	#import ext_scripting_macos
+	#import ext_editor_macos
 	from globalconfwizard import CNVKeyset,CNVString,CNVType,CNVBoolean,CNVInteger
 except Exception:
-	tmp=QApplication(sys.argv)
-	print(traceback.format_exc(300))
-	QMessageBox.critical(None,"Failed to start Neoprisma!","Please report this issue to the developers! Fatal error while importing a project component: "+traceback.format_exc(300), QMessageBox.StandardButton.Abort)
-	sys.exit(70)
-
-try:
-	import version
-except Exception:
-	__version__ = "0.0.0"
-else:
-	__version__ = version.__version__
+	crash("Failed to start Neoprisma!","Fatal error while importing components of the app in seperate Python modules/files.",exit_code=70)
 
 MASTER_STYLESHEET = """
 	QWidget {
@@ -298,8 +359,8 @@ class Main(QObject):
 		self.conf_data=copy.deepcopy(CN_CONFIGURATION_DEFAULTS)
 		if os.path.exists(os.path.expanduser("~/.neoprisma")):
 			try:
-				conf_data=globalconfwizard.unpack(os.path.expanduser("~/.neoprisma"))
-			except RuntimeError as e:
+				conf_data=globalconfwizard.unpack(os.path.expanduser("~/.neoprisma")) # Try unpacking the config
+			except RuntimeError as e: # Handle cases where the file might be outdated and need migration
 				if str(e).strip().startswith("NO_VERSION"):
 
 					conf_data=copy.deepcopy(CN_CONFIGURATION_DEFAULTS) # Since we don't have the real unpacked version, grab the default values
@@ -315,19 +376,15 @@ class Main(QObject):
 					globalconfwizard.pack(os.path.expanduser("~/.neoprisma"),self.conf_data) # Write the migrated configuration file
 
 				elif str(e).strip().startswith("LOW_VERSION"):
-					pass # migrate to updated version
-
-				else:
-					QMessageBox.warning(None,"Error","Your configuration files appear to be corrupted; please delete hidden file '~/.neoprisma' to reset configurations. Neoprisma will now crash.")
-					raise
-			except Exception as e:
-				QMessageBox.warning(None,"Error","Your configuration files appear to be corrupted; please delete hidden file '~/.neoprisma' to reset configurations. Neoprisma will now crash.")
-				raise
-			else:
-				for key,value in conf_data.items():
-					self.conf_data[key]=value
+					pass # migrate to updated version, if there were a new one now
+			except Exception as e: # Handle exceptions not intentionally raised
+				QMessageBox.warning(None,"Error","Your configuration file appears to be corrupted; please delete hidden file '~/.neoprisma' to reset configurations. Neoprisma will now crash.")
+				raise # Exit "gracefully" and show crash details
+			else: # part of the try catch logic, not an if-then-else statement
+				for key,value in conf_data.items(): # If everything goes right, load the configurations
+					self.conf_data[key]=value 
 					self.conf_data[key].description=CN_CONFIGURATION_DEFAULTS[key].description
-		else:
+		else: # Generate new configurations if no file is found
 			self.conf_data=copy.deepcopy(CN_CONFIGURATION_DEFAULTS)
 			globalconfwizard.pack(os.path.expanduser("~/.neoprisma"),self.conf_data)
 
@@ -353,6 +410,8 @@ class Main(QObject):
 		self.tray.setIcon(self.icon_static)
 		self.tray.setVisible(True)
 
+		self.script_ext=ext_scripting_macos.Runner()
+
 		self.menu = QMenu()
 
 		self.toggle_rec_widget = QAction("Toggle Recording")
@@ -374,6 +433,10 @@ class Main(QObject):
 		self.quitaction = QAction("Quit")
 		self.quitaction.triggered.connect(self.shutdown)
 		self.menu.addAction(self.quitaction)
+
+		self.scrextaction = QAction("Scripts")
+		self.scrextaction.triggered.connect(self.script_ext.mainw.show)
+		self.menu.addAction(self.scrextaction)
 
 		self.settingsw = QWidget()
 		
@@ -469,7 +532,6 @@ class Main(QObject):
 		self.settingsw_label_cbools.setAlignment(Qt.AlignmentFlag.AlignCenter)
 		self.settingsw_layout.addWidget(self.settingsw_label_cbools)
 		self.settingsw_layout.addSpacing(10)
-		
 
 		self.settingsw_configbools_layout = QVBoxLayout()
 
@@ -514,6 +576,7 @@ class Main(QObject):
 		self.settingsw_layout.addSpacing(15)
 
 		self.settingsw_save = QPushButton("Save configurations",self.settingsw)
+		self.settingsw_save.setCursor(Qt.CursorShape.PointingHandCursor)
 		self.settingsw_save.clicked.connect(self.save_configurations)
 		self.settingsw_layout.addWidget(self.settingsw_save)
 
@@ -701,11 +764,12 @@ class Main(QObject):
 		self.keysdown.discard(vk)
 
 	def init_recorder_and_simulator(self):
-			try:
-				self.recorder=recorder.OneShotRecorder()
-				self.m_simulator = pynput.mouse.Controller()
-			except Exception:
-				self.error_emitter.error.emit("Could not initialize recorder.OneShotRecorder or pynput.mouse.Controller: "+traceback.format_exc())
+		try:
+			self.recorder=recorder.OneShotRecorder()
+			self.m_simulator = pynput.mouse.Controller()
+		except Exception:
+			self.anyw_open()
+			crash(headline="An error occured while initializing recording/playback infastructure.",detail="Could not initialize recorder.OneShotRecorder or pynput.mouse.Controller.")
 
 	def start_hotkeys(self):
 		try:
@@ -716,9 +780,11 @@ class Main(QObject):
 				on_release=self.listener_hotkeysv2_handlekeyrelease,
 				suppress=False,
 			)
+			
 			self.h.start()
 		except Exception:
-			self.error_emitter.error.emit("Could not start the hotkey listener: "+traceback.format_exc())
+			self.anyw_open()
+			crash(headline="An error occured while initializing recording/playback infastructure.",detail="Could not start the hotkey listener.")
 
 	def toggle_recording(self):
 		try:
@@ -767,6 +833,7 @@ class Main(QObject):
 						self.state_playback = False
 					while self.state_playback:
 						try:
+							print(self.compiled_arr)
 							playback.PlayEventList(self.compiled_arr,self.timestamp_multiplier,self.conf_data["USE_MOUSE_WARPING"].real_value)
 						except Exception as e:
 							self.error_emitter.error.emit(traceback.format_exc())
@@ -833,8 +900,5 @@ class Main(QObject):
 try:
 	m = Main()
 except Exception:
-	if QApplication.instance() is None: tmp=QApplication(sys.argv)
-	print(traceback.format_exc(300))
-	QMessageBox.critical(None,"Failed to start Neoprisma!","Please report this issue to the developers! Uncaught exception in class initialization: "+traceback.format_exc(300), QMessageBox.StandardButton.Abort)
-	sys.exit(70)
+	crash(headline="Failed to start Neoprisma!",detail="Uncaught exception in `Main` class initialization.",exit_code=70)
 sys.exit(m.app.exec())

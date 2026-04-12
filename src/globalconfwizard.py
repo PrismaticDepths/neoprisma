@@ -16,7 +16,6 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>
 """
 
 import os, sys
-
 if getattr(sys, "frozen", False):
 	BASE = sys._MEIPASS
 else:
@@ -126,8 +125,9 @@ def unpack(fpath):
 			try:
 				key = tmp[1].strip().upper()
 			except IndexError:
-				raise RuntimeError("NO_VERSION / Could not unpack configuration file: Possibly corrupted or invalid file, presumably an old version.")
-			val=tmp[2]
+				if "%" in line: raise RuntimeError("NO_VERSION / Could not unpack configuration file: Possibly corrupted or invalid file, presumably an old version.") # Older configs will use key%value, so the sep is different and it is not typed. It needs to be migrated.
+				else: raise
+			val=tmp[2] # This will error if the file doesn't follow the updated format  
 			data[key] = NAME_TO_TYPE[typ].from_packed(val)
 			
 

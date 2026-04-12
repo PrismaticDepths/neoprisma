@@ -61,16 +61,20 @@ while getopts ":b:i:r:y:s:" opt; do
 			echo "Using BRANCH $OPTARG"
 			BRANCH="$OPTARG"
 			;;
-		y)  echo "(NOTICE) Running in NON-INTERACTIVE mode: All prompts will be automatically accepted"
-			INTERACTIVE=0
+		y)  if [ "$OPTARG" != "NO"]; then
+				echo "(NOTICE) Running in NON-INTERACTIVE mode: All prompts will be automatically accepted"
+				INTERACTIVE=0
+			fi
 			;;
-		s)  echo "Building from source"
-			FROM_SOURCE=1
-			WELCOME_MESSAGE="build/compile Neoprisma locally and install it. Python >= 3.10 is recommended"
+		s)  if [ "$OPTARG" != "NO"]; then
+				echo "Building from source"
+				FROM_SOURCE=1
+				WELCOME_MESSAGE="build/compile Neoprisma locally and install it. Python >= 3.10 is recommended"
+			fi
 			;;
 		\?)
-			echo "Invalid option. Usage:
-curl -fsSL https://raw.githubusercontent.com/PrismaticDepths/neoprisma/stable/install.sh | $SHELL -s -- [-r BRANCH] [-b BUILD_DIR] [-i INSTALL_DIR] [-s] [-y]" >&2
+			echo "Invalid option. (Note-All options are... optional.) Usage:
+curl -fsSL https://raw.githubusercontent.com/PrismaticDepths/neoprisma/stable/install.sh | $SHELL -s -- [-r BRANCH] [-b BUILD_DIR] [-i INSTALL_DIR] [-s YES/NO] [-y YES/NO]" >&2
 			exit 1
 			;;
 		:)	
