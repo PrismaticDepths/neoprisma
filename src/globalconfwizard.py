@@ -83,11 +83,25 @@ class CNVInteger(CNVType):
 
 	def __init__(self,value,smin=None,smax=None,description=""):
 		super().__init__("int",value,description)
-
+		self.smin = smin or None
+		self.smax = smax or None
+		
 	def _pack(self):
 		return str(self.real_value)
 	def _unpack(self,value):
 		return int(str(value).strip())
+	
+class CNVFloat(CNVType):
+
+	def __init__(self,value,smin=None,smax=None,description=""):
+		super().__init__("float",value,description)
+		self.smin = smin or None
+		self.smax = smax or None
+
+	def _pack(self):
+		return str(self.real_value)
+	def _unpack(self,value):
+		return float(str(value).strip())
 	
 class CNVKeyset(CNVType):
 
@@ -105,6 +119,7 @@ NAME_TO_TYPE = {
 	"string":CNVString,
 	"keyset":CNVKeyset,
 	"int":CNVInteger,
+	"float":CNVFloat,
 }
 
 FMT = [

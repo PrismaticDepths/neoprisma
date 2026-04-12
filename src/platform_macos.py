@@ -69,7 +69,7 @@ try:
 	import playback
 	import recorder
 	import globalconfwizard
-	from globalconfwizard import CNVKeyset,CNVString,CNVType,CNVBoolean,CNVInteger
+	from globalconfwizard import CNVKeyset,CNVString,CNVType,CNVBoolean,CNVInteger,CNVFloat
 except Exception:
 	tmp=QApplication(sys.argv)
 	print(traceback.format_exc(300))
@@ -209,6 +209,7 @@ CN_CONFIGURATION_DEFAULTS = {
 	"ABORT_PLAYBACK_ON_INPUT":CNVBoolean(False,description="Stops playback immediately upon any\nuser generated (authentic) keyboard input."),
 	"HIDE_APP_ICON":CNVBoolean(True,description="If no UI elements (like this settings window) are open,\nhides the app icon from the dock and excludes from the command-tab switcher."),
 	"USE_MOUSE_WARPING":CNVBoolean(False,description="Move the mouse instantly without emitting mouse movement events.\nCan fix issues with some video games."),
+	"DELAY_BEFORE_PLAYBACK":CNVFloat(0,description="After playback is triggered, wait the specified number of seconds\nbefore actually starting playback.",smin=0,smax=60)
 }
 
 MAX_HOTKEY_LEN = 5
@@ -327,6 +328,9 @@ class Main(QObject):
 				for key,value in conf_data.items():
 					self.conf_data[key]=value
 					self.conf_data[key].description=CN_CONFIGURATION_DEFAULTS[key].description
+					if self.conf_data[key].name in ["int","float"]:
+						conf_data[key].smax=CN_CONFIGURATION_DEFAULTS[key].smax
+						conf_data[key].smin=CN_CONFIGURATION_DEFAULTS[key].smin
 		else:
 			self.conf_data=copy.deepcopy(CN_CONFIGURATION_DEFAULTS)
 			globalconfwizard.pack(os.path.expanduser("~/.neoprisma"),self.conf_data)
@@ -499,9 +503,43 @@ class Main(QObject):
 				tmplayout.setContentsMargins(0, 0, 0, 0)
 				self.settingsw_configbools_layout.addWidget(tmp)
 
+		def add_conf_num(key,value):
+				tmp=QWidget()
+				tmplayout=QHBoxLayout()
+				tmp.setLayout(tmplayout)
+				nice_label = key.strip().replace("_"," ").title()
+				tmp1=QLabel(nice_label,tmp)
+				tmp1.setAlignment(Qt.AlignmentFlag.AlignLeft)
+				tmp2=QDoubleSpinBox()
+				tmp2.setMinimum(0)
+				tmp2.setValue(value.real_value)
+				tmp2.valueChanged.connect(lambda t: self.conf_data[key].set_value(int(t) if self.conf_data[key].name=="int" else float(t)))
+				if self.conf_data[key].name=="int": tmp2.setSingleStep(1)
+				if self.conf_data[key].smin: tmp2.setMinimum(self.conf_data[key].smin)
+				if self.conf_data[key].smax: tmp2.setMaximum(self.conf_data[key].smax)
+				tmplayout.addWidget(tmp1)
+				if self.conf_data[key].description != "":
+					tmp3 = QPushButton("?",tmp)
+					tmp3.setObjectName("info-popup")
+					tmp3.setFixedSize(16, 16)
+					tmp3.setCursor(Qt.CursorShape.PointingHandCursor)
+					def show_info():
+						pos = tmp3.mapToGlobal(QPoint(0, -5))
+						QToolTip.showText(pos, self.conf_data[key].description, tmp3)
+					tmp3.clicked.connect(show_info)
+					tmplayout.addWidget(tmp3,alignment=Qt.AlignmentFlag.AlignLeft)
+
+				tmplayout.addWidget(tmp2,alignment=Qt.AlignmentFlag.AlignRight)
+				tmplayout.setContentsMargins(0, 0, 0, 0)
+				self.settingsw_configbools_layout.addWidget(tmp)
+
 		for key,value in self.conf_data.items():
 			if value.name == "bool":
 				add_conf_bool(key,value)
+		for key,value in self.conf_data.items():
+			if key=="VERSION": continue
+			if value.name in ["int","float"]:
+				add_conf_num(key,value)
 
 		self.settingsw_configbools_layout.setContentsMargins(0, 0, 0, 0)
 		self.settingsw_configbools_layout.setSpacing(1)
@@ -765,6 +803,8 @@ class Main(QObject):
 						self.tray.setIcon(self.icon_static)
 						playback.abortPlayback()
 						self.state_playback = False
+					time.sleep(self.conf_data["DELAY_BEFORE_PLAYBACK"].real_value)
+					if not self.state_playback: return
 					while self.state_playback:
 						try:
 							playback.PlayEventList(self.compiled_arr,self.timestamp_multiplier,self.conf_data["USE_MOUSE_WARPING"].real_value)
