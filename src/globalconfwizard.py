@@ -31,11 +31,12 @@ class CNVType:
 	def from_packed(cls,packed):
 		return cls(cls._unpack(cls,packed))
 
-	def __init__(self,name,real_value,description=""):
-
+	def __init__(self,name,real_value,description="",category="General"):
+		print(category)
 		self.name = name
 		self.real_value = real_value
 		self.description = description
+		self.category = category
 
 	def pack(self):
 		return self._pack()
@@ -55,8 +56,8 @@ class CNVType:
 
 class CNVBoolean(CNVType):
 
-	def __init__(self,value,description=""):
-		super().__init__("bool",value,description)
+	def __init__(self,value,description="",category="General"):
+		super().__init__("bool",value,description,category)
 
 	def _pack(self):
 		assert type(self.real_value)==type(True)
@@ -80,8 +81,8 @@ class CNVString(CNVType):
 	
 class CNVInteger(CNVType):
 
-	def __init__(self,value,smin=None,smax=None,description=""):
-		super().__init__("int",value,description)
+	def __init__(self,value,smin=None,smax=None,description="",category="General"):
+		super().__init__("int",value,description,category)
 		self.smin = smin or None
 		self.smax = smax or None
 		
@@ -92,8 +93,8 @@ class CNVInteger(CNVType):
 	
 class CNVFloat(CNVType):
 
-	def __init__(self,value,smin=None,smax=None,description=""):
-		super().__init__("float",value,description)
+	def __init__(self,value,smin=None,smax=None,description="",category="General"):
+		super().__init__("float",value,description,category)
 		self.smin = smin or None
 		self.smax = smax or None
 

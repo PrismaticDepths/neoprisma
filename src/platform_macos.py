@@ -267,10 +267,11 @@ CN_CONFIGURATION_DEFAULTS = {
 	"KEYBIND_TOGGLE_AUTOCLICK":CNVKeyset(set([59,100])),
 	"KEYBIND_TOGGLE_PLAYBACK":CNVKeyset(set([59,101])),
 	"RELEASE_CHANNEL":CNVString("stable"),
-	"ABORT_PLAYBACK_ON_INPUT":CNVBoolean(False,description="Stops playback immediately upon any\nuser generated (authentic) keyboard input."),
-	"HIDE_APP_ICON":CNVBoolean(True,description="If no UI elements (like this settings window) are open,\nhides the app icon from the dock and excludes from the command-tab switcher."),
-	"USE_MOUSE_WARPING":CNVBoolean(False,description="Move the mouse instantly without emitting mouse movement events.\nCan fix issues with some video games."),
-	"DELAY_BEFORE_PLAYBACK":CNVFloat(0,description="After playback is triggered, wait the specified number of seconds\nbefore actually starting playback.",smin=0,smax=60)
+	"ABORT_PLAYBACK_ON_INPUT":CNVBoolean(False,description="Stops playback immediately upon any\nuser generated (authentic) keyboard input.",category="Playback"),
+	"HIDE_APP_ICON":CNVBoolean(True,description="If no UI elements (like this settings window) are open,\nhides the app icon from the dock and excludes from the command-tab switcher.",category="General"),
+	"USE_MOUSE_WARPING":CNVBoolean(False,description="Move the mouse instantly without emitting mouse movement events.\nCan fix issues with some video games.",category="Playback"),
+	"DELAY_BEFORE_PLAYBACK":CNVFloat(0,description="After playback is triggered, wait the specified number of seconds\nbefore actually starting playback.",smin=0,smax=60,category="Playback"),
+	"COMPENSATE_AUTOCLICKER_DRIFT":CNVBoolean(True,description="Intelligently adjusts autoclicker delay to compensate for drift and overhead added by the OS.\nIncreases CPS, but also raises CPU usage.",category="Autoclicking")
 }
 
 MAX_HOTKEY_LEN = 5
@@ -385,6 +386,7 @@ class Main(QObject):
 				for key,value in conf_data.items(): # If everything goes right, load the configurations
 					self.conf_data[key]=value 
 					self.conf_data[key].description=CN_CONFIGURATION_DEFAULTS[key].description
+					self.conf_data[key].category=CN_CONFIGURATION_DEFAULTS[key].category
 		else: # Generate new configurations if no file is found
 			self.conf_data=copy.deepcopy(CN_CONFIGURATION_DEFAULTS)
 			globalconfwizard.pack(os.path.expanduser("~/.neoprisma"),self.conf_data)
@@ -411,7 +413,7 @@ class Main(QObject):
 		self.tray.setIcon(self.icon_static)
 		self.tray.setVisible(True)
 
-		self.script_ext=ext_scripting_macos.Runner()
+		#self.script_ext=ext_scripting_macos.Runner()
 
 		self.menu = QMenu()
 
@@ -435,9 +437,9 @@ class Main(QObject):
 		self.quitaction.triggered.connect(self.shutdown)
 		self.menu.addAction(self.quitaction)
 
-		self.scrextaction = QAction("Scripts")
-		self.scrextaction.triggered.connect(self.script_ext.mainw.show)
-		self.menu.addAction(self.scrextaction)
+		#self.scrextaction = QAction("Scripts")
+		#self.scrextaction.triggered.connect(self.script_ext.mainw.show)
+		#self.menu.addAction(self.scrextaction)
 
 		self.settingsw = QWidget()
 		
@@ -527,15 +529,6 @@ class Main(QObject):
 		self.settingsw_layout.addWidget(self.settingsw_cpsedit)
 		self.settingsw_layout.addWidget(self.settingsw_speededit)
 
-		self.settingsw_layout.addSpacing(10)
-		self.settingsw_label_cbools = QLabel("App Behaviour",self.settingsw)
-		self.settingsw_label_cbools.setStyleSheet("font-weight: bold; color: white;")
-		self.settingsw_label_cbools.setAlignment(Qt.AlignmentFlag.AlignCenter)
-		self.settingsw_layout.addWidget(self.settingsw_label_cbools)
-		self.settingsw_layout.addSpacing(10)
-
-		self.settingsw_configbools_layout = QVBoxLayout()
-
 		def add_conf_bool(key,value):
 				tmp=QWidget()
 				tmplayout=QHBoxLayout()
@@ -560,7 +553,7 @@ class Main(QObject):
 
 				tmplayout.addWidget(tmp2,alignment=Qt.AlignmentFlag.AlignRight)
 				tmplayout.setContentsMargins(0, 0, 0, 0)
-				self.settingsw_configbools_layout.addWidget(tmp)
+				return tmp
 
 		def add_conf_num(key,value):
 				tmp=QWidget()
@@ -590,19 +583,41 @@ class Main(QObject):
 
 				tmplayout.addWidget(tmp2,alignment=Qt.AlignmentFlag.AlignRight)
 				tmplayout.setContentsMargins(0, 0, 0, 0)
-				self.settingsw_configbools_layout.addWidget(tmp)
+				return tmp
+		
+		headers = set()
+		headers_dictionary = {}
 
 		for key,value in self.conf_data.items():
-			if value.name == "bool":
-				add_conf_bool(key,value)
-		for key,value in self.conf_data.items():
-			if key=="VERSION": continue
-			if value.name in ["int","float"]:
-				add_conf_num(key,value)
+			if value.name == "keyset": continue
+			headers.add(value.category)
+			if value.category not in headers_dictionary.keys():
+				headers_dictionary[value.category] = []
+			headers_dictionary[value.category].append(key)
+		
+		def add_header(cat):
+			self.settingsw_layout.addSpacing(10)
+			cat_label = QLabel(cat,self.settingsw)
+			cat_label.setStyleSheet("font-weight: bold; color: white;")
+			cat_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+			self.settingsw_layout.addWidget(cat_label)
+			self.settingsw_layout.addSpacing(10)
 
-		self.settingsw_configbools_layout.setContentsMargins(0, 0, 0, 0)
-		self.settingsw_configbools_layout.setSpacing(1)
-		self.settingsw_layout.addLayout(self.settingsw_configbools_layout)
+			cat_layout = QVBoxLayout()
+			cat_layout.setContentsMargins(0, 0, 0, 0)
+			cat_layout.setSpacing(1)
+			return cat_layout
+		
+		for cat in headers:
+			cat_layout = add_header(cat)
+			for key in headers_dictionary[cat]:
+				value = self.conf_data[key]
+				if key=="VERSION": continue
+				if value.name == "bool":
+					cat_layout.addWidget(add_conf_bool(key,value))
+				if value.name in ["int","float"]:
+					cat_layout.addWidget(add_conf_num(key,value))
+			self.settingsw_layout.addLayout(cat_layout)
 
 
 		self.settingsw_layout.setSpacing(4)
@@ -892,18 +907,40 @@ class Main(QObject):
 			else:
 				self.tray.setIcon(self.icon_auto)
 				self.state_autoclicker = True
-				self.auto_thread = Thread(target=self._INNER_toggle_autoclicker)
+				self.auto_thread = Thread(target=self._INNER_toggle_autoclicker_intelligent if self.conf_data["COMPENSATE_AUTOCLICKER_DRIFT"].real_value else self._INNER_toggle_autoclicker_simple )
 				self.auto_thread.start()
 				
 		except Exception:
 			self.error_emitter.error.emit(traceback.format_exc())
 			
-	def _INNER_toggle_autoclicker(self):
+	def _INNER_toggle_autoclicker_simple(self):
 		while self.state_autoclicker:
 			playback.mouseButtonStatus(1,True)
 			time.sleep(0)
 			playback.mouseButtonStatus(1,False)
 			time.sleep(self.cps)
+	def _INNER_toggle_autoclicker_intelligent(self):
+		
+		added_delay = 0
+		total = 0
+		counter = 0
+		multiplier=1
+		t=time.time()
+		while self.state_autoclicker:
+			counter+=1
+			last_timestamp = time.time()
+			playback.mouseButtonStatus(1,True)
+			time.sleep(0)
+			playback.mouseButtonStatus(1,False)
+			time.sleep(max(0,(self.cps)*multiplier))
+			t=time.time()
+			total+=(t-last_timestamp)
+			#added_delay = min(0,(self.cps*multiplier)-(t-last_timestamp))
+			if total/counter > self.cps: 
+				multiplier-=0.001
+			elif total/counter < self.cps:
+				multiplier+=0.001
+			#print("New added delay:",added_delay,"Resulting delay:",self.cps+added_delay,"Average actual delay:",total/counter,"mult:",multiplier)
 
 	def load(self):
 
