@@ -938,7 +938,7 @@ class Main(QObject):
 			#added_delay = min(0,(self.cps*multiplier)-(t-last_timestamp))
 			if total/counter > self.cps: 
 				multiplier-=0.001
-			elif total/counter < self.cps:
+			elif (total/counter)+0.001 < self.cps:
 				multiplier+=0.001
 			#print("New added delay:",added_delay,"Resulting delay:",self.cps+added_delay,"Average actual delay:",total/counter,"mult:",multiplier)
 
