@@ -25,7 +25,7 @@ jobs:
 
       - name: Build
         run: |
-          curl -fsSL https://raw.githubusercontent.com/PrismaticDepths/neoprisma/stable/install.sh | $SHELL -s -- -y -s -i "${{ github.workspace }}/npadist" -b "${{ github.workspace }}/npabuild"
+          curl -fsSL https://raw.githubusercontent.com/PrismaticDepths/neoprisma/stable/install.sh | $SHELL -s -- -y YES -s YES -i "${{ github.workspace }}/npadist" -b "${{ github.workspace }}/npabuild"
       
       - name: Tar app bundle
         run: |

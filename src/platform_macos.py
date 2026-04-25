@@ -32,15 +32,81 @@ import objc, CoreFoundation
 objc.registerCFSignature("CFStringRef", b"^{__CFString=}", CoreFoundation.CFStringGetTypeID(), "NSString")
 
 
+try:
+	import version
+except Exception:
+	__version__ = "0.0.0"
+else:
+	__version__ = version.__version__
+
+def crash(headline="Neoprisma encountered an error and has to crash.",detail="No short details available.",error_msg="",exit_code=1):
+	from PyQt6.QtWidgets import (
+		QApplication,
+		QMessageBox
+	)
+	import os,sys,traceback
+	app = QApplication.instance()
+	if app is None: app = QApplication(sys.argv)
+	box = QMessageBox()
+	box.setIcon(QMessageBox.Icon.Critical)
+	box.setText(headline)
+	box.setInformativeText(f"Please report this issue to the developers!\n\nYou can press \"Show Details...\" to see the full crash report. Include the entire crash log if you file a bug report.\nPressing \"Abort\" or closing the crash dialog will terminate this process.")
+	box.setDetailedText(f"""--- Crash Summary ---
+Report generated in file: `{__name__}`
+Crash headline: {headline}
+Shorthand crash detail: {detail}
+Neoprisma version: {__version__}
+Exit code: {exit_code}
+--- Traceback ---
+{error_msg if error_msg != "" else traceback.format_exc()}""")
+	box.addButton(QMessageBox.StandardButton.Abort)
+	box.setStyleSheet("""QWidget {
+		background-color: #303030;
+		color: #DEDEDE;
+		font-size: 13px;
+	}
+
+	QPushButton {
+		background-color: #535353;
+		border: 0px solid #000000;
+		border-radius: 6px;
+		padding: 4px 8px;
+		color: #E0E0E0;
+	}
+
+	QPushButton:hover {
+		background-color: #404046;
+		border: 1px solid #444444;
+		color: #FFFFFF;
+	}
+	QLineEdit, QTextEdit, QPlainTextEdit {
+		background-color: #1A1A1A;
+		font-family: 'Courier New', monospace;
+		font-size: 10pt;
+		border: 1px solid #2A2A2A;
+		border-radius: 1px;
+		text-align: left;
+		padding: 5px;
+		color: #FFFFFF;
+	}""")
+	box.setWindowTitle("Neoprisma Crash Info")
+	print(error_msg if error_msg != "" else traceback.format_exc())
+	box.exec()
+	sys.exit(exit_code)
+def exception_hook(exctype, value, tb):
+	import traceback
+	error_msg = "".join(traceback.format_exception(exctype, value, tb))
+	crash(error_msg=error_msg)
+sys.excepthook = exception_hook
+
 import pynput
 import requests
 import copy
 import traceback
 import time
-import sys
 from threading import Thread
 from PyQt6.QtGui import QAction,QIcon
-from PyQt6.QtCore import QObject,pyqtSignal, QTimer, Qt, QEvent
+from PyQt6.QtCore import QObject,pyqtSignal, QTimer, Qt, QEvent,QPoint
 from PyQt6.QtWidgets import (
 	QApplication,
 	QSystemTrayIcon,
@@ -60,27 +126,23 @@ from PyQt6.QtWidgets import (
 	QHBoxLayout,
 	QMenuBar,
 	QSizePolicy,
-	QScrollArea
+	QScrollArea,
+	QToolTip
 )
+
+
 
 from resources import resource_path
 try:
 	import playback
 	import recorder
 	import globalconfwizard
-	from globalconfwizard import CNVKeyset,CNVString,CNVType,CNVBoolean,CNVInteger
+	# Extensions
+	#import ext_scripting_macos
+	#import ext_editor_macos
+	from globalconfwizard import CNVKeyset,CNVString,CNVType,CNVBoolean,CNVInteger,CNVFloat
 except Exception:
-	tmp=QApplication(sys.argv)
-	print(traceback.format_exc(300))
-	QMessageBox.critical(None,"Failed to start Neoprisma!","Please report this issue to the developers! Fatal error while importing a project component: "+traceback.format_exc(300), QMessageBox.StandardButton.Abort)
-	sys.exit(70)
-
-try:
-	import version
-except Exception:
-	__version__ = "0.0.0"
-else:
-	__version__ = version.__version__
+	crash("Failed to start Neoprisma!","Fatal error while importing components of the app in seperate Python modules/files.",exit_code=70)
 
 MASTER_STYLESHEET = """
 	QWidget {
@@ -153,11 +215,39 @@ MASTER_STYLESHEET = """
 	QScrollBar::handle:vertical:hover {
 		background: #444444;
 	}
+	QScrollBar:horizontal {
+		border: none;
+		background: #121212;
+		width: 8px;
+	}
+
+	QScrollBar::handle:horizontal {
+		background: #333333;
+		min-height: 20px;
+		border-radius: 4px;
+	}
+
+	QScrollBar::handle:horizontal:hover {
+		background: #444444;
+	}
 
 	QLabel#heading {
 		color: #FFFFFF;
 		font-weight: bold;
 		font-size: 16px;
+	}
+	QPushButton#info-popup {
+		border-radius: 8px;
+		background-color: #535353;
+		border: 1px solid #000000;
+		width: 16px;
+   		height: 16px;
+		margin: 0;
+        padding: 0;
+	}
+	QPushButton:pressed#info-popup {
+	}
+	QPushButton:hover#info-popup {
 	}
 """
 
@@ -177,8 +267,11 @@ CN_CONFIGURATION_DEFAULTS = {
 	"KEYBIND_TOGGLE_AUTOCLICK":CNVKeyset(set([59,100])),
 	"KEYBIND_TOGGLE_PLAYBACK":CNVKeyset(set([59,101])),
 	"RELEASE_CHANNEL":CNVString("stable"),
-	"ABORT_PLAYBACK_ON_INPUT":CNVBoolean(False),
-	"HIDE_APP_ICON":CNVBoolean(True),
+	"ABORT_PLAYBACK_ON_INPUT":CNVBoolean(False,description="Stops playback immediately upon any\nuser generated (authentic) keyboard input.",category="Playback"),
+	"HIDE_APP_ICON":CNVBoolean(True,description="If no UI elements (like this settings window) are open,\nhides the app icon from the dock and excludes from the command-tab switcher.",category="General"),
+	"USE_MOUSE_WARPING":CNVBoolean(False,description="Move the mouse instantly without emitting mouse movement events.\nCan fix issues with some video games.",category="Playback"),
+	"DELAY_BEFORE_PLAYBACK":CNVFloat(0,description="After playback is triggered, wait the specified number of seconds\nbefore actually starting playback.",smin=0,smax=60,category="Playback"),
+	"COMPENSATE_AUTOCLICKER_DRIFT":CNVBoolean(True,description="Intelligently adjusts autoclicker delay to compensate for drift and overhead added by the OS.\nIncreases CPS, but also raises CPU usage.",category="Autoclicking")
 }
 
 MAX_HOTKEY_LEN = 5
@@ -258,7 +351,7 @@ class Main(QObject):
 		self.hotkey_record_buffer = set()
 		self.hotkey_lookup = {}
 		self.hotkey_edit_label = ""
-		self.cps = 1/100
+		self.cps = (1/100)
 		self.keysdown = set()
 		self.hotkeys = {
 			"KEYBIND_TOGGLE_RECORD": set(),
@@ -268,8 +361,8 @@ class Main(QObject):
 		self.conf_data=copy.deepcopy(CN_CONFIGURATION_DEFAULTS)
 		if os.path.exists(os.path.expanduser("~/.neoprisma")):
 			try:
-				conf_data=globalconfwizard.unpack(os.path.expanduser("~/.neoprisma"))
-			except RuntimeError as e:
+				conf_data=globalconfwizard.unpack(os.path.expanduser("~/.neoprisma")) # Try unpacking the config
+			except RuntimeError as e: # Handle cases where the file might be outdated and need migration
 				if str(e).strip().startswith("NO_VERSION"):
 
 					conf_data=copy.deepcopy(CN_CONFIGURATION_DEFAULTS) # Since we don't have the real unpacked version, grab the default values
@@ -285,18 +378,16 @@ class Main(QObject):
 					globalconfwizard.pack(os.path.expanduser("~/.neoprisma"),self.conf_data) # Write the migrated configuration file
 
 				elif str(e).strip().startswith("LOW_VERSION"):
-					pass # migrate to updated version
-
-				else:
-					QMessageBox.warning(None,"Error","Your configuration files appear to be corrupted; please delete hidden file '~/.neoprisma' to reset configurations. Neoprisma will now crash.")
-					raise
-			except Exception as e:
-				QMessageBox.warning(None,"Error","Your configuration files appear to be corrupted; please delete hidden file '~/.neoprisma' to reset configurations. Neoprisma will now crash.")
-				raise
-			else:
-				for key,value in conf_data.items():
-					self.conf_data[key]=value
-		else:
+					pass # migrate to updated version, if there were a new one now
+			except Exception as e: # Handle exceptions not intentionally raised
+				QMessageBox.warning(None,"Error","Your configuration file appears to be corrupted; please delete hidden file '~/.neoprisma' to reset configurations. Neoprisma will now crash.")
+				raise # Exit "gracefully" and show crash details
+			else: # part of the try catch logic, not an if-then-else statement
+				for key,value in conf_data.items(): # If everything goes right, load the configurations
+					self.conf_data[key]=value 
+					self.conf_data[key].description=CN_CONFIGURATION_DEFAULTS[key].description
+					self.conf_data[key].category=CN_CONFIGURATION_DEFAULTS[key].category
+		else: # Generate new configurations if no file is found
 			self.conf_data=copy.deepcopy(CN_CONFIGURATION_DEFAULTS)
 			globalconfwizard.pack(os.path.expanduser("~/.neoprisma"),self.conf_data)
 
@@ -322,6 +413,8 @@ class Main(QObject):
 		self.tray.setIcon(self.icon_static)
 		self.tray.setVisible(True)
 
+		#self.script_ext=ext_scripting_macos.Runner()
+
 		self.menu = QMenu()
 
 		self.toggle_rec_widget = QAction("Toggle Recording")
@@ -343,6 +436,10 @@ class Main(QObject):
 		self.quitaction = QAction("Quit")
 		self.quitaction.triggered.connect(self.shutdown)
 		self.menu.addAction(self.quitaction)
+
+		#self.scrextaction = QAction("Scripts")
+		#self.scrextaction.triggered.connect(self.script_ext.mainw.show)
+		#self.menu.addAction(self.scrextaction)
 
 		self.settingsw = QWidget()
 		
@@ -386,6 +483,9 @@ class Main(QObject):
 		self.settingsw_hk_auto_disp.setAlignment(Qt.AlignmentFlag.AlignRight)
 		self.settingsw_hk_auto_layout.addWidget(self.settingsw_hk_auto)
 		self.settingsw_hk_auto_layout.addWidget(self.settingsw_hk_auto_disp)
+		self.settingsw_hk_rec.setCursor(Qt.CursorShape.PointingHandCursor)
+		self.settingsw_hk_play.setCursor(Qt.CursorShape.PointingHandCursor)
+		self.settingsw_hk_auto.setCursor(Qt.CursorShape.PointingHandCursor)
 		self.settingsw_hk_rec.clicked.connect(lambda: self.set_hk("KEYBIND_TOGGLE_RECORD"))
 		self.settingsw_hk_play.clicked.connect(lambda: self.set_hk("KEYBIND_TOGGLE_PLAYBACK"))
 		self.settingsw_hk_auto.clicked.connect(lambda: self.set_hk("KEYBIND_TOGGLE_AUTOCLICK"))
@@ -429,16 +529,6 @@ class Main(QObject):
 		self.settingsw_layout.addWidget(self.settingsw_cpsedit)
 		self.settingsw_layout.addWidget(self.settingsw_speededit)
 
-		self.settingsw_layout.addSpacing(10)
-		self.settingsw_label_cbools = QLabel("App Behaviour",self.settingsw)
-		self.settingsw_label_cbools.setStyleSheet("font-weight: bold; color: white;")
-		self.settingsw_label_cbools.setAlignment(Qt.AlignmentFlag.AlignCenter)
-		self.settingsw_layout.addWidget(self.settingsw_label_cbools)
-		self.settingsw_layout.addSpacing(10)
-		
-
-		self.settingsw_configbools_layout = QVBoxLayout()
-
 		def add_conf_bool(key,value):
 				tmp=QWidget()
 				tmplayout=QHBoxLayout()
@@ -450,17 +540,84 @@ class Main(QObject):
 				tmp2.setChecked(value.real_value)
 				tmp2.checkStateChanged.connect(lambda t: self.conf_data[key].set_value(False if t==Qt.CheckState.Unchecked else True))
 				tmplayout.addWidget(tmp1)
+				if self.conf_data[key].description != "":
+					tmp3 = QPushButton("?",tmp)
+					tmp3.setObjectName("info-popup")
+					tmp3.setFixedSize(16, 16)
+					tmp3.setCursor(Qt.CursorShape.PointingHandCursor)
+					def show_info():
+						pos = tmp3.mapToGlobal(QPoint(0, -5))
+						QToolTip.showText(pos, self.conf_data[key].description, tmp3)
+					tmp3.clicked.connect(show_info)
+					tmplayout.addWidget(tmp3,alignment=Qt.AlignmentFlag.AlignLeft)
+
 				tmplayout.addWidget(tmp2,alignment=Qt.AlignmentFlag.AlignRight)
 				tmplayout.setContentsMargins(0, 0, 0, 0)
-				self.settingsw_configbools_layout.addWidget(tmp)
+				return tmp
+
+		def add_conf_num(key,value):
+				tmp=QWidget()
+				tmplayout=QHBoxLayout()
+				tmp.setLayout(tmplayout)
+				nice_label = key.strip().replace("_"," ").title()
+				tmp1=QLabel(nice_label,tmp)
+				tmp1.setAlignment(Qt.AlignmentFlag.AlignLeft)
+				tmp2=QDoubleSpinBox()
+				tmp2.setMinimum(0)
+				tmp2.setValue(value.real_value)
+				tmp2.valueChanged.connect(lambda t: self.conf_data[key].set_value(int(t) if self.conf_data[key].name=="int" else float(t)))
+				if self.conf_data[key].name=="int": tmp2.setSingleStep(1)
+				if self.conf_data[key].smin: tmp2.setMinimum(self.conf_data[key].smin)
+				if self.conf_data[key].smax: tmp2.setMaximum(self.conf_data[key].smax)
+				tmplayout.addWidget(tmp1)
+				if self.conf_data[key].description != "":
+					tmp3 = QPushButton("?",tmp)
+					tmp3.setObjectName("info-popup")
+					tmp3.setFixedSize(16, 16)
+					tmp3.setCursor(Qt.CursorShape.PointingHandCursor)
+					def show_info():
+						pos = tmp3.mapToGlobal(QPoint(0, -5))
+						QToolTip.showText(pos, self.conf_data[key].description, tmp3)
+					tmp3.clicked.connect(show_info)
+					tmplayout.addWidget(tmp3,alignment=Qt.AlignmentFlag.AlignLeft)
+
+				tmplayout.addWidget(tmp2,alignment=Qt.AlignmentFlag.AlignRight)
+				tmplayout.setContentsMargins(0, 0, 0, 0)
+				return tmp
+		
+		headers = set()
+		headers_dictionary = {}
 
 		for key,value in self.conf_data.items():
-			if value.name == "bool":
-				add_conf_bool(key,value)
+			if value.name == "keyset": continue
+			headers.add(value.category)
+			if value.category not in headers_dictionary.keys():
+				headers_dictionary[value.category] = []
+			headers_dictionary[value.category].append(key)
+		
+		def add_header(cat):
+			self.settingsw_layout.addSpacing(10)
+			cat_label = QLabel(cat,self.settingsw)
+			cat_label.setStyleSheet("font-weight: bold; color: white;")
+			cat_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+			self.settingsw_layout.addWidget(cat_label)
+			self.settingsw_layout.addSpacing(10)
 
-		self.settingsw_configbools_layout.setContentsMargins(0, 0, 0, 0)
-		self.settingsw_configbools_layout.setSpacing(1)
-		self.settingsw_layout.addLayout(self.settingsw_configbools_layout)
+			cat_layout = QVBoxLayout()
+			cat_layout.setContentsMargins(0, 0, 0, 0)
+			cat_layout.setSpacing(1)
+			return cat_layout
+		
+		for cat in headers:
+			cat_layout = add_header(cat)
+			for key in headers_dictionary[cat]:
+				value = self.conf_data[key]
+				if key=="VERSION": continue
+				if value.name == "bool":
+					cat_layout.addWidget(add_conf_bool(key,value))
+				if value.name in ["int","float"]:
+					cat_layout.addWidget(add_conf_num(key,value))
+			self.settingsw_layout.addLayout(cat_layout)
 
 
 		self.settingsw_layout.setSpacing(4)
@@ -469,6 +626,7 @@ class Main(QObject):
 		self.settingsw_layout.addSpacing(15)
 
 		self.settingsw_save = QPushButton("Save configurations",self.settingsw)
+		self.settingsw_save.setCursor(Qt.CursorShape.PointingHandCursor)
 		self.settingsw_save.clicked.connect(self.save_configurations)
 		self.settingsw_layout.addWidget(self.settingsw_save)
 
@@ -493,6 +651,8 @@ class Main(QObject):
 	def shutdown(self):
 		self.run_workers = False
 		self.app.quit()
+
+
 
 	def rebuild_hotkey_lookup(self):
 		self.hotkey_lookup.clear()
@@ -522,6 +682,8 @@ class Main(QObject):
 		winl.addWidget(header_label)
 		winl.addWidget(version_label)
 		winl.addWidget(footer_label)
+		dismiss_button.setCursor(Qt.CursorShape.PointingHandCursor)
+		update_button.setCursor(Qt.CursorShape.PointingHandCursor)
 		footl.addWidget(update_button)
 		footl.addWidget(dismiss_button)
 		winl.addLayout(footl)
@@ -571,7 +733,7 @@ class Main(QObject):
 
 	def upd_cps(self,x):
 		if x == 0: return
-		self.cps = 1/x
+		self.cps = (1/x)
 
 	def save_configurations(self):
 		globalconfwizard.pack(os.path.expanduser("~/.neoprisma"),self.conf_data)
@@ -652,11 +814,12 @@ class Main(QObject):
 		self.keysdown.discard(vk)
 
 	def init_recorder_and_simulator(self):
-			try:
-				self.recorder=recorder.OneShotRecorder()
-				self.m_simulator = pynput.mouse.Controller()
-			except Exception:
-				self.error_emitter.error.emit("Could not initialize recorder.OneShotRecorder or pynput.mouse.Controller: "+traceback.format_exc())
+		try:
+			self.recorder=recorder.OneShotRecorder()
+			self.m_simulator = pynput.mouse.Controller()
+		except Exception:
+			self.anyw_open()
+			crash(headline="An error occured while initializing recording/playback infastructure.",detail="Could not initialize recorder.OneShotRecorder or pynput.mouse.Controller.")
 
 	def start_hotkeys(self):
 		try:
@@ -667,9 +830,11 @@ class Main(QObject):
 				on_release=self.listener_hotkeysv2_handlekeyrelease,
 				suppress=False,
 			)
+			
 			self.h.start()
 		except Exception:
-			self.error_emitter.error.emit("Could not start the hotkey listener: "+traceback.format_exc())
+			self.anyw_open()
+			crash(headline="An error occured while initializing recording/playback infastructure.",detail="Could not start the hotkey listener.")
 
 	def toggle_recording(self):
 		try:
@@ -716,9 +881,12 @@ class Main(QObject):
 						self.tray.setIcon(self.icon_static)
 						playback.abortPlayback()
 						self.state_playback = False
+					time.sleep(self.conf_data["DELAY_BEFORE_PLAYBACK"].real_value)
+					if not self.state_playback: return
 					while self.state_playback:
 						try:
-							playback.PlayEventList(self.compiled_arr,self.timestamp_multiplier)
+							print(self.compiled_arr)
+							playback.PlayEventList(self.compiled_arr,self.timestamp_multiplier,self.conf_data["USE_MOUSE_WARPING"].real_value)
 						except Exception as e:
 							self.error_emitter.error.emit(traceback.format_exc())
 							self.tray.setIcon(self.icon_static)
@@ -739,19 +907,40 @@ class Main(QObject):
 			else:
 				self.tray.setIcon(self.icon_auto)
 				self.state_autoclicker = True
-				self.auto_thread = Thread(target=self._INNER_toggle_autoclicker)
+				self.auto_thread = Thread(target=self._INNER_toggle_autoclicker_intelligent if self.conf_data["COMPENSATE_AUTOCLICKER_DRIFT"].real_value else self._INNER_toggle_autoclicker_simple )
 				self.auto_thread.start()
 				
 		except Exception:
 			self.error_emitter.error.emit(traceback.format_exc())
 			
-	def _INNER_toggle_autoclicker(self):
+	def _INNER_toggle_autoclicker_simple(self):
 		while self.state_autoclicker:
-			playback.mouseButtonStatus(1,int(self.m_simulator.position[0]),int(self.m_simulator.position[1]),True)
+			playback.mouseButtonStatus(1,True)
+			time.sleep(0)
+			playback.mouseButtonStatus(1,False)
 			time.sleep(self.cps)
-			playback.mouseButtonStatus(1,int(self.m_simulator.position[0]),int(self.m_simulator.position[1]),False)
-			if not self.state_autoclicker: break
-			time.sleep(self.cps)
+	def _INNER_toggle_autoclicker_intelligent(self):
+		
+		added_delay = 0
+		total = 0
+		counter = 0
+		multiplier=1
+		t=time.time()
+		while self.state_autoclicker:
+			counter+=1
+			last_timestamp = time.time()
+			playback.mouseButtonStatus(1,True)
+			time.sleep(0)
+			playback.mouseButtonStatus(1,False)
+			time.sleep(max(0,(self.cps)*multiplier))
+			t=time.time()
+			total+=(t-last_timestamp)
+			#added_delay = min(0,(self.cps*multiplier)-(t-last_timestamp))
+			if total/counter > self.cps: 
+				multiplier-=0.001
+			elif (total/counter)+0.001 < self.cps:
+				multiplier+=0.001
+			#print("New added delay:",added_delay,"Resulting delay:",self.cps+added_delay,"Average actual delay:",total/counter,"mult:",multiplier)
 
 	def load(self):
 
@@ -785,8 +974,5 @@ class Main(QObject):
 try:
 	m = Main()
 except Exception:
-	if QApplication.instance() is None: tmp=QApplication(sys.argv)
-	print(traceback.format_exc(300))
-	QMessageBox.critical(None,"Failed to start Neoprisma!","Please report this issue to the developers! Uncaught exception in class initialization: "+traceback.format_exc(300), QMessageBox.StandardButton.Abort)
-	sys.exit(70)
+	crash(headline="Failed to start Neoprisma!",detail="Uncaught exception in `Main` class initialization.",exit_code=70)
 sys.exit(m.app.exec())

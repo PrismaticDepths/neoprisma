@@ -173,7 +173,7 @@ std::pair<std::vector<EventPacket>, std::string> CompileEventArray(const std::ve
 	return {eventList,""};
 }
 
-void PlayEventList(const std::vector<EventPacket>& eventList, double speed) {
+void PlayEventList(const std::vector<EventPacket>& eventList, double speed, bool warp) {
 	py::gil_scoped_release release;
 	 if (eventList.empty()) return;
 
@@ -202,7 +202,7 @@ void PlayEventList(const std::vector<EventPacket>& eventList, double speed) {
 				keyStatus(e.payload.front(),false);
 				break;
 			case Events::MOUSE_MOVE_ABSOLUTE:
-				moveMouseAbsolute(e.payload.at(0),e.payload.at(1));
+				warp ? warpMouseAbsolute(e.payload.at(0),e.payload.at(1)) : moveMouseAbsolute(e.payload.at(0),e.payload.at(1));
 				break;
 			case Events::MOUSE_DOWN:
 				mouseButtonStatus(e.payload.at(0),e.payload.at(1),e.payload.at(2),true);
@@ -226,7 +226,7 @@ void CompileAndPlay(std::vector<uint8_t>& e_bytearray) {
 	
 
 	auto l = CompileEventArray(e_bytearray);
-	PlayEventList(l.first,1);
+	PlayEventList(l.first,1,false);
 }
 
 PYBIND11_MODULE(playback, m) {
@@ -236,7 +236,9 @@ PYBIND11_MODULE(playback, m) {
 	m.def("abortPlayback", &abortPlayback, "Sets flag n_abort to True, causing a running recording to stop after the current event finishes.");
 	m.def("resetAbortPlayback", &resetAbortPlayback, "Sets flag n_abort to False. Allows you to play recordings again.");
 	m.def("getAbortStatus", &getAbortStatus, "Returns the value of flag n_abort.");
-	m.def("mouseButtonStatus",&mouseButtonStatus, "Simulates a mouse click.");
+	m.def("keyStatus", &keyStatus, "Press or release a key using its keycode")
+	m.def("mouseButtonStatus", py::overload_cast<uint16_t, uint16_t, uint16_t, bool>(&mouseButtonStatus),"Simulates a mouse click at specific coordinates.",py::arg("button"), py::arg("x"), py::arg("y"), py::arg("status"));
+    m.def("mouseButtonStatus", py::overload_cast<uint16_t, bool>(&mouseButtonStatus),"Simulates a mouse click at the current position.",py::arg("button"), py::arg("status"));
 	py::class_<EventPacket>(m, "EventPacket")
         .def(py::init<>()) // Expose the default constructor to allow creation in Python
         .def_readwrite("timestamp", &EventPacket::timestamp)

@@ -156,3 +156,7 @@ class OneShotRecorder:
 
 	def stop(self):
 		self.running = False
+		t=time.perf_counter_ns()-self.starting_time
+		for k in self.keysdown:
+			self.log_event(t,Events.KEY_UP,k)
+		

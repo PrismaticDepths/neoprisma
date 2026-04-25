@@ -16,7 +16,6 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>
 """
 
 import os, sys
-
 if getattr(sys, "frozen", False):
 	BASE = sys._MEIPASS
 else:
@@ -32,10 +31,12 @@ class CNVType:
 	def from_packed(cls,packed):
 		return cls(cls._unpack(cls,packed))
 
-	def __init__(self,name,real_value):
-
+	def __init__(self,name,real_value,description="",category="General"):
+		print(category)
 		self.name = name
 		self.real_value = real_value
+		self.description = description
+		self.category = category
 
 	def pack(self):
 		return self._pack()
@@ -55,8 +56,8 @@ class CNVType:
 
 class CNVBoolean(CNVType):
 
-	def __init__(self,value):
-		super().__init__("bool",value)
+	def __init__(self,value,description="",category="General"):
+		super().__init__("bool",value,description,category)
 
 	def _pack(self):
 		assert type(self.real_value)==type(True)
@@ -70,8 +71,8 @@ class CNVBoolean(CNVType):
 	
 class CNVString(CNVType):
 
-	def __init__(self,value):
-		super().__init__("string",value)
+	def __init__(self,value,**kwargs):
+		super().__init__("string",value,**kwargs)
 
 	def _pack(self):
 		return str(self.real_value)
@@ -80,18 +81,32 @@ class CNVString(CNVType):
 	
 class CNVInteger(CNVType):
 
-	def __init__(self,value,smin=None,smax=None):
-		super().__init__("int",value)
-
+	def __init__(self,value,smin=None,smax=None,description="",category="General"):
+		super().__init__("int",value,description,category)
+		self.smin = smin or None
+		self.smax = smax or None
+		
 	def _pack(self):
 		return str(self.real_value)
 	def _unpack(self,value):
 		return int(str(value).strip())
 	
+class CNVFloat(CNVType):
+
+	def __init__(self,value,smin=None,smax=None,description="",category="General"):
+		super().__init__("float",value,description,category)
+		self.smin = smin or None
+		self.smax = smax or None
+
+	def _pack(self):
+		return str(self.real_value)
+	def _unpack(self,value):
+		return float(str(value).strip())
+	
 class CNVKeyset(CNVType):
 
-	def __init__(self,value):
-		super().__init__("keyset",value)
+	def __init__(self,value,**kwargs):
+		super().__init__("keyset",value,**kwargs)
 
 	def _pack(self):
 		return " ".join([str(v) for v in self.real_value])
@@ -104,7 +119,16 @@ NAME_TO_TYPE = {
 	"string":CNVString,
 	"keyset":CNVKeyset,
 	"int":CNVInteger,
+	"float":CNVFloat,
 }
+
+FMT = [
+	"type",
+	"name",
+	"value"
+]
+
+SEP = "&"
 
 def unpack(fpath):
 		
@@ -112,13 +136,14 @@ def unpack(fpath):
 		data = {}
 			
 		for line in cfile.readlines():
-			tmp = line.split("&",2)
+			tmp = line.split(SEP,len(FMT)-1)
 			typ = tmp[0].strip().lower()
 			try:
 				key = tmp[1].strip().upper()
 			except IndexError:
-				raise RuntimeError("NO_VERSION / Could not unpack configuration file: Possibly corrupted or invalid file, presumably an old version.")
-			val=tmp[2]
+				if "%" in line: raise RuntimeError("NO_VERSION / Could not unpack configuration file: Possibly corrupted or invalid file, presumably an old version.") # Older configs will use key%value, so the sep is different and it is not typed. It needs to be migrated.
+				else: raise
+			val=tmp[2] # This will error if the file doesn't follow the updated format  
 			data[key] = NAME_TO_TYPE[typ].from_packed(val)
 			
 

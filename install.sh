@@ -61,21 +61,27 @@ while getopts ":b:i:r:y:s:" opt; do
 			echo "Using BRANCH $OPTARG"
 			BRANCH="$OPTARG"
 			;;
-		y)  echo "(NOTICE) Running in NON-INTERACTIVE mode: All prompts will be automatically accepted"
-			INTERACTIVE=0
+		y)  if [ "$OPTARG" != "NO"]; then
+				echo "(NOTICE) Running in NON-INTERACTIVE mode: All prompts will be automatically accepted"
+				INTERACTIVE=0
+			fi
 			;;
-		s)  echo "Building from source"
-			FROM_SOURCE=1
-			WELCOME_MESSAGE="build/compile Neoprisma locally and install it. Python >= 3.10 is recommended"
+		s)  if [ "$OPTARG" != "NO"]; then
+				echo "Building from source"
+				FROM_SOURCE=1
+				WELCOME_MESSAGE="build/compile Neoprisma locally and install it. Python >= 3.10 is recommended"
+			fi
 			;;
 		\?)
-			echo "Invalid option. Usage:
-curl -fsSL https://raw.githubusercontent.com/PrismaticDepths/neoprisma/stable/install.sh | $SHELL -s -- [-r BRANCH] [-b BUILD_DIR] [-i INSTALL_DIR] [-s] [-y]" >&2
+			echo "Invalid option. (Note-All options are... optional.) Usage:
+curl -fsSL https://raw.githubusercontent.com/PrismaticDepths/neoprisma/stable/install.sh | $SHELL -s -- [-r BRANCH] [-b BUILD_DIR] [-i INSTALL_DIR] [-s YES/NO] [-y YES/NO]" >&2
 			exit 1
 			;;
-		:)
-			echo "Option -$OPTARG requires an argument" >&2
-			exit 1
+		:)	
+			if [[ "$OPTARG"!="s" ]]; then
+				echo "Option -$OPTARG requires an argument" >&2
+				exit 1
+			fi
 			;;
 	esac
 done
@@ -220,6 +226,14 @@ if [ "$FROM_SOURCE" -eq 0 ]; then
 		run_step "Moving app to $INSTALL_DIR" mv "$EXTRACTED_APP" "$INSTALL_DIR/$APP_NAME.app"
 		run_step "Generating entitlements.plist" generate_entitlements
 		run_step "Signing app" codesign --force --deep --sign - --options runtime  --entitlements "$ENTITLEMENTS" "$INSTALL_DIR/$APP_NAME.app" 
+		echo "Cleaning up... "
+		if [ -d "$BUILD_DIR" ]; then
+			if [[ -n "$BUILD_DIR" ]] && [[ "$BUILD_DIR" != "$HOME" ]] && [[ "$BUILD_DIR" != "/" ]]; then
+				rm -rf "$BUILD_DIR"
+			else
+				die "BUILD_DIR is empty or home. Cannot clean. The app has still been installed."
+			fi
+		fi
 		echo -e "\033[32mInstallation complete! Neoprisma has been installed at $INSTALL_DIR/$APP_NAME.app\n--> Caveats: \033[0m You must grant the app Accessibility & Input Monitoring permissions, even if you just reinstalled or updated the app."
 		exit 0
 	else
