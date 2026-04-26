@@ -85,15 +85,28 @@ class NeoprismaScriptingToolkit:
 
 
 def create_runtime(extras=None):
-	runtime = lupa.LuaRuntime(register_builtins=False)
+	def attribute_filter(obj, attr_name, is_setting):
+		if isinstance(attr_name, str) and attr_name.startswith('_'):
+			raise AttributeError("Access to private/internal attributes is denied. This is for security purposes, however if you believe you have found a bug, please report it.")
+		return attr_name
+	
+	runtime = lupa.LuaRuntime(
+		register_builtins=False,
+		attribute_filter=attribute_filter
+	)
 
 	lua_globals = runtime.globals()
 
-	# safe libs
+
+
+	unsafe_globals = ["os", "io", "package", "debug", "require", "module"]
+	for name in unsafe_globals:
+		lua_globals[name] = None
+
 	lua_globals["math"] = lua_globals.math
 	lua_globals["string"] = lua_globals.string
 	lua_globals["table"] = lua_globals.table
-	# safe functions
+
 	lua_globals["print"] = print
 
 	if extras is not None:
