@@ -67,12 +67,33 @@ MACOS_VK_MAP = { # Duplicated - from `platform_macos.py`
 	24: '=', 27: '-', 33: '[', 30: ']', 42: '\\', 41: ';', 39: "'", 43: ',', 47: '.', 44: '/', 50: '`'
 }
 
+class LuaSignal:
+	def __init__(self):
+		self._handlers = []
+
+	def Connect(self, func):
+		if not callable(func):
+			raise TypeError("Connect() requires a function.")
+		self._handlers.append(func)
+		
+		return {"Disconnect": lambda: self._handlers.remove(func)}
+
+	def fire(self, *args):
+		for handler in self._handlers:
+			try:
+				handler(*args)
+			except Exception as e:
+				print(f"Error in event handler: {e}")
+
 class NeoprismaScriptingToolkit:
 
 	def __init__(self,playback):
 		import copy
 		self.playback = playback
-		print(dir(self.playback))
+		
+		self.onKeyPress = LuaSignal()
+		self.onKeyRelease = LuaSignal()
+
 		self.extras={}
 		self.extras["keyStatus"] = self.playback.keyStatus
 		self.extras["moveMouseAbsolute"] = self.playback.moveMouseAbsolute
@@ -80,9 +101,11 @@ class NeoprismaScriptingToolkit:
 		self.extras["mouseDragAbsolute"] = self.playback.mouseDragAbsolute
 		self.extras["mouseButtonStatus"] = self.playback.mouseButtonStatus
 		self.extras["mouseScroll"] = self.playback.mouseScroll
+		self.extras["onKeyPress"] = self.onKeyPress
+		self.extras["onKeyRelease"] = self.onKeyRelease
 
-
-
+	def _signal_keystatus(self,vk,status):
+		self.onKeyPress.fire(vk) if status else self.onKeyRelease.fire(vk)
 
 def create_runtime(extras=None):
 	def attribute_filter(obj, attr_name, is_setting):
