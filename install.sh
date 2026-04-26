@@ -61,12 +61,12 @@ while getopts ":b:i:r:y:s:" opt; do
 			echo "Using BRANCH $OPTARG"
 			BRANCH="$OPTARG"
 			;;
-		y)  if [ "$OPTARG" != "NO"]; then
+		y)  if [[ "$OPTARG" != "NO"]]; then
 				echo "(NOTICE) Running in NON-INTERACTIVE mode: All prompts will be automatically accepted"
 				INTERACTIVE=0
 			fi
 			;;
-		s)  if [ "$OPTARG" != "NO"]; then
+		s)  if [[ "$OPTARG" != "NO"]]; then
 				echo "Building from source"
 				FROM_SOURCE=1
 				WELCOME_MESSAGE="build/compile Neoprisma locally and install it. Python >= 3.10 is recommended"
