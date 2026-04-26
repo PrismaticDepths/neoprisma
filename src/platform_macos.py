@@ -138,7 +138,7 @@ try:
 	import recorder
 	import globalconfwizard
 	# Extensions
-	#import ext_scripting_macos
+	import ext_scripting_macos
 	#import ext_editor_macos
 	from globalconfwizard import CNVKeyset,CNVString,CNVType,CNVBoolean,CNVInteger,CNVFloat
 except Exception:
@@ -413,7 +413,7 @@ class Main(QObject):
 		self.tray.setIcon(self.icon_static)
 		self.tray.setVisible(True)
 
-		#self.script_ext=ext_scripting_macos.Runner()
+		self.script_ext=ext_scripting_macos.Runner()
 
 		self.menu = QMenu()
 
@@ -437,9 +437,9 @@ class Main(QObject):
 		self.quitaction.triggered.connect(self.shutdown)
 		self.menu.addAction(self.quitaction)
 
-		#self.scrextaction = QAction("Scripts")
-		#self.scrextaction.triggered.connect(self.script_ext.mainw.show)
-		#self.menu.addAction(self.scrextaction)
+		self.scrextaction = QAction("Scripts")
+		self.scrextaction.triggered.connect(self.script_ext.mainw.show)
+		self.menu.addAction(self.scrextaction)
 
 		self.settingsw = QWidget()
 		

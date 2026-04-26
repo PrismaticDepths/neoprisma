@@ -67,36 +67,55 @@ MACOS_VK_MAP = { # Duplicated - from `platform_macos.py`
 	24: '=', 27: '-', 33: '[', 30: ']', 42: '\\', 41: ';', 39: "'", 43: ',', 47: '.', 44: '/', 50: '`'
 }
 
-def create_runtime():
+class NeoprismaScriptingToolkit:
+
+	def __init__(self,playback):
+		import copy
+		self.playback = playback
+		print(dir(self.playback))
+		self.extras={}
+		self.extras["keyStatus"] = self.playback.keyStatus
+		self.extras["moveMouseAbsolute"] = self.playback.moveMouseAbsolute
+		self.extras["warpMouseAbsolute"] = self.playback.warpMouseAbsolute
+		self.extras["mouseDragAbsolute"] = self.playback.mouseDragAbsolute
+		self.extras["mouseButtonStatus"] = self.playback.mouseButtonStatus
+		self.extras["mouseScroll"] = self.playback.mouseScroll
+
+
+
+
+def create_runtime(extras=None):
 	runtime = lupa.LuaRuntime(register_builtins=False)
 
 	lua_globals = runtime.globals()
 
-	env = runtime.table()
-
 	# safe libs
-	env["math"] = lua_globals.math
-	env["string"] = lua_globals.string
-	env["table"] = lua_globals.table
-
+	lua_globals["math"] = lua_globals.math
+	lua_globals["string"] = lua_globals.string
+	lua_globals["table"] = lua_globals.table
 	# safe functions
-	env["print"] = print
+	lua_globals["print"] = print
 
-	return runtime, env
+	if extras is not None:
+
+		for key,value in extras.items():
+
+			lua_globals[key] = value
+	print([k for k,v in lua_globals.items()])
+	return runtime
 
 class Runner(QObject):
 
 	def __init__(self):
 		super().__init__()
+
+		
 		self.mainw = QWidget()
 		self.mainw.setBaseSize(500,500)
 		self.mainw_layout = QVBoxLayout()
 		self.bottom_layout = QHBoxLayout()
 		self.mainw.setLayout(self.mainw_layout)
 		self.mainw.setWindowTitle("Script Runner")
-
-		self.arr = bytearray(b"<NEOPRISMA>\x01")
-		self.compiled_arr:list[playback.EventPacket] = []
 
 		self.accept_btn = QPushButton("Accept")
 		self.discard_btn = QPushButton("Cancel")
@@ -120,8 +139,10 @@ class Runner(QObject):
 
 		self.mainw_layout.addLayout(self.bottom_layout)
 
-		self.runtime,self.env = create_runtime()
+		import playback
+		self.kit = NeoprismaScriptingToolkit(playback)
+		self.runtime = create_runtime(extras=self.kit.extras)
 
 	def run(self):
 
-		self.runtime.execute(self.input_box.toPlainText(),self.env)
+		self.runtime.execute(self.input_box.toPlainText())
