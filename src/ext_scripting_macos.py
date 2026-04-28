@@ -37,7 +37,7 @@ except ModuleNotFoundError or ImportError:
 
 
 from PyQt6.QtGui import QAction,QIcon
-from PyQt6.QtCore import QObject,pyqtSignal, QTimer, Qt
+from PyQt6.QtCore import QObject,pyqtSignal, QTimer, Qt, QThreadPool
 from PyQt6.QtWidgets import (
 	QApplication,
 	QSystemTrayIcon,
@@ -67,50 +67,79 @@ MACOS_VK_MAP = { # Duplicated - from `platform_macos.py`
 	24: '=', 27: '-', 33: '[', 30: ']', 42: '\\', 41: ';', 39: "'", 43: ',', 47: '.', 44: '/', 50: '`'
 }
 
+
+
 class LuaSignal:
+    def __init__(self):
+        self._handlers = []
+
+    def connect(self, func):
+        if not callable(func):
+            raise TypeError("Connect() requires a function.")
+        self._handlers.append(func)
+        # Using a safer way to disconnect in case the handler was already removed
+        return {"Disconnect": lambda: self._handlers.remove(func) if func in self._handlers else None}
+
+    def fire(self, *args):
+        for handler in self._handlers:
+            # We use QThreadPool to ensure the UI thread stays free
+            # even if the Lua handler is doing heavy calculations.
+            QThreadPool.globalInstance().start(lambda h=handler, a=args: self._execute_handler(h, a))
+
+    def _execute_handler(self, handler, args):
+        try:
+            handler(*args)
+        except Exception as e:
+            print(f"Error in Lua event handler: {e}")
+
+class LUA_Keyboard:
+	def __init__(self,playback):
+		self.onKeyPress = LuaSignal() # args: vk
+		self.onKeyRelease = LuaSignal() # args: vk
+		self.keyStatus = playback.keyStatus # args: vk, up or down i think
+class LUA_Mouse:
+	def __init__(self,playback):
+		self.onMouseDown = LuaSignal() # args: button
+		self.onMouseUp = LuaSignal() # args: button
+		self.onMouseMoved = LuaSignal() # args: x,y
+		self.moveMouseAbsolute = playback.moveMouseAbsolute
+		self.warpMouseAbsolute = playback.warpMouseAbsolute
+		self.dragMouseAbsolute = playback.mouseDragAbsolute
+		self.mouseButtonStatus = playback.mouseButtonStatus
+
+class LUA_Clock:
 	def __init__(self):
-		self._handlers = []
+		import time
+		self.time = time.time
 
-	def Connect(self, func):
-		if not callable(func):
-			raise TypeError("Connect() requires a function.")
-		self._handlers.append(func)
-		
-		return {"Disconnect": lambda: self._handlers.remove(func)}
+class LUA_Neoprisma:
+	def __init__(self,playback):
+		self.Keyboard = LUA_Keyboard(playback)
+		self.Mouse = LUA_Mouse(playback)
+		self.Clock = LUA_Clock()
+	
 
-	def fire(self, *args):
-		for handler in self._handlers:
-			try:
-				handler(*args)
-			except Exception as e:
-				print(f"Error in event handler: {e}")
 
 class NeoprismaScriptingToolkit:
 
 	def __init__(self,playback):
 		import copy
 		self.playback = playback
-		
-		self.onKeyPress = LuaSignal()
-		self.onKeyRelease = LuaSignal()
-
+		self.LUA_Neoprisma = LUA_Neoprisma(self.playback)
 		self.extras={}
-		self.extras["keyStatus"] = self.playback.keyStatus
-		self.extras["moveMouseAbsolute"] = self.playback.moveMouseAbsolute
-		self.extras["warpMouseAbsolute"] = self.playback.warpMouseAbsolute
-		self.extras["mouseDragAbsolute"] = self.playback.mouseDragAbsolute
-		self.extras["mouseButtonStatus"] = self.playback.mouseButtonStatus
-		self.extras["mouseScroll"] = self.playback.mouseScroll
-		self.extras["onKeyPress"] = self.onKeyPress
-		self.extras["onKeyRelease"] = self.onKeyRelease
+		self.extras["Neoprisma"] = self.LUA_Neoprisma
 
 	def _signal_keystatus(self,vk,status):
-		self.onKeyPress.fire(vk) if status else self.onKeyRelease.fire(vk)
+		self.LUA_Neoprisma.Keyboard.onKeyPress.fire(vk) if status else self.LUA_Neoprisma.Keyboard.onKeyRelease.fire(vk)
+	def _signal_mousestatus(self,button,status):
+		self.LUA_Neoprisma.Mouse.onMouseDown.fire(button) if status else self.LUA_Neoprisma.Mouse.onMouseUp.fire(button)
+	def _signal_mousemovement(self,x,y):
+		self.LUA_Neoprisma.Mouse.onMouseMoved.fire(x,y) 
 
 def create_runtime(extras=None):
 	def attribute_filter(obj, attr_name, is_setting):
 		if isinstance(attr_name, str) and attr_name.startswith('_'):
-			raise AttributeError("Access to private/internal attributes is denied. This is for security purposes, however if you believe you have found a bug, please report it.")
+			raise AttributeError("Access to private/internal attributes (attributes starting with an underscore, in other words) is denied. This is for security purposes, however if you believe you have found a bug, please report it.")
 		return attr_name
 	
 	runtime = lupa.LuaRuntime(
@@ -120,8 +149,6 @@ def create_runtime(extras=None):
 
 	lua_globals = runtime.globals()
 
-
-
 	unsafe_globals = ["os", "io", "package", "debug", "require", "module"]
 	for name in unsafe_globals:
 		lua_globals[name] = None
@@ -129,7 +156,7 @@ def create_runtime(extras=None):
 	lua_globals["math"] = lua_globals.math
 	lua_globals["string"] = lua_globals.string
 	lua_globals["table"] = lua_globals.table
-
+	
 	lua_globals["print"] = print
 
 	if extras is not None:

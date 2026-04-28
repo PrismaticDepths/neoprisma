@@ -44,7 +44,7 @@ def crash(headline="Neoprisma encountered an error and has to crash.",detail="No
 		QApplication,
 		QMessageBox
 	)
-	import os,sys,traceback
+	import os,sys,traceback,platform,time
 	app = QApplication.instance()
 	if app is None: app = QApplication(sys.argv)
 	box = QMessageBox()
@@ -56,6 +56,8 @@ Report generated in file: `{__name__}`
 Crash headline: {headline}
 Shorthand crash detail: {detail}
 Neoprisma version: {__version__}
+Time of crash: {time.asctime(time.localtime())}
+Platform: {platform.platform()}
 Exit code: {exit_code}
 --- Traceback ---
 {error_msg if error_msg != "" else traceback.format_exc()}""")
@@ -271,7 +273,9 @@ CN_CONFIGURATION_DEFAULTS = {
 	"HIDE_APP_ICON":CNVBoolean(True,description="If no UI elements (like this settings window) are open,\nhides the app icon from the dock and excludes from the command-tab switcher.",category="General"),
 	"USE_MOUSE_WARPING":CNVBoolean(False,description="Move the mouse instantly without emitting mouse movement events.\nCan fix issues with some video games.",category="Playback"),
 	"DELAY_BEFORE_PLAYBACK":CNVFloat(0,description="After playback is triggered, wait the specified number of seconds\nbefore actually starting playback.",smin=0,smax=60,category="Playback"),
-	"COMPENSATE_AUTOCLICKER_DRIFT":CNVBoolean(True,description="Intelligently adjusts autoclicker delay to compensate for drift and overhead added by the OS.\nIncreases CPS, but also raises CPU usage.",category="Autoclicking")
+	"COMPENSATE_AUTOCLICKER_DRIFT":CNVBoolean(True,description="Intelligently adjusts autoclicker delay to compensate for drift and overhead added by the OS.\nIncreases CPS, but also raises CPU usage.",category="Autoclicking"),
+	"HOOK_KEYPRESS_EVENTS":CNVBoolean(True,description="Allows userscripts to log keypresses and receive keypress data. Also uses more CPU.",category="Scripts"),
+	"HOOK_MOUSE_EVENTS":CNVBoolean(True,description="Allows userscripts to log mouse movement and clicks and receive mouse data. Also uses more CPU.",category="Scripts")
 }
 
 MAX_HOTKEY_LEN = 5
@@ -400,7 +404,7 @@ class Main(QObject):
 		self.update_available, self.latest_version = version_dif(latest())
 
 		self.error_emitter = Emitter()
-		self.error_emitter.error.connect(lambda msg: QMessageBox.critical(None,"neoprisma: an error occured",msg if len(msg) <= 350 else msg[:350],QMessageBox.StandardButton.Ok))
+		self.error_emitter.error.connect(lambda msg: QMessageBox.critical(None,"neoprisma: an error occured",msg,QMessageBox.StandardButton.Ok))
 
 		self.app.setQuitOnLastWindowClosed(False)
 
@@ -805,6 +809,8 @@ class Main(QObject):
 			trigger = self.hotkey_lookup.get(frozenset(self.keysdown))
 			if trigger: trigger()
 
+			if self.conf_data["HOOK_KEYPRESS_EVENTS"].real_value: self.script_ext.kit._signal_keystatus(vk,True)
+
 		except Exception:
 			self.error_emitter.error.emit(traceback.format_exc())
 
@@ -812,6 +818,8 @@ class Main(QObject):
 		if injected==True: return
 		vk = key.vk if isinstance(key,pynput.keyboard.KeyCode) else key.value.vk
 		self.keysdown.discard(vk)
+		if self.conf_data["HOOK_KEYPRESS_EVENTS"].real_value: 
+			self.script_ext.kit._signal_keystatus(vk,False)
 
 	def init_recorder_and_simulator(self):
 		try:

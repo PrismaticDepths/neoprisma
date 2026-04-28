@@ -33,7 +33,7 @@ def crash(headline="Neoprisma encountered an error and has to crash.",detail="En
 		QApplication,
 		QMessageBox
 	)
-	import traceback
+	import traceback,time,platform
 	app = QApplication.instance()
 	if app is None: app = QApplication(sys.argv)
 	box = QMessageBox()
@@ -45,6 +45,8 @@ Report generated in file: `{__name__}`
 Crash headline: {headline}
 Shorthand crash detail: {detail}
 Neoprisma version: Not available
+Time of crash: {time.asctime(time.localtime())}
+Platform: {platform.platform()}
 Exit code: {exit_code}
 --- Traceback ---
 {error_msg if error_msg != "" else traceback.format_exc()}""")
