@@ -156,7 +156,7 @@ def create_runtime(extras=None):
 	lua_globals["math"] = lua_globals.math
 	lua_globals["string"] = lua_globals.string
 	lua_globals["table"] = lua_globals.table
-	
+
 	lua_globals["print"] = print
 
 	if extras is not None:
@@ -174,31 +174,29 @@ class Runner(QObject):
 
 		
 		self.mainw = QWidget()
-		self.mainw.setBaseSize(500,500)
+		self.mainw.setBaseSize(500,750)
 		self.mainw_layout = QVBoxLayout()
 		self.bottom_layout = QHBoxLayout()
 		self.mainw.setLayout(self.mainw_layout)
-		self.mainw.setWindowTitle("Script Runner")
+		self.mainw.setWindowTitle("Script Dashboard")
 
 		self.accept_btn = QPushButton("Accept")
 		self.discard_btn = QPushButton("Cancel")
 
-		#self.footer_label = QLabel(f"<a href='https://github.com/PrismaticDepths/neoprisma/releases/tag/{self.latest_version}'>View Release</a>  ❖  <a href='https://github.com/PrismaticDepths/neoprisma/compare/{__version__}...{self.latest_version}'>Full Changelog</a>")
-		#self.footer_label.setOpenExternalLinks(True)
-
 		self.mainw_layout.addSpacing(10)
 
-		self.input_box = QTextEdit()
-		self.input_box.setStyleSheet("""
-		QLineEdit, QTextEdit, QPlainTextEdit {
-		font-family: 'Courier New', monospace;
-		}""")
-		self.mainw_layout.addWidget(self.input_box)
+		#self.input_box = QTextEdit()
+		#self.input_box.setStyleSheet("""
+		#QLineEdit, QTextEdit, QPlainTextEdit {
+		#font-family: 'Courier New', monospace;
+		#}""")
+		#self.input_box.setAcceptRichText(False)
+		#self.mainw_layout.addWidget(self.input_box)
 
-		self.accept_btn.pressed.connect(self.run)
+		#self.accept_btn.pressed.connect(self.run)
 
-		self.bottom_layout.addWidget(self.accept_btn)
-		self.bottom_layout.addWidget(self.discard_btn)
+		#self.bottom_layout.addWidget(self.accept_btn)
+		#self.bottom_layout.addWidget(self.discard_btn)
 
 		self.mainw_layout.addLayout(self.bottom_layout)
 
@@ -209,3 +207,25 @@ class Runner(QObject):
 	def run(self):
 
 		self.runtime.execute(self.input_box.toPlainText())
+
+
+	def load(self):
+
+		try:
+			file, _ = QFileDialog.getOpenFileName(None,"Select a script to load",filter="Lua Scripts (*.lua);;All Files (*)")
+			with open(file,"r") as fstream:
+				dat = fstream.read()
+				self.input_box.setText(dat)
+		except:
+			pass
+
+	def save(self):
+
+		try:
+			file, _ = QFileDialog.getSaveFileName(None,"Select a location to save your script",filter="Lua Scripts (*.lua)")
+			if file == "": return
+			else:
+				with open(file,"w") as fstream:
+					fstream.write(self.input_box.toPlainText())
+		except:
+			pass
