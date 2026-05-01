@@ -197,7 +197,7 @@ class ScriptStatus:
 		self.status_button.setObjectName("status-yellow" if self.status=="sleeping" else "status-green" if self.status=="running" else "status-red")
 
 def ScriptWorker(QObject):
-	
+	pass
 
 class Runner(QObject):
 
