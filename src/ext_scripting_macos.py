@@ -35,9 +35,9 @@ try:
 except ModuleNotFoundError or ImportError:
 	raise ImportError("`lupa` library was not found in the runtime. You may be running a development build of Neoprisma; see the project's homepage for download information. [ https://github.com/PrismaticDepths/neoprisma ]")
 
-
+from pathlib import Path
 from PyQt6.QtGui import QAction,QIcon
-from PyQt6.QtCore import QObject,pyqtSignal, QTimer, Qt, QThreadPool
+from PyQt6.QtCore import QObject,pyqtSignal, QTimer, Qt, QThreadPool,QThread
 from PyQt6.QtWidgets import (
 	QApplication,
 	QSystemTrayIcon,
@@ -55,6 +55,7 @@ from PyQt6.QtWidgets import (
 	QPushButton,
 	QVBoxLayout,
 	QHBoxLayout,
+	QScrollArea,
 	QMenuBar
 )
 
@@ -75,7 +76,7 @@ class LuaSignal:
 
     def connect(self, func):
         if not callable(func):
-            raise TypeError("Connect() requires a function.")
+            raise TypeError("connect() requires a function.")
         self._handlers.append(func)
         # Using a safer way to disconnect in case the handler was already removed
         return {"Disconnect": lambda: self._handlers.remove(func) if func in self._handlers else None}
@@ -96,7 +97,7 @@ class LUA_Keyboard:
 	def __init__(self,playback):
 		self.onKeyPress = LuaSignal() # args: vk
 		self.onKeyRelease = LuaSignal() # args: vk
-		self.keyStatus = playback.keyStatus # args: vk, up or down i think
+		self.keyStatus = playback.keyStatus # args: vk, bool
 class LUA_Mouse:
 	def __init__(self,playback):
 		self.onMouseDown = LuaSignal() # args: button
@@ -106,6 +107,7 @@ class LUA_Mouse:
 		self.warpMouseAbsolute = playback.warpMouseAbsolute
 		self.dragMouseAbsolute = playback.mouseDragAbsolute
 		self.mouseButtonStatus = playback.mouseButtonStatus
+		self.mouseScroll = playback.mouseScroll # args: x,y,dx,dy
 
 class LUA_Clock:
 	def __init__(self):
@@ -167,6 +169,36 @@ def create_runtime(extras=None):
 	print([k for k,v in lua_globals.items()])
 	return runtime
 
+class ScriptStatus:
+	def __init__(self,sname,sstatus,num_hooks):
+		self.name=sname
+		self.status=sstatus
+		self.num_hooks = num_hooks
+		self.status_layout = QVBoxLayout()
+		self.status_layout2 = QHBoxLayout()
+		self.status_layout.setContentsMargins(0,0,0,0)
+		self.status_layout.setSpacing(2)
+		self.script_name=QLabel(self.name)
+		self.status_layout.addWidget(self.script_name)
+		self.status_long = QLabel(f"{self.status} ({str(self.num_hooks)+" hooks registered" if self.status=="sleeping" else "xx:xx elapsed" if self.status=="running" else "error" if self.status=="interrupted" else ""})")
+		self.status_long.setObjectName("script-status-long")
+		self.status_layout.addWidget(self.status_long)
+		self.status_layout2.addLayout(self.status_layout)
+		self.status_button = QPushButton("")
+		self.status_button.setObjectName("status-yellow" if self.status=="sleeping" else "status-green" if self.status=="running" else "status-red")
+		self.status_button.setFixedSize(16,16)
+		self.status_layout2.addWidget(self.status_button)
+	def set_name(self,name):
+		self.name = name
+		self.script_name.setText(self.name)
+	def set_status(self,status):
+		assert status in ["running","sleeping","interrupted"]
+		self.status = status
+		self.status_button.setObjectName("status-yellow" if self.status=="sleeping" else "status-green" if self.status=="running" else "status-red")
+
+def ScriptWorker(QObject):
+	
+
 class Runner(QObject):
 
 	def __init__(self):
@@ -176,14 +208,51 @@ class Runner(QObject):
 		self.mainw = QWidget()
 		self.mainw.setBaseSize(500,750)
 		self.mainw_layout = QVBoxLayout()
-		self.bottom_layout = QHBoxLayout()
 		self.mainw.setLayout(self.mainw_layout)
 		self.mainw.setWindowTitle("Script Dashboard")
+		self.script_view = QVBoxLayout()
+		self.script_scroll_content = QWidget(); self.script_scroll_content.setLayout(self.script_view)
+		self.script_scroll = QScrollArea(); self.script_scroll.setWidget(self.script_scroll_content); self.script_scroll.setWidgetResizable(True)
 
-		self.accept_btn = QPushButton("Accept")
-		self.discard_btn = QPushButton("Cancel")
+		# Set up bottom 4 buttons 
+
+		self.bottom_layout_outer = QVBoxLayout()
+		self.bottom_layout_up = QHBoxLayout()
+		self.bottom_layout_down = QHBoxLayout()
+		self.bottom_layout_outer.setContentsMargins(0,0,0,0)
+		self.bottom_layout_up.setContentsMargins(0,0,0,0)
+		self.bottom_layout_down.setContentsMargins(0,0,0,0)
+		self.bottom_layout_outer.setSpacing(4)
+		self.bottom_layout_outer.addLayout(self.bottom_layout_up)
+		self.bottom_layout_outer.addLayout(self.bottom_layout_down)
+
+		self.execute_btn = QPushButton("Run New")
+		self.execute_btn.released.connect(self.load)
+		self.log_btn = QPushButton("Open Log")
+		self.bottom_layout_up.addWidget(self.execute_btn)
+		self.bottom_layout_up.addWidget(self.log_btn)
+
+		self.terminate_all_btn = QPushButton("Terminate All")
+		self.exit_btn = QPushButton("Exit")
+		self.bottom_layout_down.addWidget(self.terminate_all_btn)
+		self.bottom_layout_down.addWidget(self.exit_btn)
+
+		# Add header
+
+		running_label = QLabel("Script Monitor")
+		running_label.setStyleSheet("font-weight: bold; color: white;")
+		running_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+		self.mainw_layout.addWidget(running_label)
+
+		#self.accept_btn = QPushButton("Accept")
+		#self.discard_btn = QPushButton("Cancel")
 
 		self.mainw_layout.addSpacing(10)
+
+		s=self.make_script_status("wasd-to-arrows.lua","sleeping",4)
+		self.script_view.addLayout(s.status_layout2)
+
+		self.mainw_layout.addWidget(self.script_scroll)
 
 		#self.input_box = QTextEdit()
 		#self.input_box.setStyleSheet("""
@@ -198,16 +267,30 @@ class Runner(QObject):
 		#self.bottom_layout.addWidget(self.accept_btn)
 		#self.bottom_layout.addWidget(self.discard_btn)
 
-		self.mainw_layout.addLayout(self.bottom_layout)
+		self.mainw_layout.addLayout(self.bottom_layout_outer)
 
 		import playback
 		self.kit = NeoprismaScriptingToolkit(playback)
 		self.runtime = create_runtime(extras=self.kit.extras)
 
-	def run(self):
 
-		self.runtime.execute(self.input_box.toPlainText())
 
+	def make_script_status(self,name,status,num_hooks):
+
+		return ScriptStatus(name,status,num_hooks)
+
+	def run(self,name,text):
+		def inner():
+			s=self.make_script_status(name,"running",0)
+			self.script_view.addLayout(s.status_layout2)
+			try:
+				self.runtime.execute(text)
+			except lupa.LuaError:
+				s.set_status("interrupted")
+			else:
+				s.status_layout2.deleteLater()
+		t=QThread()
+		
 
 	def load(self):
 
@@ -215,7 +298,43 @@ class Runner(QObject):
 			file, _ = QFileDialog.getOpenFileName(None,"Select a script to load",filter="Lua Scripts (*.lua);;All Files (*)")
 			with open(file,"r") as fstream:
 				dat = fstream.read()
-				self.input_box.setText(dat)
+				box = QMessageBox()
+				box.setIcon(QMessageBox.Icon.Information)
+				box.setText("Do you want to run this script?")
+				box.setInformativeText("Make sure this script is safe!\nNeoprisma does its best to sandbox scripts, but malicious code execution is a possibility.\nClick \"Show Details...\" to see the code you are about to run.")
+				box.setDetailedText(dat)
+				box.setStyleSheet("""QWidget {
+		background-color: #303030;
+		color: #DEDEDE;
+		font-size: 13px;
+	}
+
+	QPushButton {
+		background-color: #535353;
+		border: 0px solid #000000;
+		border-radius: 6px;
+		padding: 4px 8px;
+		color: #E0E0E0;
+	}
+
+	QPushButton:hover {
+		background-color: #404046;
+		border: 1px solid #444444;
+		color: #FFFFFF;
+	}
+	QLineEdit, QTextEdit, QPlainTextEdit {
+		background-color: #1A1A1A;
+		font-family: 'Courier New', monospace;
+		font-size: 10pt;
+		border: 1px solid #2A2A2A;
+		border-radius: 1px;
+		text-align: left;
+		padding: 5px;
+		color: #FFFFFF;
+	}""")
+				box.addButton(QMessageBox.StandardButton.Yes).released.connect(lambda: self.run(Path(file).name,dat))
+				box.addButton(QMessageBox.StandardButton.No)
+				box.exec()
 		except:
 			pass
 

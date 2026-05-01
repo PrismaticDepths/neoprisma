@@ -238,6 +238,10 @@ MASTER_STYLESHEET = """
 		font-weight: bold;
 		font-size: 16px;
 	}
+	QLabel#script-status-long {
+		color: #BDBDBD;
+		font-size: 8px;
+	}
 	QPushButton#info-popup {
 		border-radius: 8px;
 		background-color: #535353;
@@ -251,6 +255,46 @@ MASTER_STYLESHEET = """
 	}
 	QPushButton:hover#info-popup {
 	}
+	QPushButton#status-red {
+		border-radius: 8px;
+		background-color: #FF0000;
+		border: 1px solid #000000;
+		width: 16px;
+   		height: 16px;
+		margin: 0;
+        padding: 0;
+	}
+	QPushButton:pressed#status-red {
+	}
+	QPushButton:hover#status-red {
+	}
+	QPushButton#status-green {
+		border-radius: 8px;
+		background-color: #32FF64;
+		border: 1px solid #000000;
+		width: 16px;
+   		height: 16px;
+		margin: 0;
+        padding: 0;
+	}
+	QPushButton:pressed#status-green {
+	}
+	QPushButton:hover#status-green {
+	}
+	QPushButton#status-yellow {
+		border-radius: 8px;
+		background-color: #FFFA05;
+		border: 1px solid #000000;
+		width: 16px;
+   		height: 16px;
+		margin: 0;
+        padding: 0;
+	}
+	QPushButton:pressed#status-yellow {
+	}
+	QPushButton:hover#status-yellow {
+	}
+	
 """
 
 MACOS_VK_MAP = {
