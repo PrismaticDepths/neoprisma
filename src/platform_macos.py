@@ -108,7 +108,7 @@ import traceback
 import time
 from threading import Thread
 from PyQt6.QtGui import QAction,QIcon
-from PyQt6.QtCore import QObject,pyqtSignal, QTimer, Qt, QEvent,QPoint
+from PyQt6.QtCore import QObject,pyqtSignal, QTimer, Qt, QEvent,QPoint,QThread
 from PyQt6.QtWidgets import (
 	QApplication,
 	QSystemTrayIcon,
@@ -129,7 +129,7 @@ from PyQt6.QtWidgets import (
 	QMenuBar,
 	QSizePolicy,
 	QScrollArea,
-	QToolTip
+	QToolTip,
 )
 
 
@@ -370,9 +370,9 @@ class Main(QObject):
 	def __init__(self):
 		super().__init__()
 		
-
 		self.app = QApplication(sys.argv)
 		self.app.setStyleSheet(MASTER_STYLESHEET)
+		self.app.setQuitOnLastWindowClosed(False)
 
 		try: # force the "about" pane to appear on the left of the system menu bar
 			import AppKit
@@ -386,8 +386,7 @@ class Main(QObject):
 			)
 			self.dummy_menu = self.menu_bar.addMenu("App")
 			self.dummy_menu.addAction(self.about_action)
-		except Exception:
-			pass
+		except Exception: pass
 
 		self.arr = bytearray(b"<NEOPRISMA>\x01")
 		self.compiled_arr:list[playback.EventPacket] = []
@@ -406,6 +405,7 @@ class Main(QObject):
 			"KEYBIND_TOGGLE_PLAYBACK": set(),
 			"KEYBIND_TOGGLE_AUTOCLICK": set()
 		}
+
 		self.conf_data=copy.deepcopy(CN_CONFIGURATION_DEFAULTS)
 		if os.path.exists(os.path.expanduser("~/.neoprisma")):
 			try:
@@ -450,7 +450,6 @@ class Main(QObject):
 		self.error_emitter = Emitter()
 		self.error_emitter.error.connect(lambda msg: QMessageBox.critical(None,"neoprisma: an error occured",msg,QMessageBox.StandardButton.Ok))
 
-		self.app.setQuitOnLastWindowClosed(False)
 
 		self.icon_static = QIcon(resource_path("assets/neoprisma-static.png"))
 		self.icon_rec = QIcon(resource_path("assets/neoprisma-rec.png"))
@@ -688,8 +687,8 @@ class Main(QObject):
 		self.run_workers = True
 		self.auto_thread = None
 
-		QTimer.singleShot(0,self.start_hotkeys)
-		QTimer.singleShot(0,self.init_recorder_and_simulator)
+		#QTimer.singleShot(0,self.start_hotkeys)
+		QTimer.singleShot(0,self.init_input_devices)
 
 		if not self.conf_data["HIDE_APP_ICON"].real_value: self.anyw_open()
 		
@@ -828,14 +827,14 @@ class Main(QObject):
 	def listener_hotkeysv2_handlekeypress(self,key:pynput.keyboard.Key|pynput.keyboard.KeyCode,injected=False): # this is a very long name
 		# Injected: Whether the event is authentic or software generated. We can detect our own key events with this. Pynput 1.8.0+
 		try:
-			if (injected==True) or (key is None): return
+			if (injected==True) or (key is None): return False
 
 			vk = key.vk if isinstance(key,pynput.keyboard.KeyCode) else key.value.vk
 			self.keysdown.add(vk)
 
 			if self.state_playback and self.conf_data["ABORT_PLAYBACK_ON_INPUT"].real_value: 
 				self.toggle_playback()
-				return
+				return False
 
 			if self.recording_hotkey and len(self.hotkey_record_buffer) < MAX_HOTKEY_LEN:
 				self.hotkey_record_buffer.add(vk)
@@ -846,13 +845,14 @@ class Main(QObject):
 					self.settingsw_hk_play_disp.setText(text)
 				elif self.hotkey_edit_label == "KEYBIND_TOGGLE_AUTOCLICK":
 					self.settingsw_hk_auto_disp.setText(text)
-				return
+				return False
 			
-			if (len(self.keysdown) > MAX_HOTKEY_LEN) or (self.settingsw.isActiveWindow()): return
+			if (len(self.keysdown) > MAX_HOTKEY_LEN) or (self.settingsw.isActiveWindow()): return False
 
 			trigger = self.hotkey_lookup.get(frozenset(self.keysdown))
-			if trigger: trigger()
-
+			if trigger: 
+				trigger()
+				return True
 			if self.conf_data["HOOK_KEYPRESS_EVENTS"].real_value: self.script_ext.kit._signal_keystatus(vk,True)
 
 		except Exception:
@@ -865,28 +865,70 @@ class Main(QObject):
 		if self.conf_data["HOOK_KEYPRESS_EVENTS"].real_value: 
 			self.script_ext.kit._signal_keystatus(vk,False)
 
-	def init_recorder_and_simulator(self):
+	def init_input_devices(self):
 		try:
-			self.recorder=recorder.OneShotRecorder()
-			self.m_simulator = pynput.mouse.Controller()
-		except Exception:
-			self.anyw_open()
-			crash(headline="An error occured while initializing recording/playback infastructure.",detail="Could not initialize recorder.OneShotRecorder or pynput.mouse.Controller.")
-
-	def start_hotkeys(self):
-		try:
-			if hasattr(self, "h") and self.h:
-				self.h.stop()
-			self.h = pynput.keyboard.Listener(
-				on_press=self.listener_hotkeysv2_handlekeypress,
-				on_release=self.listener_hotkeysv2_handlekeyrelease,
+			self.keyboard_listener = pynput.keyboard.Listener(
+				on_press=self.master_on_press,
+				on_release=self.master_on_release,
 				suppress=False,
 			)
+			self.mouse_listener = pynput.mouse.Listener(
+				on_move=self.master_on_move,
+				on_click=self.master_on_click,
+				on_scroll=self.master_on_scroll,
+			)
+			self.recorder=recorder.OneShotRecorder()
 			
-			self.h.start()
+			self.m_simulator = pynput.mouse.Controller()
+			
+			self.keyboard_listener.start()
+			self.keyboard_listener.wait()
+			self.mouse_listener.start()
+			self.mouse_listener.wait()
 		except Exception:
 			self.anyw_open()
-			crash(headline="An error occured while initializing recording/playback infastructure.",detail="Could not start the hotkey listener.")
+			crash(headline="An error occured while initializing recording/playback infastructure.",detail="Could not initialize input devices.")
+
+	def master_on_press(self,key:pynput.keyboard.Key|pynput.keyboard.KeyCode,injected=False):
+		t=time.perf_counter_ns()-self.recorder.starting_time # The single most important thing is that recordings get accurate timing. Hence we do this first, EVERY TIME, even if the recorder is not active.
+		if injected==True: return # Everything can be skipped if it's injected to begin with.
+		triggered_hotkey = self.listener_hotkeysv2_handlekeypress(key,injected)
+		if triggered_hotkey: return # This will prevent a hotkey activation from getting logged into the recorder
+		self.recorder.captured_key_press(key,t,injected)
+
+	def master_on_release(self,key:pynput.keyboard.Key|pynput.keyboard.KeyCode,injected=False):
+		t=time.perf_counter_ns()-self.recorder.starting_time # Same as before.
+		if injected==True: return # Everything can be skipped if it's injected to begin with.
+		self.listener_hotkeysv2_handlekeyrelease(key,injected)
+		self.recorder.captured_key_release(key,t,injected)
+
+	def master_on_move(self,x,y,injected=False):
+		t=time.perf_counter_ns()-self.recorder.starting_time # Same as before.
+		if injected==True: return # Everything can be skipped if it's injected to begin with.
+		self.recorder.captured_mouse_move(x,y,t)
+		if self.conf_data["HOOK_MOUSE_EVENTS"].real_value: self.script_ext.kit._signal_mousemovement(x,y)
+
+	def master_on_click(self,x,y,button,pressed,injected=False):
+		t=time.perf_counter_ns()-self.recorder.starting_time # Same as before.
+		if injected==True: return # Everything can be skipped if it's injected to begin with.
+		self.recorder.captured_mouse_click(x,y,button,pressed,t)
+		if self.conf_data["HOOK_MOUSE_EVENTS"].real_value: self.script_ext.kit._signal_mousestatus(button,pressed,x,y)
+
+	def master_on_scroll(self,x,y,dx,dy,injected=False):
+		t=time.perf_counter_ns()-self.recorder.starting_time # Same as before.
+		if injected==True: return # Everything can be skipped if it's injected to begin with.
+		self.recorder.captured_mouse_scroll(x,y,dx,dy,t)
+		if self.conf_data["HOOK_MOUSE_EVENTS"].real_value: self.script_ext.kit._signal_mousescroll(x,y,dx,dy)
+		
+
+	#def start_hotkeys(self):
+	#	try:
+	#		if hasattr(self, "h") and self.h:
+	#			self.h.stop()
+	#		self.h.start()
+	#	except Exception:
+	#		self.anyw_open()
+	#		crash(headline="An error occured while initializing recording/playback infastructure.",detail="Could not start the hotkey listener.")
 
 	def toggle_recording(self):
 		try:
@@ -937,7 +979,7 @@ class Main(QObject):
 					if not self.state_playback: return
 					while self.state_playback:
 						try:
-							print(self.compiled_arr)
+							#print(self.compiled_arr)
 							playback.PlayEventList(self.compiled_arr,self.timestamp_multiplier,self.conf_data["USE_MOUSE_WARPING"].real_value)
 						except Exception as e:
 							self.error_emitter.error.emit(traceback.format_exc())

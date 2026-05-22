@@ -152,9 +152,10 @@ class Neoprisma:
 
   class Mouse: # Functions for controlling and monitoring the mouse
 
-    onMouseDown: Signal = ... # signal, passes button:int - fires on mouse pressed
-    onMouseUp: Signal = ... # signal, passes button:int - fires on mouse released
+    onMouseDown: Signal = ... # signal, passes button:int,x,y - fires on mouse pressed
+    onMouseUp: Signal = ... # signal, passes button:int,x,y - fires on mouse released
     onMouseMoved: Signal = ... # signal, passes x,y
+    onMouseScrolled: Signal = ... # signal, passes x,y,dx,dy
     def moveMouseAbsolue(x:int,y:int): ...
     def warpMouseAbsolue(x:int,y:int): ...
     def dragMouseAbsolue(button:int,x:int,y:int): ...

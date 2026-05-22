@@ -108,9 +108,11 @@ class LUA_Keyboard:
 		self.keyStatus = playback.keyStatus # args: vk, bool
 class LUA_Mouse:
 	def __init__(self,playback):
-		self.onMouseDown = LuaSignal() # args: button
-		self.onMouseUp = LuaSignal() # args: button
+		self.onMouseDown = LuaSignal() # args: button,x,y
+		self.onMouseUp = LuaSignal() # args: button,x,y
 		self.onMouseMoved = LuaSignal() # args: x,y
+		self.onMouseScrolled = LuaSignal() # args: x,y,dx,dy
+
 		self.moveMouseAbsolute = playback.moveMouseAbsolute
 		self.warpMouseAbsolute = playback.warpMouseAbsolute
 		self.dragMouseAbsolute = playback.mouseDragAbsolute
@@ -142,10 +144,12 @@ class NeoprismaScriptingToolkit:
 
 	def _signal_keystatus(self,vk,status):
 		self.LUA_Neoprisma.Keyboard.onKeyPress.fire(vk) if status else self.LUA_Neoprisma.Keyboard.onKeyRelease.fire(vk)
-	def _signal_mousestatus(self,button,status):
-		self.LUA_Neoprisma.Mouse.onMouseDown.fire(button) if status else self.LUA_Neoprisma.Mouse.onMouseUp.fire(button)
+	def _signal_mousestatus(self,button,pressed,x,y):
+		self.LUA_Neoprisma.Mouse.onMouseDown.fire(button,x,y) if pressed else self.LUA_Neoprisma.Mouse.onMouseUp.fire(button,x,y)
 	def _signal_mousemovement(self,x,y):
 		self.LUA_Neoprisma.Mouse.onMouseMoved.fire(x,y) 
+	def _signal_mousescroll(self,x,y,dx,dy):
+		self.LUA_Neoprisma.Mouse.onMouseScrolled.fire(x,y,dx,dy) 
 
 def create_runtime(extras=None):
 	def attribute_filter(obj, attr_name, is_setting):
@@ -311,9 +315,6 @@ class Runner(QObject):
 		self.mainw_layout.addWidget(running_label)
 
 		self.mainw_layout.addSpacing(10)
-
-		#s=self.make_script_status("wasd-to-arrows.lua","sleeping",4)
-		#self.script_view.addLayout(s.status_layout2)
 
 		self.mainw_layout.addWidget(self.script_scroll)
 
