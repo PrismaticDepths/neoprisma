@@ -66,7 +66,7 @@ curl -fsSL https://raw.githubusercontent.com/PrismaticDepths/neoprisma/stable/in
 
 ### Installer Flags
 
-It's not necessary to pass any options.\
+**It's not necessary to pass any options.**\
 For options with argument YES/NO, anything other than NO will trigger them. Passing NO has the same behaviour as ommitting the flag entirely. The reason for this odd behaviour is that it's required to pass an argument for every flag -- fixing this would be time consuming and there isn't actually any real problem with this behaviour anyways.
 
 ```
@@ -102,6 +102,104 @@ Hotkeys are configurable in the settings menu.
 |`<ctrl><fn><f9>` | toggle playback |
 
 You can reset hotkeys and other configuration data by deleting the hidden file named `.neoprisma` in your home directory. To show hidden files, you can use the keyboard shortcut `<cmd>+<shift>+<.>` in Finder.
+
+## Scripting
+
+Neoprisma supports custom extensions (user written scripts) through a Lua API. You can run and monitor scripts through the scripts menu.
+
+> From here on out these scripts will probably be referred to as "user scripts". Do what you will with this info.
+
+The syntax for Neoprisma's Lua API is somewhat similar to that of Roblox's. You can connect functions to events (eg. onKeyPressed) and then they will be fired accordingly.
+
+This allows you to automate quite a lot, more than what recording and playing input back would do.
+
+### Security
+
+Scripts are run using Lupa and sandboxed for security. You can also toggle event hooks in settings if you want to save CPU or don't want a script to monitor your keypresses.
+
+Certain Lua builtins are not available to user scripts (sandboxing). This includes `os`, `io`, `package`, `debug`, `require`, and `module`. All attributes of Python objects which start or end with an underscore (`_`, eg. `__self__`) are protected and cannot be read or written to.
+
+Additionally, a confirmation/warning prompt shows before scripts are ran. *This cannot be disabled.*
+
+### Info
+
+A lot of the Neoprisma-defined functions and their arguments can be found in `src/automation.h`. However, that is not a complete list. If you'd like a definite complete list, check `src/ext_scripting_macos.py`.  The classes made accessible to user scripts will have names starting with "LUA".
+
+A list of functions and objects is also provided below. It should hopefully be up to date. (If you think it's missing something, now you know where to look.)
+
+> **[ℹ]** **Notice**\
+> All scripts are ran within the same runtime. Scope your variables as local to avoid conflicts with other scripts.
+
+### API
+
+```py
+# The API, with objects replaced by stubs or simplified for brevity. This would be turned into a Lua object by Lupa.
+
+#
+# class Signal: 
+#
+#  def connect(func:function): ...
+#  def fire(*args): ... # Note - Fires all connected functions
+#
+
+class Neoprisma:
+
+  class Keyboard: # Functions for controlling and monitoring the keyboard
+
+    onKeyPressed: Signal = ... # signal, passes vk:int
+    onKeyReleased: Signal = ... # signal, passes vk:int
+    def keyStatus(vk:int,status:bool): ... # presses or releases a key by vk
+
+  class Mouse: # Functions for controlling and monitoring the mouse
+
+    onMouseDown: Signal = ... # signal, passes button:int - fires on mouse pressed
+    onMouseUp: Signal = ... # signal, passes button:int - fires on mouse released
+    onMouseMoved: Signal = ... # signal, passes x,y
+    def moveMouseAbsolue(x:int,y:int): ...
+    def warpMouseAbsolue(x:int,y:int): ...
+    def dragMouseAbsolue(button:int,x:int,y:int): ...
+    def mouseButtonStatus(button:int,x:int,y:int,status:bool): ...
+    def mouseButtonStatus(button:int,status:bool): ...
+    def mouseScroll(x:int,y:int,dx:int,dy:int): ...
+
+  class Clock: # Functions for monitoring time
+
+    def time(): ... # Equivalent to Python's time.time()
+```
+
+### Example Scripts
+
+```lua
+-- src/assets/wasd-to-arrows.lua
+--
+-- This script hits arrow keys accordingly when you press WASD. For example, if you hit W, it would press the up arrow.
+
+local allow = { -- Which keypresses we want to trigger our logic for (in this case these are the WASD keys)
+	[0] = true,
+	[1] = true,
+	[2] = true,
+	[13] = true
+}
+
+local convert = { -- Map WASD keycodes to arrow key keycodes
+	[0] = 123,
+	[2] = 124,
+	[1] = 125,
+	[13] = 126
+}
+
+Neoprisma.Keyboard.onKeyPress.connect(function(vk)
+ if allow[vk] then -- Is this key in the allow list?
+	Neoprisma.Keyboard.keyStatus(convert[vk],true) -- Press the key's equivalent vk in the convert table
+ end
+end)
+
+Neoprisma.Keyboard.onKeyRelease.connect(function(vk)
+ if allow[vk] then -- Is this key in the allow list?
+	Neoprisma.Keyboard.keyStatus(convert[vk],false)  -- Release the key's equivalent vk in the convert table
+ end
+end)
+```
 
 ## Known Issues
 
