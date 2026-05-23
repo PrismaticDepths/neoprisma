@@ -477,16 +477,14 @@ class Main(QObject):
 		self.save_widget.triggered.connect(self.save)
 		self.conf_widget = QAction("Settings")
 		self.conf_widget.triggered.connect(self.settingsw_popup)
+		self.scrextaction = QAction("Scripts")
+		self.scrextaction.triggered.connect(self.scriptext_popup)
 
-		self.menu.addActions([self.toggle_rec_widget,self.toggle_play_widget,self.toggle_auto_widget,self.load_widget,self.save_widget,self.conf_widget])
+		self.menu.addActions([self.toggle_rec_widget,self.toggle_play_widget,self.load_widget,self.save_widget,self.scrextaction,self.conf_widget])
 
 		self.quitaction = QAction("Quit")
 		self.quitaction.triggered.connect(self.shutdown)
 		self.menu.addAction(self.quitaction)
-
-		self.scrextaction = QAction("Scripts")
-		self.scrextaction.triggered.connect(self.script_ext.mainw.show)
-		self.menu.addAction(self.scrextaction)
 
 		self.settingsw = QWidget()
 		
@@ -682,6 +680,8 @@ class Main(QObject):
 		self.settingsw.closeEvent = self.anyw_close
 		self.settingsw_scroll.closeEvent = self.anyw_close
 
+		self.script_ext.mainw.closeEvent = self.anyw_close
+
 		self.tray.setContextMenu(self.menu)
 
 		self.run_workers = True
@@ -761,6 +761,11 @@ class Main(QObject):
 		self.settingsw.activateWindow()
 		self.settingsw.raise_()
 		self.settingsw_scroll.raise_()
+
+	def scriptext_popup(self):
+		self.anyw_open()
+		self.script_ext.mainw.show()
+		self.script_ext.mainw.raise_()
 
 	def anyw_open(self):
 		import AppKit

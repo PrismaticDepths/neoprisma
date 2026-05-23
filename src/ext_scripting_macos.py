@@ -179,7 +179,6 @@ def create_runtime(extras=None):
 		for key,value in extras.items():
 
 			lua_globals[key] = value
-	print([k for k,v in lua_globals.items()])
 	return runtime
 
 class ScriptStatus(QWidget):
@@ -304,6 +303,7 @@ class Runner(QObject):
 
 		self.terminate_all_btn = QPushButton("Terminate All")
 		self.exit_btn = QPushButton("Exit")
+		self.exit_btn.released.connect(self.mainw.close)
 		self.bottom_layout_down.addWidget(self.terminate_all_btn)
 		self.bottom_layout_down.addWidget(self.exit_btn)
 
@@ -368,7 +368,8 @@ class Runner(QObject):
 			if success: del self.script_pool[script.uuid]
 		QThreadPool.globalInstance().start(inner)
 		
-			
+	def hide(self):
+		self.mainw.close()
 		
 	def log(self,name:str,text:str):
 
