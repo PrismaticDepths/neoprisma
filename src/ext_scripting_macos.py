@@ -249,7 +249,7 @@ class Script:
 		try:
 			runtime.execute(self.text,self.uuid)
 		except Exception as e:
-			runner.log(str(self.uuid),e)
+			runner.log(self.name,str(self.uuid),e)
 			self.status = ScriptStatusEnums.INTERRUPTED
 			return False
 		else:
@@ -371,9 +371,9 @@ class Runner(QObject):
 	def hide(self):
 		self.mainw.close()
 		
-	def log(self,name:str,text:str):
-
-		pass
+	def log(self,name:str,uuid:str,text:str):
+		import time
+		print(f"[{time.strftime("%H:%M:%S")}] ({uuid}) {name}: {text}")
 		
 
 	def load(self):

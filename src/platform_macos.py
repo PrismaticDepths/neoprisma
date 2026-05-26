@@ -315,7 +315,7 @@ CN_CONFIGURATION_DEFAULTS = {
 	"RELEASE_CHANNEL":CNVString("stable"),
 	"ABORT_PLAYBACK_ON_INPUT":CNVBoolean(False,description="Stops playback immediately upon any\nuser generated (authentic) keyboard input.",category="Playback"),
 	"HIDE_APP_ICON":CNVBoolean(True,description="If no UI elements (like this settings window) are open,\nhides the app icon from the dock and excludes from the command-tab switcher.",category="General"),
-	"USE_MOUSE_WARPING":CNVBoolean(False,description="Move the mouse instantly without emitting mouse movement events.\nCan fix issues with some video games.",category="Playback"),
+	"USE_MOUSE_WARPING":CNVBoolean(False,description="Move the mouse instantly without emitting mouse movement events.\nCan fix issues with some video games, may cause issues with others.",category="Playback"),
 	"DELAY_BEFORE_PLAYBACK":CNVFloat(0,description="After playback is triggered, wait the specified number of seconds\nbefore actually starting playback.",smin=0,smax=60,category="Playback"),
 	"COMPENSATE_AUTOCLICKER_DRIFT":CNVBoolean(True,description="Intelligently adjusts autoclicker delay to compensate for drift and overhead added by the OS.\nIncreases CPS, but also raises CPU usage.",category="Autoclicking"),
 	"HOOK_KEYPRESS_EVENTS":CNVBoolean(True,description="Allows userscripts to log keypresses and receive keypress data. Also uses more CPU.",category="Scripts"),
@@ -464,6 +464,8 @@ class Main(QObject):
 
 		self.menu = QMenu()
 
+		self.filemenu = QMenu("File")
+
 		self.toggle_rec_widget = QAction("Toggle Recording")
 		self.toggle_rec_widget.triggered.connect(self.toggle_recording)
 		self.toggle_play_widget = QAction("Toggle Playback")
@@ -475,12 +477,15 @@ class Main(QObject):
 		self.load_widget.triggered.connect(self.load)
 		self.save_widget = QAction("Save Recording")
 		self.save_widget.triggered.connect(self.save)
+		self.script_execute_widget = QAction("Execute Script")
+		self.script_execute_widget.triggered.connect(self.script_ext.load)
 		self.conf_widget = QAction("Settings")
 		self.conf_widget.triggered.connect(self.settingsw_popup)
 		self.scrextaction = QAction("Scripts")
 		self.scrextaction.triggered.connect(self.scriptext_popup)
-
-		self.menu.addActions([self.toggle_rec_widget,self.toggle_play_widget,self.load_widget,self.save_widget,self.scrextaction,self.conf_widget])
+		self.filemenu.addActions([self.load_widget,self.save_widget,self.script_execute_widget])
+		self.menu.addMenu(self.filemenu)
+		self.menu.addActions([self.toggle_rec_widget,self.toggle_play_widget,self.scrextaction,self.conf_widget])
 
 		self.quitaction = QAction("Quit")
 		self.quitaction.triggered.connect(self.shutdown)
@@ -667,7 +672,6 @@ class Main(QObject):
 
 		self.settingsw_layout.setSpacing(4)
 		self.settingsw_hk_layout.setContentsMargins(0, 0, 0, 0)
-
 		self.settingsw_layout.addSpacing(15)
 
 		self.settingsw_save = QPushButton("Save configurations",self.settingsw)
