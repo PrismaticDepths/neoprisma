@@ -15,7 +15,8 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>
 """
 
-import os, sys,time, uuid, enum,math
+from typing import Any
+import os, sys,time, uuid, enum,math,functools
 
 if getattr(sys, "frozen", False):
 	EXEPATH = os.path.dirname(os.path.dirname(os.path.dirname(sys.executable)))
@@ -80,24 +81,32 @@ STATUSENUM_TO_STR = {ScriptStatusEnums.RUNNING:"running",ScriptStatusEnums.SLEEP
 
 class LuaSignal:
 	def __init__(self):
-		self._handlers = []
+		self._handlers = {}
 
-	def connect(self, func):
+	def connect(self, func, script):
 		if not callable(func):
 			raise TypeError("connect() requires a function.")
-		self._handlers.append(func)
+	
+		print("connect: got script ", script)
+		script.num_hooks += 1
+
+		if script not in self._handlers: self._handlers[script] = []
+		self._handlers[script].append(func)
 		# Using a safer way to disconnect in case the handler was already removed
-		return {"Disconnect": lambda: self._handlers.remove(func) if func in self._handlers else None}
+		return {"Disconnect": lambda: self._handlers[script].remove(func) if func in self._handlers[script] else None}
 
 	def fire(self, *args):
-		for handler in self._handlers:
-			# We use QThreadPool to ensure the UI thread stays free
-			# even if the Lua handler is doing heavy calculations.
-			QThreadPool.globalInstance().start(lambda h=handler, a=args: self._execute_handler(h, a))
+		for script,handler in self._handlers.items():
+			for func in handler:
+				# We use QThreadPool to ensure the UI thread stays free
+				# even if the Lua handler is doing heavy calculations.
+				QThreadPool.globalInstance().start(lambda h=func, a=args, s=script: self._execute_handler(h, a,s ))
 
-	def _execute_handler(self, handler, args):
+	def _execute_handler(self, handler, args, script):
 		try:
+			script.status = ScriptStatusEnums.RUNNING
 			handler(*args)
+			script.status = ScriptStatusEnums.SLEEPING
 		except Exception as e:
 			print(f"Error in Lua event handler: {e}")
 
@@ -130,8 +139,56 @@ class LUA_Neoprisma:
 		self.Keyboard = LUA_Keyboard(playback)
 		self.Mouse = LUA_Mouse(playback)
 		self.Clock = LUA_Clock()
-	
 
+UUID_INJECT_TYPES = (
+	LuaSignal
+)
+UUID_INJECT_METHODS = {
+	"LuaSignal": ["connect"]
+}
+	
+class _LUA_UUID_INJECTION_PROXY:
+
+	def __init__(self,target,uuid4):
+		object.__setattr__(self,"_target",target) #bypass getattribute to avoid loops
+		object.__setattr__(self,"_uuid4",uuid4) #bypass getattribute to avoid loops
+
+	def __getattribute__(self, name: str) -> Any:
+		
+		target = object.__getattribute__(self,"_target")
+		uuid4 = object.__getattribute__(self,"_uuid4")
+
+		attr = getattr(target,name)
+		class_name = target.__class__.__name__
+
+		if callable(attr) and not (isinstance(attr, type)):
+			
+			can_inject_type = isinstance(attr,UUID_INJECT_TYPES)
+			can_inject_method = class_name in UUID_INJECT_METHODS and name in UUID_INJECT_METHODS[class_name]
+
+			print(can_inject_type,can_inject_method)
+
+			if can_inject_type or can_inject_method:
+
+				@functools.wraps(attr)
+				def new_call(*args,**kwargs):
+					unwrapped_args = [arg._target if isinstance(arg, _LUA_UUID_INJECTION_PROXY) else arg for arg in args]
+					return attr(*unwrapped_args,uuid4,**kwargs)
+				return new_call
+			
+			@functools.wraps(attr)
+			def std_call(*args,**kwargs):
+				unwrapped_args = [arg._target if isinstance(arg, _LUA_UUID_INJECTION_PROXY) else arg for arg in args]
+				return _LUA_UUID_INJECTION_PROXY.wrap(attr(*unwrapped_args,**kwargs),uuid4)
+			return std_call
+		
+		return _LUA_UUID_INJECTION_PROXY.wrap(attr,uuid4)
+	
+	@classmethod
+	def wrap(cls, value, uuid4):
+		if value is None or isinstance(value, (str, int, float, bool, cls)):
+			return value
+		return cls(value,uuid4)
 
 class NeoprismaScriptingToolkit:
 
@@ -238,6 +295,7 @@ class Script:
 
 	def __init__(self,text,name):
 		self.uuid = uuid.uuid4()
+		self.num_hooks = 0
 		self.text = text
 		self.name = name
 		self.status = ScriptStatusEnums.SLEEPING
@@ -328,6 +386,7 @@ class Runner(QObject):
 		self.runtime = create_runtime(extras=self.kit.extras)
 		self.script_pool = {}
 		self.status_uis = {}
+		self.logcontents = []
 
 		self.refreshtimer = QTimer(self)
 		self.refreshtimer.setInterval(500)
@@ -345,7 +404,7 @@ class Runner(QObject):
 				widget.deleteLater()
 		for key, value in self.script_pool.items():
 			if key in self.status_uis:
-				self.status_uis[key].update_ui(value.status,0)
+				self.status_uis[key].update_ui(value.status,value.num_hooks)
 
 		#clear_layout(self.script_view)
 		#self.status_uis.clear()
@@ -362,10 +421,14 @@ class Runner(QObject):
 		stat_widget = ScriptStatus(script.name,script.status,0,script.started)
 		self.status_uis[script.uuid] = stat_widget
 		self.script_view.addWidget(stat_widget)
+		
+		extras = self.kit.extras.copy()
+		extras["Neoprisma"] = _LUA_UUID_INJECTION_PROXY(extras["Neoprisma"],script)
+		runtime = create_runtime(extras)
 
 		def inner():
-			success = script.execute(self.runtime,self)
-			if success: del self.script_pool[script.uuid]
+			success = script.execute(runtime,self)
+			if success and script.num_hooks==0: del self.script_pool[script.uuid]
 		QThreadPool.globalInstance().start(inner)
 		
 	def hide(self):
@@ -374,6 +437,7 @@ class Runner(QObject):
 	def log(self,name:str,uuid:str,text:str):
 		import time
 		print(f"[{time.strftime("%H:%M:%S")}] ({uuid}) {name}: {text}")
+		self.logcontents.append(f"[{time.strftime("%H:%M:%S")}] ({uuid}) {name}: {text}")
 		
 
 	def load(self):

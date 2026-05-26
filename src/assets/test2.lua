@@ -1,3 +1,4 @@
-Neoprisma.Mouse.onMouseScrolled.connect(function(x,y,dx,dy)
-	Neoprisma.Mouse.moveMouseAbsolute(20,20)
+Neoprisma.Mouse.onMouseMoved.connect(function(x,y)
+	print(x,y)
+	Neoprisma.Clock.sleep(1)
 end)
