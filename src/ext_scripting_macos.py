@@ -292,6 +292,9 @@ class ScriptStatus(QWidget):
 		self.status_button = QPushButton("")
 		self.status_button.setFixedSize(16,16)
 
+		self.status_button.enterEvent = lambda event: self.status_button.setText("X")
+		self.status_button.leaveEvent = lambda event: self.status_button.setText("")
+
 		def tmp():
 			self.terminate=True
 		self.status_button.released.connect(tmp)

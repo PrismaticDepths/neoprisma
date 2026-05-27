@@ -271,6 +271,7 @@ MASTER_STYLESHEET = """
 	QPushButton#status-green {
 		border-radius: 8px;
 		background-color: #32FF64;
+		color: #000000;
 		border: 1px solid #000000;
 		width: 16px;
    		height: 16px;
@@ -284,6 +285,7 @@ MASTER_STYLESHEET = """
 	QPushButton#status-yellow {
 		border-radius: 8px;
 		background-color: #FFFA05;
+		color: #000000;
 		border: 1px solid #000000;
 		width: 16px;
    		height: 16px;
