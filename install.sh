@@ -321,6 +321,7 @@ run_step "Building application bundle" $PYTHON_EXE -m PyInstaller \
 	--hidden-import=Quartz.CoreText \
 	--hidden-import=Cocoa \
 	--hidden-import=ApplicationServices \
+	--collect-data lupa \
 	src/main.py
 
 echo "Finalizing... "
