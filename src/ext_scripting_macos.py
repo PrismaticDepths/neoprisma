@@ -144,7 +144,8 @@ UUID_INJECT_TYPES = (
 	LuaSignal
 )
 UUID_INJECT_METHODS = {
-	"LuaSignal": ["connect"]
+	"LuaSignal": ["connect"],
+	"Runner": ["warn","error","info"]
 }
 	
 class _LUA_UUID_INJECTION_PROXY:
@@ -189,7 +190,13 @@ class _LUA_UUID_INJECTION_PROXY:
 		if value is None or isinstance(value, (str, int, float, bool, cls)):
 			return value
 		return cls(value,uuid4)
+def _LUA_UUID_INJECTION_STANDALONE_WRAPPER(target,value):
 
+	@functools.wraps(target)
+	def new_call(*args,**kwargs):
+		unwrapped_args = [ object.__getattribute__(arg,"_target") if arg.__class__.__name__ == "_LUA_UUID_INJECTION_PROXY" else arg for arg in args]
+		return target(*unwrapped_args,value,**kwargs)
+	return new_call
 class NeoprismaScriptingToolkit:
 
 	def __init__(self,playback):
@@ -221,9 +228,16 @@ def create_runtime(extras=None):
 
 	lua_globals = runtime.globals()
 
-	unsafe_globals = ["os", "io", "package", "debug", "require", "module"]
+	import copy
+	lua_globals["_error"] = lua_globals["error"]
+	lua_globals["_warn"] = lua_globals["warn"]
+
+
+	unsafe_globals = ["os", "io", "package", "debug", "require", "module","error","warn"]
 	for name in unsafe_globals:
 		lua_globals[name] = None
+	
+
 
 	lua_globals["math"] = lua_globals.math
 	lua_globals["string"] = lua_globals.string
@@ -307,7 +321,7 @@ class Script:
 		try:
 			runtime.execute(self.text,self.uuid)
 		except Exception as e:
-			runner.log(self.name,str(self.uuid),e)
+			runner.error(e,self)
 			self.status = ScriptStatusEnums.INTERRUPTED
 			return False
 		else:
@@ -327,6 +341,10 @@ def clear_layout(layout):
 
 class RefreshWorker(QObject):
 	signal = pyqtSignal()
+class LogWorker(QObject):
+	warn = pyqtSignal(str)
+	info = pyqtSignal(str)
+	error = pyqtSignal(str)
 
 class Runner(QObject):
 
@@ -342,6 +360,32 @@ class Runner(QObject):
 		self.script_scroll_content = QWidget(); self.script_scroll_content.setLayout(self.script_view)
 		self.script_scroll = QScrollArea(); self.script_scroll.setWidget(self.script_scroll_content); self.script_scroll.setWidgetResizable(True)
 
+		self.logw = QWidget()
+		self.logw.setBaseSize(500,750)
+		self.logw_layout = QVBoxLayout()
+		self.logw.setLayout(self.logw_layout)
+		self.logw.setWindowTitle("Script Log")
+		
+		#self.logw_scroll_content = QWidget(); self.logw_scroll_content.setLayout(self.logw_layout)
+		self.logw_scroll = QScrollArea(); self.logw_scroll.setWidget(self.logw); self.logw_scroll.setWidgetResizable(True)
+		self.logw_scroll.setWindowTitle("Script Log")
+		self.logw.setStyleSheet("""QLabel, QWidget {
+		background-color: #1A1A1A;
+		font-family: 'Courier New', monospace;
+		font-size: 10pt;
+		border: 1px solid #2A2A2A;
+		border-radius: 1px;
+		text-align: left;
+		padding: 0px;
+		color: #FFFFFF; } """)
+		self.logw_layout.setContentsMargins(0,0,0,0)
+		self.logw_layout.setSpacing(0)
+		self.logw_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+		def autoscroll():
+			scroll_bar=self.logw_scroll.verticalScrollBar()
+			scroll_bar.setValue(scroll_bar.maximum())
+		self.logw_scroll.verticalScrollBar().rangeChanged.connect(autoscroll)
+
 		# Set up bottom 4 buttons 
 		self.bottom_layout_outer = QVBoxLayout()
 		self.bottom_layout_up = QHBoxLayout()
@@ -356,6 +400,8 @@ class Runner(QObject):
 		self.execute_btn = QPushButton("Run New")
 		self.execute_btn.released.connect(self.load)
 		self.log_btn = QPushButton("Open Log")
+		self.log_btn.released.connect(self.show_log)
+
 		self.bottom_layout_up.addWidget(self.execute_btn)
 		self.bottom_layout_up.addWidget(self.log_btn)
 
@@ -365,21 +411,26 @@ class Runner(QObject):
 		self.bottom_layout_down.addWidget(self.terminate_all_btn)
 		self.bottom_layout_down.addWidget(self.exit_btn)
 
+ 
 		# Add header
-
+ 
 		running_label = QLabel("Script Monitor")
 		running_label.setStyleSheet("font-weight: bold; color: white;")
 		running_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
 		self.mainw_layout.addWidget(running_label)
-
+ 
 		self.mainw_layout.addSpacing(10)
-
+ 
 		self.mainw_layout.addWidget(self.script_scroll)
 
 		self.mainw_layout.addLayout(self.bottom_layout_outer)
-
+  
 		self.refreshworker = RefreshWorker()
 		self.refreshworker.signal.connect(self.refresh)
+		self.logworker = LogWorker()
+		self.logworker.info.connect(self._info)
+		self.logworker.warn.connect(self._warn)
+		self.logworker.error.connect(self._error)
 
 		import playback
 		self.kit = NeoprismaScriptingToolkit(playback)
@@ -388,10 +439,20 @@ class Runner(QObject):
 		self.status_uis = {}
 		self.logcontents = []
 
+		self.system_message_script = Script("print()","Neoprisma")
+		self.system_message_script.uuid = "000000"
+		self.info("Script output/errors will show here.",self.system_message_script)
+
 		self.refreshtimer = QTimer(self)
 		self.refreshtimer.setInterval(500)
 		self.refreshtimer.timeout.connect(self.refresh)
 		self.refreshtimer.start()
+
+	def show_log(self):
+		self.logw_scroll.show()
+		self.logw.show()
+		self.logw.raise_()
+		self.logw_scroll.raise_()
 
 	def refresh(self):
 		if len(self.status_uis)+len(self.script_pool) == 0: return
@@ -421,9 +482,14 @@ class Runner(QObject):
 		stat_widget = ScriptStatus(script.name,script.status,0,script.started)
 		self.status_uis[script.uuid] = stat_widget
 		self.script_view.addWidget(stat_widget)
+
+		self.info("Starting to run!",script)
 		
 		extras = self.kit.extras.copy()
 		extras["Neoprisma"] = _LUA_UUID_INJECTION_PROXY(extras["Neoprisma"],script)
+		extras["info"] = _LUA_UUID_INJECTION_STANDALONE_WRAPPER(self.info,script)
+		extras["warn"] = _LUA_UUID_INJECTION_STANDALONE_WRAPPER(self.warn,script)
+		extras["error"] = _LUA_UUID_INJECTION_STANDALONE_WRAPPER(self.error,script)
 		runtime = create_runtime(extras)
 
 		def inner():
@@ -434,11 +500,49 @@ class Runner(QObject):
 	def hide(self):
 		self.mainw.close()
 		
-	def log(self,name:str,uuid:str,text:str):
+	def _info(self,text:str):
 		import time
-		print(f"[{time.strftime("%H:%M:%S")}] ({uuid}) {name}: {text}")
-		self.logcontents.append(f"[{time.strftime("%H:%M:%S")}] ({uuid}) {name}: {text}")
-		
+		print(text)
+		self.logcontents.append(QLabel(text))
+		self.logw_layout.addWidget(self.logcontents[-1])
+	def _warn(self,text:str):
+		import time
+		print(text)
+		self.logcontents.append(QLabel(text))
+		self.logcontents[-1].setStyleSheet("""QLabel, QWidget {
+		background-color: #1A1A1A;
+		font-family: 'Courier New', monospace;
+		font-size: 10pt;
+		border: 1px solid #2A2A2A;
+		border-radius: 1px;
+		text-align: left;
+		padding: 0px;
+		color: #FFFF00; } """)
+		self.logw_layout.addWidget(self.logcontents[-1])
+	def _error(self,text:str):
+		import time
+		print(text)
+		self.logcontents.append(QLabel(text))
+		self.logcontents[-1].setStyleSheet("""QLabel, QWidget {
+		background-color: #1A1A1A;
+		font-family: 'Courier New', monospace;
+		font-size: 10pt;
+		border: 1px solid #2A2A2A;
+		border-radius: 1px;
+		text-align: left;
+		padding: 0px;
+		color: #FF0000; } """)
+		self.logw_layout.addWidget(self.logcontents[-1])
+
+	def info(self,text:str,script:Script):
+		stamp = f"[{time.strftime("%H:%M:%S")}] ({str(script.uuid)[:7]}...) {script.name}: {text}"
+		self.logworker.info.emit(stamp)
+	def warn(self,text:str,script:Script):
+		stamp = f"[{time.strftime("%H:%M:%S")}] ({str(script.uuid)[:7]}...) {script.name}: {text}"
+		self.logworker.warn.emit(stamp)
+	def error(self,text:str,script:Script):
+		stamp = f"[{time.strftime("%H:%M:%S")}] ({str(script.uuid)[:7]}...) {script.name}: {text}"
+		self.logworker.error.emit(stamp)
 
 	def load(self):
 

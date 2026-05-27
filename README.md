@@ -128,7 +128,7 @@ A lot of the Neoprisma-defined functions and their arguments can be found in `sr
 A list of functions and objects is also provided below. It should hopefully be up to date. (If you think it's missing something, now you know where to look.)
 
 > **[ℹ]** **Notice**\
-> All scripts are ran within the same runtime. Scope your variables as local to avoid conflicts with other scripts.
+> Since Neoprisma implements its own log functions, the builtin lua `error` and `warning` objects have been renamed to `_error` and `_warning` respsectively. Additionally, the standard print() function does not print to the Script Log.
 
 ### API
 
@@ -166,6 +166,11 @@ class Neoprisma:
   class Clock: # Functions for monitoring time
 
     def time(): ... # Equivalent to Python's time.time()
+    def sleep(): ... # Sleeps the current QThread. DO NOT USE THIS IN SIGNAL CALLBACK!
+  
+def info(text:str): ... # Prints to the Neoprisma script log.
+def warn(text:str): ... # Prints to the Neoprisma script log in yellow text.
+def error(text:str): ... # Prints to the Neoprisma script log in red text. (Doesn't actually raise an error though.)
 ```
 
 ### Example Scripts
@@ -201,6 +206,14 @@ Neoprisma.Keyboard.onKeyRelease.connect(function(vk)
  end
 end)
 ```
+
+### Notes
+
+#### Argument Injection
+
+Some functions, eg. signal `connect()` functions, require a `ext_scripting_<platform>.Script` object passed as their last argument. This is for internal reasons, and allows Neoprisma to track things like a script's number active hooks, its status, and more. Having to pass an arbitrary variable every time you call specific function is obviously not very elegant, and generally will make things more confusing for users.
+
+To solve this, Neoprisma wraps those functions and silently injects the argument behind the scenes.
 
 ## Known Issues
 
