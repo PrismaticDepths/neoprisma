@@ -80,8 +80,15 @@ class ScriptStatusEnums(enum.Enum):
 STATUSENUM_TO_STR = {ScriptStatusEnums.RUNNING:"running",ScriptStatusEnums.SLEEPING:"sleeping",ScriptStatusEnums.INTERRUPTED:"interrupted"}
 
 class LuaSignal:
-	def __init__(self):
+	def __init__(self,terminationhelper):
 		self._handlers = {}
+		terminationhelper.single_script.connect(self.terminate_single_script)
+		terminationhelper.all_scripts.connect(self.terminate_all_scripts)
+
+	def terminate_single_script(self,script):
+		if script in self._handlers: del self._handlers[script] 
+	def terminate_all_scripts(self):
+		self._handlers.clear()
 
 	def connect(self, func, script):
 		if not callable(func):
@@ -108,19 +115,20 @@ class LuaSignal:
 			handler(*args)
 			script.status = ScriptStatusEnums.SLEEPING
 		except Exception as e:
-			print(f"Error in Lua event handler: {e}")
+			script.error_func(e,script)
+			script.status = ScriptStatusEnums.SLEEPING
 
 class LUA_Keyboard:
-	def __init__(self,playback):
-		self.onKeyPress = LuaSignal() # args: vk
-		self.onKeyRelease = LuaSignal() # args: vk
+	def __init__(self,playback,termhelper):
+		self.onKeyPress = LuaSignal(termhelper) # args: vk
+		self.onKeyRelease = LuaSignal(termhelper) # args: vk
 		self.keyStatus = playback.keyStatus # args: vk, bool
 class LUA_Mouse:
-	def __init__(self,playback):
-		self.onMouseDown = LuaSignal() # args: button,x,y
-		self.onMouseUp = LuaSignal() # args: button,x,y
-		self.onMouseMoved = LuaSignal() # args: x,y
-		self.onMouseScrolled = LuaSignal() # args: x,y,dx,dy
+	def __init__(self,playback,termhelper):
+		self.onMouseDown = LuaSignal(termhelper) # args: button,x,y
+		self.onMouseUp = LuaSignal(termhelper) # args: button,x,y
+		self.onMouseMoved = LuaSignal(termhelper) # args: x,y
+		self.onMouseScrolled = LuaSignal(termhelper) # args: x,y,dx,dy
 
 		self.moveMouseAbsolute = playback.moveMouseAbsolute
 		self.warpMouseAbsolute = playback.warpMouseAbsolute
@@ -135,9 +143,9 @@ class LUA_Clock:
 		self.sleep = lambda t: QThread.currentThread().sleep(t)
 
 class LUA_Neoprisma:
-	def __init__(self,playback):
-		self.Keyboard = LUA_Keyboard(playback)
-		self.Mouse = LUA_Mouse(playback)
+	def __init__(self,playback,termhelper):
+		self.Keyboard = LUA_Keyboard(playback,termhelper)
+		self.Mouse = LUA_Mouse(playback,termhelper)
 		self.Clock = LUA_Clock()
 
 UUID_INJECT_TYPES = (
@@ -199,10 +207,10 @@ def _LUA_UUID_INJECTION_STANDALONE_WRAPPER(target,value):
 	return new_call
 class NeoprismaScriptingToolkit:
 
-	def __init__(self,playback):
+	def __init__(self,playback,termhelper):
 		import copy
 		self.playback = playback
-		self.LUA_Neoprisma = LUA_Neoprisma(self.playback)
+		self.LUA_Neoprisma = LUA_Neoprisma(self.playback,termhelper)
 		self.extras={}
 		self.extras["Neoprisma"] = self.LUA_Neoprisma
 
@@ -215,7 +223,7 @@ class NeoprismaScriptingToolkit:
 	def _signal_mousescroll(self,x,y,dx,dy):
 		self.LUA_Neoprisma.Mouse.onMouseScrolled.fire(x,y,dx,dy) 
 
-def create_runtime(extras=None):
+def create_runtime(extras=None,instruction_hook=None):
 	def attribute_filter(obj, attr_name, is_setting):
 		if isinstance(attr_name, str) and attr_name.startswith('_') or attr_name.endswith('_'):
 			raise AttributeError("Access to private/internal attributes (attributes starting with an underscore, in other words) is denied. This is for security purposes, however if you believe you have found a bug, please report it.")
@@ -223,10 +231,15 @@ def create_runtime(extras=None):
 	
 	runtime = lupa.LuaRuntime(
 		register_builtins=False,
-		attribute_filter=attribute_filter
+		register_eval=False,
+		attribute_filter=attribute_filter,
+		max_memory=1000000
 	)
 
 	lua_globals = runtime.globals()
+
+	if instruction_hook is not None:
+		runtime.eval("function(x) debug.sethook(python.as_function(x),'',10) end")(instruction_hook)
 
 	import copy
 	lua_globals["_error"] = lua_globals["error"]
@@ -260,6 +273,7 @@ class ScriptStatus(QWidget):
 		self.status=status
 		self.num_hooks = num_hooks
 		self.start = start
+		self.terminate = False
 
 		self.status_layout = QHBoxLayout(self)
 
@@ -277,6 +291,10 @@ class ScriptStatus(QWidget):
 		
 		self.status_button = QPushButton("")
 		self.status_button.setFixedSize(16,16)
+
+		def tmp():
+			self.terminate=True
+		self.status_button.released.connect(tmp)
 
 		self.status_layout.addLayout(self.status_layout2)
 		self.status_layout.addWidget(self.status_button)
@@ -307,21 +325,24 @@ class ScriptStatus(QWidget):
 
 class Script:
 
-	def __init__(self,text,name):
+	def __init__(self,text,name,error_func):
 		self.uuid = uuid.uuid4()
 		self.num_hooks = 0
 		self.text = text
 		self.name = name
 		self.status = ScriptStatusEnums.SLEEPING
 		self.started = int(time.time())
+		import copy
+		self.error_func = copy.copy(error_func)
+		self.terminate=False
 
-	def execute(self,runtime,runner:Runner):
+	def execute(self,runtime):
 		self.status = ScriptStatusEnums.RUNNING
 		#runner.refreshworker.signal.emit()
 		try:
 			runtime.execute(self.text,self.uuid)
 		except Exception as e:
-			runner.error(e,self)
+			self.error_func(e,self)
 			self.status = ScriptStatusEnums.INTERRUPTED
 			return False
 		else:
@@ -345,6 +366,11 @@ class LogWorker(QObject):
 	warn = pyqtSignal(str)
 	info = pyqtSignal(str)
 	error = pyqtSignal(str)
+class ScriptTerminationWorker(QObject):
+	single_script = pyqtSignal(object)
+	all_scripts = pyqtSignal()
+
+terminationhelper = ScriptTerminationWorker()
 
 class Runner(QObject):
 
@@ -406,6 +432,7 @@ class Runner(QObject):
 		self.bottom_layout_up.addWidget(self.log_btn)
 
 		self.terminate_all_btn = QPushButton("Terminate All")
+		self.terminate_all_btn.released.connect(self.terminate_all)
 		self.exit_btn = QPushButton("Exit")
 		self.exit_btn.released.connect(self.mainw.close)
 		self.bottom_layout_down.addWidget(self.terminate_all_btn)
@@ -433,13 +460,13 @@ class Runner(QObject):
 		self.logworker.error.connect(self._error)
 
 		import playback
-		self.kit = NeoprismaScriptingToolkit(playback)
+		self.kit = NeoprismaScriptingToolkit(playback,terminationhelper)
 		self.runtime = create_runtime(extras=self.kit.extras)
 		self.script_pool = {}
 		self.status_uis = {}
 		self.logcontents = []
 
-		self.system_message_script = Script("print()","Neoprisma")
+		self.system_message_script = Script("print()","Neoprisma",self.error)
 		self.system_message_script.uuid = "000000"
 		self.info("Script output/errors will show here.",self.system_message_script)
 
@@ -458,6 +485,7 @@ class Runner(QObject):
 		if len(self.status_uis)+len(self.script_pool) == 0: return
 
 		keys = list(self.status_uis.keys())
+		terminate = []
 		for script_uuid in keys:
 			if script_uuid not in self.script_pool:
 				widget = self.status_uis.pop(script_uuid)
@@ -466,6 +494,9 @@ class Runner(QObject):
 		for key, value in self.script_pool.items():
 			if key in self.status_uis:
 				self.status_uis[key].update_ui(value.status,value.num_hooks)
+				if self.status_uis[key].terminate: terminate.append(value)
+		for v in terminate: self.terminate_single(v)
+
 
 		#clear_layout(self.script_view)
 		#self.status_uis.clear()
@@ -476,6 +507,16 @@ class Runner(QObject):
 		#	self.status_uis[value.uuid] = stat
 		#	self.script_view.addLayout(stat.status_layout2)
 
+	def terminate_all(self):
+		self.warn("Terminating all scripts!",self.system_message_script)
+		for script in self.script_pool.values(): script.terminate = True
+		terminationhelper.all_scripts.emit()
+		self.script_pool.clear()
+	def terminate_single(self,script):
+		self.warn(f"Terminating script {script.name} with UUID {script.uuid}",self.system_message_script)
+		script.terminate = True
+		terminationhelper.single_script.emit(script)
+		del self.script_pool[script.uuid]
 
 	def run(self,script:Script): #name,text):
 		self.script_pool[script.uuid] = script
@@ -490,11 +531,20 @@ class Runner(QObject):
 		extras["info"] = _LUA_UUID_INJECTION_STANDALONE_WRAPPER(self.info,script)
 		extras["warn"] = _LUA_UUID_INJECTION_STANDALONE_WRAPPER(self.warn,script)
 		extras["error"] = _LUA_UUID_INJECTION_STANDALONE_WRAPPER(self.error,script)
-		runtime = create_runtime(extras)
+
+		def hook(*args):
+			if script.terminate: 
+				raise InterruptedError("Script terminated by runner.")
+
+		runtime = create_runtime(extras,instruction_hook=hook)
 
 		def inner():
-			success = script.execute(runtime,self)
-			if success and script.num_hooks==0: del self.script_pool[script.uuid]
+			success = script.execute(runtime)
+			if success:
+				if script.num_hooks==0:
+					del self.script_pool[script.uuid]
+				else:
+					script.status = ScriptStatusEnums.SLEEPING
 		QThreadPool.globalInstance().start(inner)
 		
 	def hide(self):
@@ -584,7 +634,7 @@ class Runner(QObject):
 		padding: 5px;
 		color: #FFFFFF;
 	}""")
-				box.addButton(QMessageBox.StandardButton.Yes).released.connect(lambda: self.run(Script(dat,Path(file).name)))
+				box.addButton(QMessageBox.StandardButton.Yes).released.connect(lambda: self.run(Script(dat,Path(file).name,self.error)))
 				box.addButton(QMessageBox.StandardButton.No)
 				box.exec()
 		except:
