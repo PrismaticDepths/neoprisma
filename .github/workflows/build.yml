@@ -22,9 +22,9 @@ jobs:
         with:
           python-version: "3.14"
 
-
       - name: Build
         run: |
+          echo "header = \"Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}\"" >> ~/.curlrc
           curl -fsSL https://raw.githubusercontent.com/PrismaticDepths/neoprisma/stable/install.sh | $SHELL -s -- -y YES -s YES -i "${{ github.workspace }}/npadist" -b "${{ github.workspace }}/npabuild"
       
       - name: Tar app bundle
