@@ -606,7 +606,7 @@ class Runner(QObject):
 				box = QMessageBox()
 				box.setIcon(QMessageBox.Icon.Information)
 				box.setText("Do you want to run this script?")
-				box.setInformativeText("Make sure this script is safe!\nNeoprisma does its best to sandbox scripts, but malicious code execution is a possibility.\nClick \"Show Details...\" to see the code you are about to run.")
+				box.setInformativeText("Make sure this script is safe!!!!\nNeoprisma does its best to sandbox scripts, but malicious code execution is a possibility.\nClick \"Show Details...\" to see the code you are about to run.")
 				box.setDetailedText(dat)
 				box.setStyleSheet("""QWidget {
 		background-color: #303030;

@@ -41,7 +41,7 @@ Ironically, only MacOS is currently supported, however cross-platform support is
 | - | - | - |
 | Autoclick | <ul><li>- [ ] </li></ul> | Delay can be adjusted, but only left clicking is supported. | 
 | Tasks/Macros | <ul><li>- [x] </li></ul> | Record nearly any sequence of keyboard and mouse inputs. Adjustable playback speed. Tasks can be saved and loaded from files.  |
-| Scripting/Full automation | <ul><li>- [ ] </li></ul> | Planned. |
+| Scripting/Full automation | <ul><li>- [ ] </li></ul> | Monitor and control the keyboard and mouse. Uses Lua; fully scriptable. More will be added to the API in the future |
 | Interface | <ul><li>- [x] </li></ul> | Primarily system tray based, but has normal UI too. Features automatic update prompting, and dedicated settings window. Icon auto-hides from the dock. |
 | Hotkeys | <ul><li>- [x] </li></ul> | Highly configurable. Bugs are still present, however they will be worked out sooner than later. |
 | Installer | <ul><li>- [x] </li></ul> | Build from source or download precompiled bundles. The installer will do everything for you with helpful visuals along the way. |
@@ -136,7 +136,6 @@ A list of functions and objects is also provided below. It should hopefully be u
 
 > **[ℹ]** **Notice**\
 > Many of the below functions enforce strict typing. Simply passing a float instead of an integer *can* and *will* raise an error.
-
 
 ```py
 # The API, with objects replaced by stubs or simplified for brevity. This would be turned into a Lua object by Lupa.
