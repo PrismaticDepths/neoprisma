@@ -1026,6 +1026,7 @@ class Main(QObject):
 			time.sleep(self.cps)
 	def _INNER_toggle_autoclicker_intelligent(self):
 		
+		passed_target = False
 		added_delay = 0
 		total = 0
 		counter = 0
@@ -1043,8 +1044,10 @@ class Main(QObject):
 			#added_delay = min(0,(self.cps*multiplier)-(t-last_timestamp))
 			if total/counter > self.cps: 
 				multiplier-=0.001
+				if not passed_target: passed_target = True
 			elif (total/counter)+0.001 < self.cps:
 				multiplier+=0.001
+				if not passed_target: multiplier+=0.999
 			#print("New added delay:",added_delay,"Resulting delay:",self.cps+added_delay,"Average actual delay:",total/counter,"mult:",multiplier)
 
 	def load(self):
