@@ -600,7 +600,7 @@ class Runner(QObject):
 	def load(self):
 
 		try:
-			file, _ = QFileDialog.getOpenFileName(None,"Select a script to load",filter="Lua Scripts (*.lua);;All Files (*)")
+			file, _ = QFileDialog.getOpenFileName(None,"Select a script to load","",filter="Lua Scripts (*.lua);;All Files (*)")
 			with open(file,"r") as fstream:
 				dat = fstream.read()
 				box = QMessageBox()

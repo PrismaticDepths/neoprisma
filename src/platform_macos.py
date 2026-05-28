@@ -1050,7 +1050,7 @@ class Main(QObject):
 	def load(self):
 
 		try:
-			file, _ = QFileDialog.getOpenFileName(None,"Select a recording to load",filter="Recordings (*.neop);;All Files (*)")
+			file, _ = QFileDialog.getOpenFileName(None,"Select a recording to load","",filter="Recordings (*.neop);;All Files (*)")
 			if file == "": return
 			else:
 				with open(file,"rb") as fstream:
@@ -1068,7 +1068,7 @@ class Main(QObject):
 	def save(self):
 
 		try:
-			file, _ = QFileDialog.getSaveFileName(None,"Select a location to save your recording",filter="Recordings (*.neop)")
+			file, _ = QFileDialog.getSaveFileName(None,"Select a location to save your recording","",filter="Recordings (*.neop)")
 			if file == "": return
 			else:
 				with open(file,"wb") as fstream:
