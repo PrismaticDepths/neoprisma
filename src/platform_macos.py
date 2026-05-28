@@ -400,6 +400,7 @@ class Main(QObject):
 		self.hotkey_record_buffer = set()
 		self.hotkey_lookup = {}
 		self.hotkey_edit_label = ""
+		self.windows_open=0
 		self.cps = (1/100)
 		self.keysdown = set()
 		self.hotkeys = {
@@ -687,6 +688,9 @@ class Main(QObject):
 		self.settingsw_scroll.closeEvent = self.anyw_close
 
 		self.script_ext.mainw.closeEvent = self.anyw_close
+		self.script_ext.logw.closeEvent = self.anyw_close
+		self.script_ext.logw_scroll.closeEvent = self.anyw_close
+		self.script_ext.log_btn.released.connect(self.anyw_open)
 
 		self.tray.setContextMenu(self.menu)
 
@@ -774,16 +778,22 @@ class Main(QObject):
 		self.script_ext.mainw.raise_()
 
 	def anyw_open(self):
+		
 		import AppKit
 		AppKit.NSApp.setActivationPolicy_(AppKit.NSApplicationActivationPolicyRegular)
+		self.windows_open+=1
 
 	def anyw_close(self, event:QEvent):
+		
+		self.windows_open-=1
 		if not self.conf_data["HIDE_APP_ICON"].real_value:
 			event.accept()
 			return
-		import AppKit
-		AppKit.NSApp.setActivationPolicy_(AppKit.NSApplicationActivationPolicyAccessory)
-		event.accept()
+		else:
+			if self.windows_open<=0:
+				import AppKit
+				AppKit.NSApp.setActivationPolicy_(AppKit.NSApplicationActivationPolicyAccessory)
+			event.accept()
 
 	def upd_speed(self,x):
 		if x == 0: return
