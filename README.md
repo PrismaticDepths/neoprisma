@@ -218,13 +218,14 @@ end)
 
 Some functions, eg. signal `connect()` functions, require a `ext_scripting_<platform>.Script` object passed as their last argument. This is for internal reasons, and allows Neoprisma to track things like a script's number active hooks, its status, and more. Having to pass an arbitrary variable every time you call specific function is obviously not very elegant, and generally will make things more confusing for users.
 
-To solve this, Neoprisma wraps those functions and silently injects the argument behind the scenes.
+To solve this, Neoprisma wraps those functions and silently injects the argument behind the scenes, so that you don't need to do it yourself. (Knowing this doesn't really affect the user experience for scripts, it's just fun trivia.)
 
 ## Known Issues
 
 Hotkeys used to toggle recording are written into recordings. Neoprisma has safeguards to prevent any hotkeys contained in recordings from activating anything within itself, however if a hotkey in a recording conflicts with a hotkey from a different app, there is no guarantee that said app will ignore it. I plan to address this later, and also add suppression so that hotkeys won't also go to other apps when you trigger them.
 
 Hotkeys sometimes become unresponsive. The only solution I have found to this is to spam all of the hotkeys. \
+(This seems to have been fixed in later versions.) \
 Alternatively, the "Abort Playback On Input" setting can be used, which will stop playback if you press a key. The apps own inputs should not trigger this.
 You can also use the command-tab switcher to go to Neoprisma and quit it with `<command>+<q>` if you need.
 
