@@ -267,9 +267,7 @@ run_step "Cloning repo into build dir" git clone -b "$BRANCH" https://github.com
 
 cd "$BUILD_DIR"
 
-TAG_NAME=$(curl -s "https://api.github.com/repos/PrismaticDepths/neoprisma/releases/latest" | \
-	grep '"tag_name":' | \
-	sed -E 's/.*"([^"]+)".*/\1/')
+TAG_NAME=$(curl -s "https://api.github.com/repos/PrismaticDepths/neoprisma/releases/latest" | sed -n 's/.*"tag_name": *"\([^"]*\)".*/\1/p')
 LATEST_VERSION="${TAG_NAME:-}"
 
 if [[ -z "$LATEST_VERSION" ]]; then

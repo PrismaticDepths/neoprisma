@@ -229,7 +229,6 @@ Hotkeys sometimes become unresponsive. The only solution I have found to this is
 Alternatively, the "Abort Playback On Input" setting can be used, which will stop playback if you press a key. The apps own inputs should not trigger this.
 You can also use the command-tab switcher to go to Neoprisma and quit it with `<command>+<q>` if you need.
 
-
 ## Performance
 
 When idle, CPU usage and RAM are very low. However, CPU usage spikes upon mouse movement and keyboard activity, to about 10% of a single core (tested on an M3 Pro). Neoprisma isn't actually optimized for either, and mostly optimized for accurate playback, however there is room to improve here and hence this will probably be improved someday.
