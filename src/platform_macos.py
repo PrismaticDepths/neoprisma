@@ -44,7 +44,7 @@ def crash(headline="Neoprisma encountered an error and has to crash.",detail="No
 		QApplication,
 		QMessageBox
 	)
-	import os,sys,traceback
+	import os,sys,traceback,platform,time
 	app = QApplication.instance()
 	if app is None: app = QApplication(sys.argv)
 	box = QMessageBox()
@@ -56,6 +56,8 @@ Report generated in file: `{__name__}`
 Crash headline: {headline}
 Shorthand crash detail: {detail}
 Neoprisma version: {__version__}
+Time of crash: {time.asctime(time.localtime())}
+Platform: {platform.platform()}
 Exit code: {exit_code}
 --- Traceback ---
 {error_msg if error_msg != "" else traceback.format_exc()}""")
@@ -106,7 +108,7 @@ import traceback
 import time
 from threading import Thread
 from PyQt6.QtGui import QAction,QIcon
-from PyQt6.QtCore import QObject,pyqtSignal, QTimer, Qt, QEvent,QPoint
+from PyQt6.QtCore import QObject,pyqtSignal, QTimer, Qt, QEvent,QPoint,QThread
 from PyQt6.QtWidgets import (
 	QApplication,
 	QSystemTrayIcon,
@@ -127,7 +129,7 @@ from PyQt6.QtWidgets import (
 	QMenuBar,
 	QSizePolicy,
 	QScrollArea,
-	QToolTip
+	QToolTip,
 )
 
 
@@ -138,7 +140,7 @@ try:
 	import recorder
 	import globalconfwizard
 	# Extensions
-	#import ext_scripting_macos
+	import ext_scripting_macos
 	#import ext_editor_macos
 	from globalconfwizard import CNVKeyset,CNVString,CNVType,CNVBoolean,CNVInteger,CNVFloat
 except Exception:
@@ -236,6 +238,10 @@ MASTER_STYLESHEET = """
 		font-weight: bold;
 		font-size: 16px;
 	}
+	QLabel#script-status-long {
+		color: #BDBDBD;
+		font-size: 8px;
+	}
 	QPushButton#info-popup {
 		border-radius: 8px;
 		background-color: #535353;
@@ -249,6 +255,48 @@ MASTER_STYLESHEET = """
 	}
 	QPushButton:hover#info-popup {
 	}
+	QPushButton#status-red {
+		border-radius: 8px;
+		background-color: #FF0000;
+		border: 1px solid #000000;
+		width: 16px;
+   		height: 16px;
+		margin: 0;
+        padding: 0;
+	}
+	QPushButton:pressed#status-red {
+	}
+	QPushButton:hover#status-red {
+	}
+	QPushButton#status-green {
+		border-radius: 8px;
+		background-color: #32FF64;
+		color: #000000;
+		border: 1px solid #000000;
+		width: 16px;
+   		height: 16px;
+		margin: 0;
+        padding: 0;
+	}
+	QPushButton:pressed#status-green {
+	}
+	QPushButton:hover#status-green {
+	}
+	QPushButton#status-yellow {
+		border-radius: 8px;
+		background-color: #FFFA05;
+		color: #000000;
+		border: 1px solid #000000;
+		width: 16px;
+   		height: 16px;
+		margin: 0;
+        padding: 0;
+	}
+	QPushButton:pressed#status-yellow {
+	}
+	QPushButton:hover#status-yellow {
+	}
+	
 """
 
 MACOS_VK_MAP = {
@@ -269,9 +317,11 @@ CN_CONFIGURATION_DEFAULTS = {
 	"RELEASE_CHANNEL":CNVString("stable"),
 	"ABORT_PLAYBACK_ON_INPUT":CNVBoolean(False,description="Stops playback immediately upon any\nuser generated (authentic) keyboard input.",category="Playback"),
 	"HIDE_APP_ICON":CNVBoolean(True,description="If no UI elements (like this settings window) are open,\nhides the app icon from the dock and excludes from the command-tab switcher.",category="General"),
-	"USE_MOUSE_WARPING":CNVBoolean(False,description="Move the mouse instantly without emitting mouse movement events.\nCan fix issues with some video games.",category="Playback"),
+	"USE_MOUSE_WARPING":CNVBoolean(False,description="Move the mouse instantly without emitting mouse movement events.\nCan fix issues with some video games, may cause issues with others.",category="Playback"),
 	"DELAY_BEFORE_PLAYBACK":CNVFloat(0,description="After playback is triggered, wait the specified number of seconds\nbefore actually starting playback.",smin=0,smax=60,category="Playback"),
-	"COMPENSATE_AUTOCLICKER_DRIFT":CNVBoolean(True,description="Intelligently adjusts autoclicker delay to compensate for drift and overhead added by the OS.\nIncreases CPS, but also raises CPU usage.",category="Autoclicking")
+	"COMPENSATE_AUTOCLICKER_DRIFT":CNVBoolean(True,description="Intelligently adjusts autoclicker delay to compensate for drift and overhead added by the OS.\nIncreases CPS, but also raises CPU usage.",category="Autoclicking"),
+	"HOOK_KEYPRESS_EVENTS":CNVBoolean(True,description="Allows userscripts to log keypresses and receive keypress data. Also uses more CPU.",category="Scripts"),
+	"HOOK_MOUSE_EVENTS":CNVBoolean(True,description="Allows userscripts to log mouse movement and clicks and receive mouse data. Also uses more CPU.",category="Scripts")
 }
 
 MAX_HOTKEY_LEN = 5
@@ -322,9 +372,9 @@ class Main(QObject):
 	def __init__(self):
 		super().__init__()
 		
-
 		self.app = QApplication(sys.argv)
 		self.app.setStyleSheet(MASTER_STYLESHEET)
+		self.app.setQuitOnLastWindowClosed(False)
 
 		try: # force the "about" pane to appear on the left of the system menu bar
 			import AppKit
@@ -338,8 +388,7 @@ class Main(QObject):
 			)
 			self.dummy_menu = self.menu_bar.addMenu("App")
 			self.dummy_menu.addAction(self.about_action)
-		except Exception:
-			pass
+		except Exception: pass
 
 		self.arr = bytearray(b"<NEOPRISMA>\x01")
 		self.compiled_arr:list[playback.EventPacket] = []
@@ -358,6 +407,7 @@ class Main(QObject):
 			"KEYBIND_TOGGLE_PLAYBACK": set(),
 			"KEYBIND_TOGGLE_AUTOCLICK": set()
 		}
+
 		self.conf_data=copy.deepcopy(CN_CONFIGURATION_DEFAULTS)
 		if os.path.exists(os.path.expanduser("~/.neoprisma")):
 			try:
@@ -400,9 +450,8 @@ class Main(QObject):
 		self.update_available, self.latest_version = version_dif(latest())
 
 		self.error_emitter = Emitter()
-		self.error_emitter.error.connect(lambda msg: QMessageBox.critical(None,"neoprisma: an error occured",msg if len(msg) <= 350 else msg[:350],QMessageBox.StandardButton.Ok))
+		self.error_emitter.error.connect(lambda msg: QMessageBox.critical(None,"neoprisma: an error occured",msg,QMessageBox.StandardButton.Ok))
 
-		self.app.setQuitOnLastWindowClosed(False)
 
 		self.icon_static = QIcon(resource_path("assets/neoprisma-static.png"))
 		self.icon_rec = QIcon(resource_path("assets/neoprisma-rec.png"))
@@ -413,9 +462,11 @@ class Main(QObject):
 		self.tray.setIcon(self.icon_static)
 		self.tray.setVisible(True)
 
-		#self.script_ext=ext_scripting_macos.Runner()
+		self.script_ext=ext_scripting_macos.Runner()
 
 		self.menu = QMenu()
+
+		self.filemenu = QMenu("File")
 
 		self.toggle_rec_widget = QAction("Toggle Recording")
 		self.toggle_rec_widget.triggered.connect(self.toggle_recording)
@@ -428,18 +479,19 @@ class Main(QObject):
 		self.load_widget.triggered.connect(self.load)
 		self.save_widget = QAction("Save Recording")
 		self.save_widget.triggered.connect(self.save)
+		self.script_execute_widget = QAction("Execute Script")
+		self.script_execute_widget.triggered.connect(self.script_ext.load)
 		self.conf_widget = QAction("Settings")
 		self.conf_widget.triggered.connect(self.settingsw_popup)
-
-		self.menu.addActions([self.toggle_rec_widget,self.toggle_play_widget,self.toggle_auto_widget,self.load_widget,self.save_widget,self.conf_widget])
+		self.scrextaction = QAction("Scripts")
+		self.scrextaction.triggered.connect(self.scriptext_popup)
+		self.filemenu.addActions([self.load_widget,self.save_widget,self.script_execute_widget])
+		self.menu.addMenu(self.filemenu)
+		self.menu.addActions([self.toggle_rec_widget,self.toggle_play_widget,self.scrextaction,self.conf_widget])
 
 		self.quitaction = QAction("Quit")
 		self.quitaction.triggered.connect(self.shutdown)
 		self.menu.addAction(self.quitaction)
-
-		#self.scrextaction = QAction("Scripts")
-		#self.scrextaction.triggered.connect(self.script_ext.mainw.show)
-		#self.menu.addAction(self.scrextaction)
 
 		self.settingsw = QWidget()
 		
@@ -622,7 +674,6 @@ class Main(QObject):
 
 		self.settingsw_layout.setSpacing(4)
 		self.settingsw_hk_layout.setContentsMargins(0, 0, 0, 0)
-
 		self.settingsw_layout.addSpacing(15)
 
 		self.settingsw_save = QPushButton("Save configurations",self.settingsw)
@@ -635,13 +686,15 @@ class Main(QObject):
 		self.settingsw.closeEvent = self.anyw_close
 		self.settingsw_scroll.closeEvent = self.anyw_close
 
+		self.script_ext.mainw.closeEvent = self.anyw_close
+
 		self.tray.setContextMenu(self.menu)
 
 		self.run_workers = True
 		self.auto_thread = None
 
-		QTimer.singleShot(0,self.start_hotkeys)
-		QTimer.singleShot(0,self.init_recorder_and_simulator)
+		#QTimer.singleShot(0,self.start_hotkeys)
+		QTimer.singleShot(0,self.init_input_devices)
 
 		if not self.conf_data["HIDE_APP_ICON"].real_value: self.anyw_open()
 		
@@ -715,6 +768,11 @@ class Main(QObject):
 		self.settingsw.raise_()
 		self.settingsw_scroll.raise_()
 
+	def scriptext_popup(self):
+		self.anyw_open()
+		self.script_ext.mainw.show()
+		self.script_ext.mainw.raise_()
+
 	def anyw_open(self):
 		import AppKit
 		AppKit.NSApp.setActivationPolicy_(AppKit.NSApplicationActivationPolicyRegular)
@@ -780,14 +838,14 @@ class Main(QObject):
 	def listener_hotkeysv2_handlekeypress(self,key:pynput.keyboard.Key|pynput.keyboard.KeyCode,injected=False): # this is a very long name
 		# Injected: Whether the event is authentic or software generated. We can detect our own key events with this. Pynput 1.8.0+
 		try:
-			if (injected==True) or (key is None): return
+			if (injected==True) or (key is None): return False
 
 			vk = key.vk if isinstance(key,pynput.keyboard.KeyCode) else key.value.vk
 			self.keysdown.add(vk)
 
 			if self.state_playback and self.conf_data["ABORT_PLAYBACK_ON_INPUT"].real_value: 
 				self.toggle_playback()
-				return
+				return False
 
 			if self.recording_hotkey and len(self.hotkey_record_buffer) < MAX_HOTKEY_LEN:
 				self.hotkey_record_buffer.add(vk)
@@ -798,12 +856,15 @@ class Main(QObject):
 					self.settingsw_hk_play_disp.setText(text)
 				elif self.hotkey_edit_label == "KEYBIND_TOGGLE_AUTOCLICK":
 					self.settingsw_hk_auto_disp.setText(text)
-				return
+				return False
 			
-			if (len(self.keysdown) > MAX_HOTKEY_LEN) or (self.settingsw.isActiveWindow()): return
+			if (len(self.keysdown) > MAX_HOTKEY_LEN) or (self.settingsw.isActiveWindow()): return False
 
 			trigger = self.hotkey_lookup.get(frozenset(self.keysdown))
-			if trigger: trigger()
+			if trigger: 
+				trigger()
+				return True
+			if self.conf_data["HOOK_KEYPRESS_EVENTS"].real_value: self.script_ext.kit._signal_keystatus(vk,True)
 
 		except Exception:
 			self.error_emitter.error.emit(traceback.format_exc())
@@ -812,29 +873,73 @@ class Main(QObject):
 		if injected==True: return
 		vk = key.vk if isinstance(key,pynput.keyboard.KeyCode) else key.value.vk
 		self.keysdown.discard(vk)
+		if self.conf_data["HOOK_KEYPRESS_EVENTS"].real_value: 
+			self.script_ext.kit._signal_keystatus(vk,False)
 
-	def init_recorder_and_simulator(self):
+	def init_input_devices(self):
 		try:
-			self.recorder=recorder.OneShotRecorder()
-			self.m_simulator = pynput.mouse.Controller()
-		except Exception:
-			self.anyw_open()
-			crash(headline="An error occured while initializing recording/playback infastructure.",detail="Could not initialize recorder.OneShotRecorder or pynput.mouse.Controller.")
-
-	def start_hotkeys(self):
-		try:
-			if hasattr(self, "h") and self.h:
-				self.h.stop()
-			self.h = pynput.keyboard.Listener(
-				on_press=self.listener_hotkeysv2_handlekeypress,
-				on_release=self.listener_hotkeysv2_handlekeyrelease,
+			self.keyboard_listener = pynput.keyboard.Listener(
+				on_press=self.master_on_press,
+				on_release=self.master_on_release,
 				suppress=False,
 			)
+			self.mouse_listener = pynput.mouse.Listener(
+				on_move=self.master_on_move,
+				on_click=self.master_on_click,
+				on_scroll=self.master_on_scroll,
+			)
+			self.recorder=recorder.OneShotRecorder()
 			
-			self.h.start()
+			self.m_simulator = pynput.mouse.Controller()
+			
+			self.keyboard_listener.start()
+			self.keyboard_listener.wait()
+			self.mouse_listener.start()
+			self.mouse_listener.wait()
 		except Exception:
 			self.anyw_open()
-			crash(headline="An error occured while initializing recording/playback infastructure.",detail="Could not start the hotkey listener.")
+			crash(headline="An error occured while initializing recording/playback infastructure.",detail="Could not initialize input devices.")
+
+	def master_on_press(self,key:pynput.keyboard.Key|pynput.keyboard.KeyCode,injected=False):
+		t=time.perf_counter_ns()-self.recorder.starting_time # The single most important thing is that recordings get accurate timing. Hence we do this first, EVERY TIME, even if the recorder is not active.
+		if injected==True: return # Everything can be skipped if it's injected to begin with.
+		triggered_hotkey = self.listener_hotkeysv2_handlekeypress(key,injected)
+		if triggered_hotkey: return # This will prevent a hotkey activation from getting logged into the recorder
+		self.recorder.captured_key_press(key,t,injected)
+
+	def master_on_release(self,key:pynput.keyboard.Key|pynput.keyboard.KeyCode,injected=False):
+		t=time.perf_counter_ns()-self.recorder.starting_time # Same as before.
+		if injected==True: return # Everything can be skipped if it's injected to begin with.
+		self.listener_hotkeysv2_handlekeyrelease(key,injected)
+		self.recorder.captured_key_release(key,t,injected)
+
+	def master_on_move(self,x,y,injected=False):
+		t=time.perf_counter_ns()-self.recorder.starting_time # Same as before.
+		if injected==True: return # Everything can be skipped if it's injected to begin with.
+		self.recorder.captured_mouse_move(x,y,t)
+		if self.conf_data["HOOK_MOUSE_EVENTS"].real_value: self.script_ext.kit._signal_mousemovement(x,y)
+
+	def master_on_click(self,x,y,button,pressed,injected=False):
+		t=time.perf_counter_ns()-self.recorder.starting_time # Same as before.
+		if injected==True: return # Everything can be skipped if it's injected to begin with.
+		self.recorder.captured_mouse_click(x,y,button,pressed,t)
+		if self.conf_data["HOOK_MOUSE_EVENTS"].real_value: self.script_ext.kit._signal_mousestatus(button,pressed,x,y)
+
+	def master_on_scroll(self,x,y,dx,dy,injected=False):
+		t=time.perf_counter_ns()-self.recorder.starting_time # Same as before.
+		if injected==True: return # Everything can be skipped if it's injected to begin with.
+		self.recorder.captured_mouse_scroll(x,y,dx,dy,t)
+		if self.conf_data["HOOK_MOUSE_EVENTS"].real_value: self.script_ext.kit._signal_mousescroll(x,y,dx,dy)
+		
+
+	#def start_hotkeys(self):
+	#	try:
+	#		if hasattr(self, "h") and self.h:
+	#			self.h.stop()
+	#		self.h.start()
+	#	except Exception:
+	#		self.anyw_open()
+	#		crash(headline="An error occured while initializing recording/playback infastructure.",detail="Could not start the hotkey listener.")
 
 	def toggle_recording(self):
 		try:
@@ -885,7 +990,7 @@ class Main(QObject):
 					if not self.state_playback: return
 					while self.state_playback:
 						try:
-							print(self.compiled_arr)
+							#print(self.compiled_arr)
 							playback.PlayEventList(self.compiled_arr,self.timestamp_multiplier,self.conf_data["USE_MOUSE_WARPING"].real_value)
 						except Exception as e:
 							self.error_emitter.error.emit(traceback.format_exc())
@@ -945,7 +1050,7 @@ class Main(QObject):
 	def load(self):
 
 		try:
-			file, _ = QFileDialog.getOpenFileName(None,"Select a recording to load",filter="Recordings (*.neop);;All Files (*)")
+			file, _ = QFileDialog.getOpenFileName(None,"Select a recording to load","",filter="Recordings (*.neop);;All Files (*)")
 			if file == "": return
 			else:
 				with open(file,"rb") as fstream:
@@ -963,7 +1068,7 @@ class Main(QObject):
 	def save(self):
 
 		try:
-			file, _ = QFileDialog.getSaveFileName(None,"Select a location to save your recording",filter="Recordings (*.neop)")
+			file, _ = QFileDialog.getSaveFileName(None,"Select a location to save your recording","",filter="Recordings (*.neop)")
 			if file == "": return
 			else:
 				with open(file,"wb") as fstream:

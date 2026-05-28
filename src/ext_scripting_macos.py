@@ -15,7 +15,8 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>
 """
 
-import os, sys
+from typing import Any
+import os, sys,time, uuid, enum,math,functools
 
 if getattr(sys, "frozen", False):
 	EXEPATH = os.path.dirname(os.path.dirname(os.path.dirname(sys.executable)))
@@ -31,13 +32,13 @@ if SRC not in sys.path:
 import playback
 
 try:
-	import lupa
+	from lupa import lua54 as lupa
 except ModuleNotFoundError or ImportError:
-	raise ImportError("`lupa` library was not found in the runtime. You may be running a development build of Neoprisma; see the project's homepage for download information. [ https://github.com/PrismaticDepths/neoprisma ]")
+	raise ImportError("`lupa` or `lupa.lua54` library was not found in the runtime. You may be running a development build of Neoprisma; see the project's homepage for download information. [ https://github.com/PrismaticDepths/neoprisma ]")
 
-
+from pathlib import Path
 from PyQt6.QtGui import QAction,QIcon
-from PyQt6.QtCore import QObject,pyqtSignal, QTimer, Qt
+from PyQt6.QtCore import QObject,pyqtSignal, QTimer, Qt, QThreadPool,QThread
 from PyQt6.QtWidgets import (
 	QApplication,
 	QSystemTrayIcon,
@@ -55,7 +56,10 @@ from PyQt6.QtWidgets import (
 	QPushButton,
 	QVBoxLayout,
 	QHBoxLayout,
-	QMenuBar
+	QScrollArea,
+	QMenuBar,
+	QListWidget,
+	QListWidgetItem,
 )
 
 MACOS_VK_MAP = { # Duplicated - from `platform_macos.py`
@@ -67,61 +71,585 @@ MACOS_VK_MAP = { # Duplicated - from `platform_macos.py`
 	24: '=', 27: '-', 33: '[', 30: ']', 42: '\\', 41: ';', 39: "'", 43: ',', 47: '.', 44: '/', 50: '`'
 }
 
-def create_runtime():
-	runtime = lupa.LuaRuntime(register_builtins=False)
+class ScriptStatusEnums(enum.Enum):
+
+	RUNNING = 0
+	SLEEPING = 1
+	INTERRUPTED = 2
+
+STATUSENUM_TO_STR = {ScriptStatusEnums.RUNNING:"running",ScriptStatusEnums.SLEEPING:"sleeping",ScriptStatusEnums.INTERRUPTED:"interrupted"}
+
+class LuaSignal:
+	def __init__(self,terminationhelper):
+		self._handlers = {}
+		terminationhelper.single_script.connect(self.terminate_single_script)
+		terminationhelper.all_scripts.connect(self.terminate_all_scripts)
+
+	def terminate_single_script(self,script):
+		if script in self._handlers: del self._handlers[script] 
+	def terminate_all_scripts(self):
+		self._handlers.clear()
+
+	def connect(self, func, script):
+		if not callable(func):
+			raise TypeError("connect() requires a function.")
+	
+		print("connect: got script ", script)
+		script.num_hooks += 1
+
+		if script not in self._handlers: self._handlers[script] = []
+		self._handlers[script].append(func)
+		# Using a safer way to disconnect in case the handler was already removed
+		return {"Disconnect": lambda: self._handlers[script].remove(func) if func in self._handlers[script] else None}
+
+	def fire(self, *args):
+		for script,handler in self._handlers.items():
+			for func in handler:
+				# We use QThreadPool to ensure the UI thread stays free
+				# even if the Lua handler is doing heavy calculations.
+				QThreadPool.globalInstance().start(lambda h=func, a=args, s=script: self._execute_handler(h, a,s ))
+
+	def _execute_handler(self, handler, args, script):
+		try:
+			script.status = ScriptStatusEnums.RUNNING
+			handler(*args)
+			script.status = ScriptStatusEnums.SLEEPING
+		except Exception as e:
+			script.error_func(e,script)
+			script.status = ScriptStatusEnums.SLEEPING
+
+class LUA_Keyboard:
+	def __init__(self,playback,termhelper):
+		self.onKeyPress = LuaSignal(termhelper) # args: vk
+		self.onKeyRelease = LuaSignal(termhelper) # args: vk
+		self.keyStatus = playback.keyStatus # args: vk, bool
+class LUA_Mouse:
+	def __init__(self,playback,termhelper):
+		self.onMouseDown = LuaSignal(termhelper) # args: button,x,y
+		self.onMouseUp = LuaSignal(termhelper) # args: button,x,y
+		self.onMouseMoved = LuaSignal(termhelper) # args: x,y
+		self.onMouseScrolled = LuaSignal(termhelper) # args: x,y,dx,dy
+
+		self.moveMouseAbsolute = playback.moveMouseAbsolute
+		self.warpMouseAbsolute = playback.warpMouseAbsolute
+		self.dragMouseAbsolute = playback.mouseDragAbsolute
+		self.mouseButtonStatus = playback.mouseButtonStatus
+		self.mouseScroll = playback.mouseScroll # args: x,y,dx,dy
+
+class LUA_Clock:
+	def __init__(self):
+		
+		self.time = time.time
+		self.sleep = lambda t: QThread.currentThread().sleep(t)
+
+class LUA_Neoprisma:
+	def __init__(self,playback,termhelper):
+		self.Keyboard = LUA_Keyboard(playback,termhelper)
+		self.Mouse = LUA_Mouse(playback,termhelper)
+		self.Clock = LUA_Clock()
+
+UUID_INJECT_TYPES = (
+	LuaSignal
+)
+UUID_INJECT_METHODS = {
+	"LuaSignal": ["connect"],
+	"Runner": ["warn","error","info"]
+}
+	
+class _LUA_UUID_INJECTION_PROXY:
+
+	def __init__(self,target,uuid4):
+		object.__setattr__(self,"_target",target) #bypass getattribute to avoid loops
+		object.__setattr__(self,"_uuid4",uuid4) #bypass getattribute to avoid loops
+
+	def __getattribute__(self, name: str) -> Any:
+		
+		target = object.__getattribute__(self,"_target")
+		uuid4 = object.__getattribute__(self,"_uuid4")
+
+		attr = getattr(target,name)
+		class_name = target.__class__.__name__
+
+		if callable(attr) and not (isinstance(attr, type)):
+			
+			can_inject_type = isinstance(attr,UUID_INJECT_TYPES)
+			can_inject_method = class_name in UUID_INJECT_METHODS and name in UUID_INJECT_METHODS[class_name]
+
+			print(can_inject_type,can_inject_method)
+
+			if can_inject_type or can_inject_method:
+
+				@functools.wraps(attr)
+				def new_call(*args,**kwargs):
+					unwrapped_args = [arg._target if isinstance(arg, _LUA_UUID_INJECTION_PROXY) else arg for arg in args]
+					return attr(*unwrapped_args,uuid4,**kwargs)
+				return new_call
+			
+			@functools.wraps(attr)
+			def std_call(*args,**kwargs):
+				unwrapped_args = [arg._target if isinstance(arg, _LUA_UUID_INJECTION_PROXY) else arg for arg in args]
+				return _LUA_UUID_INJECTION_PROXY.wrap(attr(*unwrapped_args,**kwargs),uuid4)
+			return std_call
+		
+		return _LUA_UUID_INJECTION_PROXY.wrap(attr,uuid4)
+	
+	@classmethod
+	def wrap(cls, value, uuid4):
+		if value is None or isinstance(value, (str, int, float, bool, cls)):
+			return value
+		return cls(value,uuid4)
+def _LUA_UUID_INJECTION_STANDALONE_WRAPPER(target,value):
+
+	@functools.wraps(target)
+	def new_call(*args,**kwargs):
+		unwrapped_args = [ object.__getattribute__(arg,"_target") if arg.__class__.__name__ == "_LUA_UUID_INJECTION_PROXY" else arg for arg in args]
+		return target(*unwrapped_args,value,**kwargs)
+	return new_call
+class NeoprismaScriptingToolkit:
+
+	def __init__(self,playback,termhelper):
+		import copy
+		self.playback = playback
+		self.LUA_Neoprisma = LUA_Neoprisma(self.playback,termhelper)
+		self.extras={}
+		self.extras["Neoprisma"] = self.LUA_Neoprisma
+
+	def _signal_keystatus(self,vk,status):
+		self.LUA_Neoprisma.Keyboard.onKeyPress.fire(vk) if status else self.LUA_Neoprisma.Keyboard.onKeyRelease.fire(vk)
+	def _signal_mousestatus(self,button,pressed,x,y):
+		self.LUA_Neoprisma.Mouse.onMouseDown.fire(button,x,y) if pressed else self.LUA_Neoprisma.Mouse.onMouseUp.fire(button,x,y)
+	def _signal_mousemovement(self,x,y):
+		self.LUA_Neoprisma.Mouse.onMouseMoved.fire(x,y) 
+	def _signal_mousescroll(self,x,y,dx,dy):
+		self.LUA_Neoprisma.Mouse.onMouseScrolled.fire(x,y,dx,dy) 
+
+def create_runtime(extras=None,instruction_hook=None):
+	def attribute_filter(obj, attr_name, is_setting):
+		if isinstance(attr_name, str) and attr_name.startswith('_') or attr_name.endswith('_'):
+			raise AttributeError("Access to private/internal attributes (attributes starting with an underscore, in other words) is denied. This is for security purposes, however if you believe you have found a bug, please report it.")
+		return attr_name
+	
+	runtime = lupa.LuaRuntime(
+		register_builtins=False,
+		register_eval=False,
+		attribute_filter=attribute_filter,
+		max_memory=1000000
+	)
 
 	lua_globals = runtime.globals()
 
-	env = runtime.table()
+	if instruction_hook is not None:
+		runtime.eval("function(x) debug.sethook(python.as_function(x),'',10) end")(instruction_hook)
 
-	# safe libs
-	env["math"] = lua_globals.math
-	env["string"] = lua_globals.string
-	env["table"] = lua_globals.table
+	import copy
+	lua_globals["_error"] = lua_globals["error"]
+	lua_globals["_warn"] = lua_globals["warn"]
 
-	# safe functions
-	env["print"] = print
 
-	return runtime, env
+	unsafe_globals = ["os", "io", "package", "debug", "require", "module","error","warn"]
+	for name in unsafe_globals:
+		lua_globals[name] = None
+	
+
+
+	lua_globals["math"] = lua_globals.math
+	lua_globals["string"] = lua_globals.string
+	lua_globals["table"] = lua_globals.table
+
+	lua_globals["print"] = print
+
+	if extras is not None:
+
+		for key,value in extras.items():
+
+			lua_globals[key] = value
+	return runtime
+
+class ScriptStatus(QWidget):
+	def __init__(self,name,status,num_hooks,start):
+		super().__init__()
+
+		self.name=name
+		self.status=status
+		self.num_hooks = num_hooks
+		self.start = start
+		self.terminate = False
+
+		self.status_layout = QHBoxLayout(self)
+
+		self.status_layout2 = QVBoxLayout()
+		self.status_layout2.setContentsMargins(0,0,0,0)
+		self.status_layout2.setSpacing(2)
+
+		self.script_name=QLabel(self.name)
+		
+		self.status_long = QLabel("") #f"{self.status} ({str(self.num_hooks)+" hooks registered" if self.status=="sleeping" else f"{str(int(time.time()-start)//60).rjust(2,"0")}:{str(int(time.time()-start) % 60).rjust(2,"0")} elapsed" if self.status=="running" else "error" if self.status=="interrupted" else ""})")
+		self.status_long.setObjectName("script-status-long")
+
+		self.status_layout2.addWidget(self.script_name)
+		self.status_layout2.addWidget(self.status_long)
+		
+		self.status_button = QPushButton("")
+		self.status_button.setFixedSize(16,16)
+
+		self.status_button.enterEvent = lambda event: self.status_button.setText("X")
+		self.status_button.leaveEvent = lambda event: self.status_button.setText("")
+
+		def tmp():
+			self.terminate=True
+		self.status_button.released.connect(tmp)
+
+		self.status_layout.addLayout(self.status_layout2)
+		self.status_layout.addWidget(self.status_button)
+
+		self.update_ui(status,num_hooks)
+
+	def update_ui(self,status,num_hooks=0):
+		assert status in [ScriptStatusEnums.RUNNING,ScriptStatusEnums.SLEEPING,ScriptStatusEnums.INTERRUPTED]
+		self.status, self.num_hooks = status, num_hooks
+
+		if self.status == ScriptStatusEnums.RUNNING:
+			m,s = divmod(int(time.time() - self.start), 60)
+			text = f"{m:02d}:{s:02d} elapsed"
+			obj_name = "status-green"
+		elif self.status == ScriptStatusEnums.SLEEPING:
+			text = f"sleeping ({str(self.num_hooks)} hooks active)"
+			obj_name = "status-yellow"
+		elif self.status == ScriptStatusEnums.INTERRUPTED:
+			text = f"error! (check logs)"
+			obj_name = "status-red"
+	
+		self.status_long.setText(text)
+		self.status_button.setObjectName(obj_name); self.status_button.setStyle(self.status_button.style())
+
+	def set_name(self,name):
+		self.name = name
+		self.script_name.setText(self.name)
+
+class Script:
+
+	def __init__(self,text,name,error_func):
+		self.uuid = uuid.uuid4()
+		self.num_hooks = 0
+		self.text = text
+		self.name = name
+		self.status = ScriptStatusEnums.SLEEPING
+		self.started = int(time.time())
+		import copy
+		self.error_func = copy.copy(error_func)
+		self.terminate=False
+
+	def execute(self,runtime):
+		self.status = ScriptStatusEnums.RUNNING
+		#runner.refreshworker.signal.emit()
+		try:
+			runtime.execute(self.text,self.uuid)
+		except Exception as e:
+			self.error_func(e,self)
+			self.status = ScriptStatusEnums.INTERRUPTED
+			return False
+		else:
+			return True
+
+def clear_layout(layout):
+	if layout is None: return
+	while layout.count():
+		item = layout.takeAt(0)
+		widget = item.widget()
+		if widget is not None:
+			widget.deleteLater(); continue
+		sub_layout = item.layout()
+		if sub_layout is not None:
+			clear_layout(sub_layout)
+			sub_layout.deleteLater()
+
+class RefreshWorker(QObject):
+	signal = pyqtSignal()
+class LogWorker(QObject):
+	warn = pyqtSignal(str)
+	info = pyqtSignal(str)
+	error = pyqtSignal(str)
+class ScriptTerminationWorker(QObject):
+	single_script = pyqtSignal(object)
+	all_scripts = pyqtSignal()
+
+terminationhelper = ScriptTerminationWorker()
 
 class Runner(QObject):
 
 	def __init__(self):
 		super().__init__()
 		self.mainw = QWidget()
-		self.mainw.setBaseSize(500,500)
+		self.mainw.setBaseSize(500,750)
 		self.mainw_layout = QVBoxLayout()
-		self.bottom_layout = QHBoxLayout()
 		self.mainw.setLayout(self.mainw_layout)
-		self.mainw.setWindowTitle("Script Runner")
+		self.mainw.setWindowTitle("Script Dashboard")
+		self.script_view = QVBoxLayout()
+		self.script_view.setAlignment(Qt.AlignmentFlag.AlignTop)
+		self.script_scroll_content = QWidget(); self.script_scroll_content.setLayout(self.script_view)
+		self.script_scroll = QScrollArea(); self.script_scroll.setWidget(self.script_scroll_content); self.script_scroll.setWidgetResizable(True)
 
-		self.arr = bytearray(b"<NEOPRISMA>\x01")
-		self.compiled_arr:list[playback.EventPacket] = []
-
-		self.accept_btn = QPushButton("Accept")
-		self.discard_btn = QPushButton("Cancel")
-
-		#self.footer_label = QLabel(f"<a href='https://github.com/PrismaticDepths/neoprisma/releases/tag/{self.latest_version}'>View Release</a>  ❖  <a href='https://github.com/PrismaticDepths/neoprisma/compare/{__version__}...{self.latest_version}'>Full Changelog</a>")
-		#self.footer_label.setOpenExternalLinks(True)
-
-		self.mainw_layout.addSpacing(10)
-
-		self.input_box = QTextEdit()
-		self.input_box.setStyleSheet("""
-		QLineEdit, QTextEdit, QPlainTextEdit {
+		self.logw = QWidget()
+		self.logw.setBaseSize(500,750)
+		self.logw_layout = QVBoxLayout()
+		self.logw.setLayout(self.logw_layout)
+		self.logw.setWindowTitle("Script Log")
+		
+		#self.logw_scroll_content = QWidget(); self.logw_scroll_content.setLayout(self.logw_layout)
+		self.logw_scroll = QScrollArea(); self.logw_scroll.setWidget(self.logw); self.logw_scroll.setWidgetResizable(True)
+		self.logw_scroll.setWindowTitle("Script Log")
+		self.logw.setStyleSheet("""QLabel, QWidget {
+		background-color: #1A1A1A;
 		font-family: 'Courier New', monospace;
-		}""")
-		self.mainw_layout.addWidget(self.input_box)
+		font-size: 10pt;
+		border: 1px solid #2A2A2A;
+		border-radius: 1px;
+		text-align: left;
+		padding: 0px;
+		color: #FFFFFF; } """)
+		self.logw_layout.setContentsMargins(0,0,0,0)
+		self.logw_layout.setSpacing(0)
+		self.logw_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+		def autoscroll():
+			scroll_bar=self.logw_scroll.verticalScrollBar()
+			scroll_bar.setValue(scroll_bar.maximum())
+		self.logw_scroll.verticalScrollBar().rangeChanged.connect(autoscroll)
 
-		self.accept_btn.pressed.connect(self.run)
+		# Set up bottom 4 buttons 
+		self.bottom_layout_outer = QVBoxLayout()
+		self.bottom_layout_up = QHBoxLayout()
+		self.bottom_layout_down = QHBoxLayout()
+		self.bottom_layout_outer.setContentsMargins(0,0,0,0)
+		self.bottom_layout_up.setContentsMargins(0,0,0,0)
+		self.bottom_layout_down.setContentsMargins(0,0,0,0)
+		self.bottom_layout_outer.setSpacing(4)
+		self.bottom_layout_outer.addLayout(self.bottom_layout_up)
+		self.bottom_layout_outer.addLayout(self.bottom_layout_down)
 
-		self.bottom_layout.addWidget(self.accept_btn)
-		self.bottom_layout.addWidget(self.discard_btn)
+		self.execute_btn = QPushButton("Run New")
+		self.execute_btn.released.connect(self.load)
+		self.log_btn = QPushButton("Open Log")
+		self.log_btn.released.connect(self.show_log)
 
-		self.mainw_layout.addLayout(self.bottom_layout)
+		self.bottom_layout_up.addWidget(self.execute_btn)
+		self.bottom_layout_up.addWidget(self.log_btn)
 
-		self.runtime,self.env = create_runtime()
+		self.terminate_all_btn = QPushButton("Terminate All")
+		self.terminate_all_btn.released.connect(self.terminate_all)
+		self.exit_btn = QPushButton("Exit")
+		self.exit_btn.released.connect(self.mainw.close)
+		self.bottom_layout_down.addWidget(self.terminate_all_btn)
+		self.bottom_layout_down.addWidget(self.exit_btn)
 
-	def run(self):
+ 
+		# Add header
+ 
+		running_label = QLabel("Script Monitor")
+		running_label.setStyleSheet("font-weight: bold; color: white;")
+		running_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+		self.mainw_layout.addWidget(running_label)
+ 
+		self.mainw_layout.addSpacing(10)
+ 
+		self.mainw_layout.addWidget(self.script_scroll)
 
-		self.runtime.execute(self.input_box.toPlainText(),self.env)
+		self.mainw_layout.addLayout(self.bottom_layout_outer)
+  
+		self.refreshworker = RefreshWorker()
+		self.refreshworker.signal.connect(self.refresh)
+		self.logworker = LogWorker()
+		self.logworker.info.connect(self._info)
+		self.logworker.warn.connect(self._warn)
+		self.logworker.error.connect(self._error)
+
+		import playback
+		self.kit = NeoprismaScriptingToolkit(playback,terminationhelper)
+		self.runtime = create_runtime(extras=self.kit.extras)
+		self.script_pool = {}
+		self.status_uis = {}
+		self.logcontents = []
+
+		self.system_message_script = Script("print()","Neoprisma",self.error)
+		self.system_message_script.uuid = "000000"
+		self.info("Script output/errors will show here.",self.system_message_script)
+
+		self.refreshtimer = QTimer(self)
+		self.refreshtimer.setInterval(500)
+		self.refreshtimer.timeout.connect(self.refresh)
+		self.refreshtimer.start()
+
+	def show_log(self):
+		self.logw_scroll.show()
+		self.logw.show()
+		self.logw.raise_()
+		self.logw_scroll.raise_()
+
+	def refresh(self):
+		if len(self.status_uis)+len(self.script_pool) == 0: return
+
+		keys = list(self.status_uis.keys())
+		terminate = []
+		for script_uuid in keys:
+			if script_uuid not in self.script_pool:
+				widget = self.status_uis.pop(script_uuid)
+				self.script_view.removeWidget(widget)
+				widget.deleteLater()
+		for key, value in self.script_pool.items():
+			if key in self.status_uis:
+				self.status_uis[key].update_ui(value.status,value.num_hooks)
+				if self.status_uis[key].terminate: terminate.append(value)
+		for v in terminate: self.terminate_single(v)
+
+
+		#clear_layout(self.script_view)
+		#self.status_uis.clear()
+		#print(self.script_pool)
+		#print(self.status_uis)
+		#for key,value in self.script_pool.items():
+		#	stat = ScriptStatus(value.name,value.status,0,value.started)
+		#	self.status_uis[value.uuid] = stat
+		#	self.script_view.addLayout(stat.status_layout2)
+
+	def terminate_all(self):
+		self.warn("Terminating all scripts!",self.system_message_script)
+		for script in self.script_pool.values(): script.terminate = True
+		terminationhelper.all_scripts.emit()
+		self.script_pool.clear()
+	def terminate_single(self,script):
+		self.warn(f"Terminating script {script.name} with UUID {script.uuid}",self.system_message_script)
+		script.terminate = True
+		terminationhelper.single_script.emit(script)
+		del self.script_pool[script.uuid]
+
+	def run(self,script:Script): #name,text):
+		self.script_pool[script.uuid] = script
+		stat_widget = ScriptStatus(script.name,script.status,0,script.started)
+		self.status_uis[script.uuid] = stat_widget
+		self.script_view.addWidget(stat_widget)
+
+		self.info("Starting to run!",script)
+		
+		extras = self.kit.extras.copy()
+		extras["Neoprisma"] = _LUA_UUID_INJECTION_PROXY(extras["Neoprisma"],script)
+		extras["info"] = _LUA_UUID_INJECTION_STANDALONE_WRAPPER(self.info,script)
+		extras["warn"] = _LUA_UUID_INJECTION_STANDALONE_WRAPPER(self.warn,script)
+		extras["error"] = _LUA_UUID_INJECTION_STANDALONE_WRAPPER(self.error,script)
+
+		def hook(*args):
+			if script.terminate: 
+				raise InterruptedError("Script terminated by runner.")
+
+		runtime = create_runtime(extras,instruction_hook=hook)
+
+		def inner():
+			success = script.execute(runtime)
+			if success:
+				if script.num_hooks==0:
+					del self.script_pool[script.uuid]
+				else:
+					script.status = ScriptStatusEnums.SLEEPING
+		QThreadPool.globalInstance().start(inner)
+		
+	def hide(self):
+		self.mainw.close()
+		
+	def _info(self,text:str):
+		import time
+		print(text)
+		self.logcontents.append(QLabel(text))
+		self.logw_layout.addWidget(self.logcontents[-1])
+	def _warn(self,text:str):
+		import time
+		print(text)
+		self.logcontents.append(QLabel(text))
+		self.logcontents[-1].setStyleSheet("""QLabel, QWidget {
+		background-color: #1A1A1A;
+		font-family: 'Courier New', monospace;
+		font-size: 10pt;
+		border: 1px solid #2A2A2A;
+		border-radius: 1px;
+		text-align: left;
+		padding: 0px;
+		color: #FFFF00; } """)
+		self.logw_layout.addWidget(self.logcontents[-1])
+	def _error(self,text:str):
+		import time
+		print(text)
+		self.logcontents.append(QLabel(text))
+		self.logcontents[-1].setStyleSheet("""QLabel, QWidget {
+		background-color: #1A1A1A;
+		font-family: 'Courier New', monospace;
+		font-size: 10pt;
+		border: 1px solid #2A2A2A;
+		border-radius: 1px;
+		text-align: left;
+		padding: 0px;
+		color: #FF0000; } """)
+		self.logw_layout.addWidget(self.logcontents[-1])
+
+	def info(self,text:str,script:Script):
+		stamp = f"[{time.strftime("%H:%M:%S")}] ({str(script.uuid)[:7]}...) {script.name}: {text}"
+		self.logworker.info.emit(stamp)
+	def warn(self,text:str,script:Script):
+		stamp = f"[{time.strftime("%H:%M:%S")}] ({str(script.uuid)[:7]}...) {script.name}: {text}"
+		self.logworker.warn.emit(stamp)
+	def error(self,text:str,script:Script):
+		stamp = f"[{time.strftime("%H:%M:%S")}] ({str(script.uuid)[:7]}...) {script.name}: {text}"
+		self.logworker.error.emit(stamp)
+
+	def load(self):
+
+		try:
+			file, _ = QFileDialog.getOpenFileName(None,"Select a script to load","",filter="Lua Scripts (*.lua);;All Files (*)")
+			with open(file,"r") as fstream:
+				dat = fstream.read()
+				box = QMessageBox()
+				box.setIcon(QMessageBox.Icon.Information)
+				box.setText("Do you want to run this script?")
+				box.setInformativeText("Make sure this script is safe!!!!\nNeoprisma does its best to sandbox scripts, but malicious code execution is a possibility.\nClick \"Show Details...\" to see the code you are about to run.")
+				box.setDetailedText(dat)
+				box.setStyleSheet("""QWidget {
+		background-color: #303030;
+		color: #DEDEDE;
+		font-size: 13px;
+	}
+
+	QPushButton {
+		background-color: #535353;
+		border: 0px solid #000000;
+		border-radius: 6px;
+		padding: 4px 8px;
+		color: #E0E0E0;
+	}
+
+	QPushButton:hover {
+		background-color: #404046;
+		border: 1px solid #444444;
+		color: #FFFFFF;
+	}
+	QLineEdit, QTextEdit, QPlainTextEdit {
+		background-color: #1A1A1A;
+		font-family: 'Courier New', monospace;
+		font-size: 10pt;
+		border: 1px solid #2A2A2A;
+		border-radius: 1px;
+		text-align: left;
+		padding: 5px;
+		color: #FFFFFF;
+	}""")
+				box.addButton(QMessageBox.StandardButton.Yes).released.connect(lambda: self.run(Script(dat,Path(file).name,self.error)))
+				box.addButton(QMessageBox.StandardButton.No)
+				box.exec()
+		except:
+			pass
+
+	def save(self):
+
+		try:
+			file, _ = QFileDialog.getSaveFileName(None,"Select a location to save your script",filter="Lua Scripts (*.lua)")
+			if file == "": return
+			else:
+				with open(file,"w") as fstream:
+					fstream.write(self.input_box.toPlainText())
+		except:
+			pass

@@ -237,6 +237,10 @@ PYBIND11_MODULE(playback, m) {
 	m.def("resetAbortPlayback", &resetAbortPlayback, "Sets flag n_abort to False. Allows you to play recordings again.");
 	m.def("getAbortStatus", &getAbortStatus, "Returns the value of flag n_abort.");
 	m.def("keyStatus", &keyStatus, "Press or release a key using its keycode");
+	m.def("moveMouseAbsolute", &moveMouseAbsolute, "Move mouse to target position");
+	m.def("warpMouseAbsolute", &warpMouseAbsolute, "Warp mouse to target position");
+	m.def("mouseDragAbsolute", &mouseDragAbsolute, "Drag mouse to target position");
+	m.def("mouseScroll", &mouseScroll, "Scroll");
 	m.def("mouseButtonStatus", py::overload_cast<uint16_t, uint16_t, uint16_t, bool>(&mouseButtonStatus),"Simulates a mouse click at specific coordinates.",py::arg("button"), py::arg("x"), py::arg("y"), py::arg("status"));
     m.def("mouseButtonStatus", py::overload_cast<uint16_t, bool>(&mouseButtonStatus),"Simulates a mouse click at the current position.",py::arg("button"), py::arg("status"));
 	py::class_<EventPacket>(m, "EventPacket")

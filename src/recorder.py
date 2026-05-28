@@ -82,14 +82,14 @@ class OneShotRecorder:
 		self.starting_time = 0
 		self.buffer = bytearray()
 		self.buffer.extend(struct.pack(FILE_HEADER_FMT,FILE_HEADER_ID,MAJOR_FMT_VERSION)) # Add the file header
-		self.kb_listener = pynput.keyboard.Listener(on_press=self.captured_key_press,on_release=self.captured_key_release)
-		self.mouse_listener = pynput.mouse.Listener(on_move=self.captured_mouse_move,on_click=self.captured_mouse_click,on_scroll=self.captured_mouse_scroll)
+		#self.kb_listener = pynput.keyboard.Listener(on_press=self.captured_key_press,on_release=self.captured_key_release)
+		#self.mouse_listener = pynput.mouse.Listener(on_move=self.captured_mouse_move,on_click=self.captured_mouse_click,on_scroll=self.captured_mouse_scroll)
 		self.running = False
-		time.sleep(0.1)
-		self.kb_listener.start()
-		self.kb_listener.wait()
-		self.mouse_listener.start()
-		self.mouse_listener.wait()
+		#time.sleep(0.1)
+		#self.kb_listener.start()
+		#self.kb_listener.wait()
+		#self.mouse_listener.start()
+		#self.mouse_listener.wait()
 		self.known_hotkey = set()
 		
 
@@ -97,9 +97,9 @@ class OneShotRecorder:
 		if not self.running: return
 		self.buffer.extend(struct.pack(EVENT_HEADER_FMT+PAYLOAD_FMTS[event],timestamp,event,*payload))
 
-	def captured_key_press(self,key:pynput.keyboard.Key|pynput.keyboard.KeyCode,injected=False):
+	def captured_key_press(self,key:pynput.keyboard.Key|pynput.keyboard.KeyCode,t=None,injected=False):
 		# Injected: Whether the event is authentic or software generated. We can detect our own key events with this. Pynput 1.8.0+
-		t=time.perf_counter_ns()-self.starting_time
+		if t is None: t=time.perf_counter_ns()-self.starting_time
 		if injected==True: return
 		
 		vk = key.vk if isinstance(key,pynput.keyboard.KeyCode) else key.value.vk
@@ -109,8 +109,8 @@ class OneShotRecorder:
 
 		self.log_event(t,Events.KEY_DOWN,vk)
 
-	def captured_key_release(self,key:pynput.keyboard.Key|pynput.keyboard.KeyCode,injected=False):
-		t=time.perf_counter_ns()-self.starting_time
+	def captured_key_release(self,key:pynput.keyboard.Key|pynput.keyboard.KeyCode,t=None,injected=False):
+		if t is None: t=time.perf_counter_ns()-self.starting_time
 		if injected==True: return
 
 		vk = key.vk if isinstance(key,pynput.keyboard.KeyCode) else key.value.vk
@@ -120,8 +120,8 @@ class OneShotRecorder:
 
 		self.log_event(t,Events.KEY_UP,vk)
 
-	def captured_mouse_click(self,x,y,button,pressed):
-		t=time.perf_counter_ns()-self.starting_time
+	def captured_mouse_click(self,x,y,button,pressed,t=None):
+		if t is None: t=time.perf_counter_ns()-self.starting_time
 		
 		b = list(pynput.mouse.Button).index(button)
 		self.log_event(t,Events.MOUSE_DOWN if pressed else Events.MOUSE_UP,b,int(x),int(y))
@@ -130,16 +130,16 @@ class OneShotRecorder:
 			try: self.clicks.remove(b)
 			except Exception: pass
 
-	def captured_mouse_move(self,x,y):
-		t=time.perf_counter_ns()-self.starting_time
+	def captured_mouse_move(self,x,y,t=None):
+		if t is None: t=time.perf_counter_ns()-self.starting_time
 		
 		if len(self.clicks)!=0:
 			self.log_event(t,Events.MOUSE_DRAG,self.clicks[-1],int(x),int(y))
 		else:
 			self.log_event(t,Events.MOUSE_MOVE_ABSOLUTE,int(x),int(y))
 
-	def captured_mouse_scroll(self,x,y,dx,dy):
-		t=time.perf_counter_ns()-self.starting_time
+	def captured_mouse_scroll(self,x,y,dx,dy,t=None):
+		if t is None: t=time.perf_counter_ns()-self.starting_time
 		
 		self.log_event(t,Events.MOUSE_SCROLL,int(x),int(y),int(dx),int(dy))
 

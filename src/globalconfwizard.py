@@ -32,7 +32,6 @@ class CNVType:
 		return cls(cls._unpack(cls,packed))
 
 	def __init__(self,name,real_value,description="",category="General"):
-		print(category)
 		self.name = name
 		self.real_value = real_value
 		self.description = description
@@ -44,7 +43,6 @@ class CNVType:
 	def set_value_from_packed(self,packed):
 		self.real_value = self._unpack(packed)
 	def set_value(self,val):
-		print(val)
 		self.real_value = val
 	
 	def get_value(self):
