@@ -32,9 +32,9 @@ if SRC not in sys.path:
 import playback
 
 try:
-	import lupa
+	from lupa import lua54 as lupa
 except ModuleNotFoundError or ImportError:
-	raise ImportError("`lupa` library was not found in the runtime. You may be running a development build of Neoprisma; see the project's homepage for download information. [ https://github.com/PrismaticDepths/neoprisma ]")
+	raise ImportError("`lupa` or `lupa.lua54` library was not found in the runtime. You may be running a development build of Neoprisma; see the project's homepage for download information. [ https://github.com/PrismaticDepths/neoprisma ]")
 
 from pathlib import Path
 from PyQt6.QtGui import QAction,QIcon

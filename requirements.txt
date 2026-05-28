@@ -1,7 +1,7 @@
 certifi==2026.5.20
 charset-normalizer==3.4.4
 idna==3.11
-lupa==2.8
+lupa==2.8 --config-settings="--global-option=--with-lua54" --config-settings="--global-option=--no-luajit"
 pybind11==3.0.1
 pynput==1.8.1
 pyobjc-core==12.1
