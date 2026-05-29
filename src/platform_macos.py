@@ -504,6 +504,7 @@ class Main(QObject):
 		self.settingsw_scroll.setWidgetResizable(True)
 		self.settingsw_scroll.setWidget(self.settingsw)
 		self.settingsw_scroll.setBaseSize(300,500)
+		self.settingsw_scroll.setWindowTitle("Settings")
 
 		self.settingsw_label_hkheader = QLabel("Hotkeys",self.settingsw)
 		self.settingsw_label_hkheader.setStyleSheet("font-weight: bold; color: white;")
