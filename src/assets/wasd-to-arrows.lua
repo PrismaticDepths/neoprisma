@@ -13,13 +13,13 @@ local convert = {
 }
 
 Neoprisma.Keyboard.onKeyPress.connect(function(vk)
- if allow[vk] then
-	Neoprisma.Keyboard.keyStatus(convert[vk],true)
- end
+	if allow[vk] then
+		Neoprisma.Keyboard.keyStatus(convert[vk],true)
+	end
 end)
 
 Neoprisma.Keyboard.onKeyRelease.connect(function(vk)
- if allow[vk] then
-	Neoprisma.Keyboard.keyStatus(convert[vk],false)
- end
+	if allow[vk] then
+		Neoprisma.Keyboard.keyStatus(convert[vk],false)
+	end
 end)
