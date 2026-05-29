@@ -401,7 +401,7 @@ class Runner(QObject):
 		self.logw.setStyleSheet("""QLabel, QWidget {
 		background-color: #1A1A1A;
 		font-family: 'Courier New', monospace;
-		font-size: 10pt;
+		font-size: 11pt;
 		border: 1px solid #2A2A2A;
 		border-radius: 1px;
 		text-align: left;
@@ -565,7 +565,7 @@ class Runner(QObject):
 		self.logcontents[-1].setStyleSheet("""QLabel, QWidget {
 		background-color: #1A1A1A;
 		font-family: 'Courier New', monospace;
-		font-size: 10pt;
+		font-size: 11pt;
 		border: 1px solid #2A2A2A;
 		border-radius: 1px;
 		text-align: left;
@@ -579,7 +579,7 @@ class Runner(QObject):
 		self.logcontents[-1].setStyleSheet("""QLabel, QWidget {
 		background-color: #1A1A1A;
 		font-family: 'Courier New', monospace;
-		font-size: 10pt;
+		font-size: 11pt;
 		border: 1px solid #2A2A2A;
 		border-radius: 1px;
 		text-align: left;
