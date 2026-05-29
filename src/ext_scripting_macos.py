@@ -470,7 +470,7 @@ class Runner(QObject):
 		self.logcontents = []
 
 		self.system_message_script = Script("print()","Neoprisma",self.error)
-		self.system_message_script.uuid = "000000"
+		self.system_message_script.uuid = "0000000"
 		self.info("Script output/errors will show here.",self.system_message_script)
 
 		self.refreshtimer = QTimer(self)
