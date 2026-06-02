@@ -1,4 +1,4 @@
-""" 
+""" # License
 Neoprisma Copyright (C) 2026 PrismaticDepths <prismaticdepths@gmail.com>
 
 This program is free software: you can redistribute it and/or modify
@@ -31,13 +31,9 @@ if SRC not in sys.path:
 import objc, CoreFoundation
 objc.registerCFSignature("CFStringRef", b"^{__CFString=}", CoreFoundation.CFStringGetTypeID(), "NSString")
 
-
-try:
-	import version
-except Exception:
-	__version__ = "0.0.0"
-else:
-	__version__ = version.__version__
+try: import version
+except Exception: __version__ = "0.0.0"
+else: __version__ = version.__version__
 
 def crash(headline="Neoprisma encountered an error and has to crash.",detail="No short details available.",error_msg="",exit_code=1):
 	from PyQt6.QtWidgets import (
@@ -107,8 +103,8 @@ import copy
 import traceback
 import time
 from threading import Thread
-from PyQt6.QtGui import QAction,QIcon
-from PyQt6.QtCore import QObject,pyqtSignal, QTimer, Qt, QEvent,QPoint,QThread
+from PyQt6.QtGui import QAction, QIcon
+from PyQt6.QtCore import QObject, pyqtSignal, QTimer, Qt, QEvent, QPoint, QThread
 from PyQt6.QtWidgets import (
 	QApplication,
 	QSystemTrayIcon,
@@ -117,17 +113,12 @@ from PyQt6.QtWidgets import (
 	QMessageBox, 
 	QWidget, 
 	QLabel,
-	QDial,
 	QCheckBox,
-	QComboBox,
-	QTextEdit,
 	QDoubleSpinBox,
-	QSlider,
 	QPushButton,
 	QVBoxLayout,
 	QHBoxLayout,
 	QMenuBar,
-	QSizePolicy,
 	QScrollArea,
 	QToolTip,
 )
@@ -135,15 +126,18 @@ from PyQt6.QtWidgets import (
 
 
 from resources import resource_path
-try:
+try: # Import neoprisma's own modules
+	# Core
 	import playback
 	import recorder
 	import globalconfwizard
+
 	# Extensions
 	import ext_scripting_macos
-	#import ext_editor_macos
+
+	# Config types
 	from globalconfwizard import CNVKeyset,CNVString,CNVType,CNVBoolean,CNVInteger,CNVFloat
-except Exception:
+except Exception: # Crash if failed
 	crash("Failed to start Neoprisma!","Fatal error while importing components of the app in seperate Python modules/files.",exit_code=70)
 
 MASTER_STYLESHEET = """
@@ -299,7 +293,7 @@ MASTER_STYLESHEET = """
 	
 """
 
-MACOS_VK_MAP = {
+MACOS_VK_MAP = { # Virtual keycode to character
 	0: 'a', 11: 'b', 8: 'c', 2: 'd', 14: 'e', 3: 'f', 5: 'g', 4: 'h', 34: 'i',
 	38: 'j', 40: 'k', 37: 'l', 46: 'm', 45: 'n', 31: 'o', 35: 'p', 12: 'q',
 	15: 'r', 1: 's', 17: 't', 32: 'u', 9: 'v', 13: 'w', 7: 'x', 16: 'y', 6: 'z',
@@ -308,7 +302,7 @@ MACOS_VK_MAP = {
 	24: '=', 27: '-', 33: '[', 30: ']', 42: '\\', 41: ';', 39: "'", 43: ',', 47: '.', 44: '/', 50: '`'
 }
 
-CN_CONFIGURATION_DEFAULTS = {
+CN_CONFIGURATION_DEFAULTS = { # Configuration defaults & descriptions/categories
 	"DOC":CNVString("NEOPRISMA CONFIGURATION DATA"),
 	"VERSION":CNVInteger(2),
 	"KEYBIND_TOGGLE_RECORD":CNVKeyset(set([59,98])),
@@ -324,9 +318,9 @@ CN_CONFIGURATION_DEFAULTS = {
 	"HOOK_MOUSE_EVENTS":CNVBoolean(True,description="Allows userscripts to log mouse movement and clicks and receive mouse data. Also uses more CPU.",category="Scripts")
 }
 
-MAX_HOTKEY_LEN = 5
+MAX_HOTKEY_LEN = 5 # max hotkey length
 
-def latest():
+def latest(): # fetch the latest release's version
 	url = f"https://api.github.com/repos/prismaticdepths/neoprisma/releases/latest"
 	try:
 		resp = requests.get(url, timeout=5)
@@ -339,7 +333,7 @@ def latest():
 	except requests.RequestException:
 		return "0.0.0"
 
-def version_dif(inp):
+def version_dif(inp): # calculate whether the current version is higher than the given one
 
 	current = __version__.split(".")
 	latest = inp.split(".")
@@ -350,7 +344,7 @@ def version_dif(inp):
 			return False, inp
 	return False, inp
 
-def run_updater():
+def run_updater(): # curl and run the standard stable neoprisma installer
 
 	import tempfile
 	import os
@@ -361,7 +355,7 @@ def run_updater():
 	with tempfile.NamedTemporaryFile(suffix=".command",delete=False,mode="w") as f:
 		f.write(command)
 		tmpath=f.name
-	os.chmod(tmpath, 0o755)
+	os.chmod(tmpath, 0o755) # Make the temporary file executable
 	subprocess.Popen(["open", tmpath])
 
 class Emitter(QObject):
@@ -390,18 +384,22 @@ class Main(QObject):
 			self.dummy_menu.addAction(self.about_action)
 		except Exception: pass
 
-		self.arr = bytearray(b"<NEOPRISMA>\x01")
-		self.compiled_arr:list[playback.EventPacket] = []
+		self.arr = bytearray(b"<NEOPRISMA>\x01") # Load an empty recording
+		self.compiled_arr:list[playback.EventPacket] = [] # This is also an empty recording
+
 		self.state_recording = False
 		self.state_playback = False
 		self.state_autoclicker = False
-		self.timestamp_multiplier = 1
+
+		self.timestamp_multiplier = 1 # Playback speed modifier
+
 		self.recording_hotkey = False
 		self.hotkey_record_buffer = set()
 		self.hotkey_lookup = {}
-		self.hotkey_edit_label = ""
-		self.cps = (1/100)
-		self.keysdown = set()
+		self.hotkey_edit_label = "" 
+		self.windows_open=0 # Updated whenever a window is opened/closed, used for the app icon hiding logic
+		self.cps = (1/100) # Autoclicker target clicks per second, in (1/CPS). So, the default here is 100 clicks per second.
+		self.keysdown = set() # For hotkey activation logic, mostly
 		self.hotkeys = {
 			"KEYBIND_TOGGLE_RECORD": set(),
 			"KEYBIND_TOGGLE_PLAYBACK": set(),
@@ -453,6 +451,7 @@ class Main(QObject):
 		self.error_emitter.error.connect(lambda msg: QMessageBox.critical(None,"neoprisma: an error occured",msg,QMessageBox.StandardButton.Ok))
 
 
+		# Load tray icons
 		self.icon_static = QIcon(resource_path("assets/neoprisma-static.png"))
 		self.icon_rec = QIcon(resource_path("assets/neoprisma-rec.png"))
 		self.icon_play = QIcon(resource_path("assets/neoprisma-play.png"))
@@ -464,17 +463,15 @@ class Main(QObject):
 
 		self.script_ext=ext_scripting_macos.Runner()
 
-		self.menu = QMenu()
+		self.menu = QMenu() # Menu for when you click the tray icon
+		self.filemenu = QMenu("File") # Submenu in the tray icon menu
 
-		self.filemenu = QMenu("File")
-
-		self.toggle_rec_widget = QAction("Toggle Recording")
+		self.toggle_rec_widget = QAction("Toggle Recording") # Items for the tray menu
 		self.toggle_rec_widget.triggered.connect(self.toggle_recording)
 		self.toggle_play_widget = QAction("Toggle Playback")
 		self.toggle_play_widget.triggered.connect(self.toggle_playback)
 		self.toggle_auto_widget = QAction("Toggle Autoclicker")
 		self.toggle_auto_widget.triggered.connect(self.toggle_autoclicker)
-
 		self.load_widget = QAction("Load Recording")
 		self.load_widget.triggered.connect(self.load)
 		self.save_widget = QAction("Save Recording")
@@ -485,15 +482,13 @@ class Main(QObject):
 		self.conf_widget.triggered.connect(self.settingsw_popup)
 		self.scrextaction = QAction("Scripts")
 		self.scrextaction.triggered.connect(self.scriptext_popup)
-		self.filemenu.addActions([self.load_widget,self.save_widget,self.script_execute_widget])
-		self.menu.addMenu(self.filemenu)
-		self.menu.addActions([self.toggle_rec_widget,self.toggle_play_widget,self.scrextaction,self.conf_widget])
-
 		self.quitaction = QAction("Quit")
 		self.quitaction.triggered.connect(self.shutdown)
-		self.menu.addAction(self.quitaction)
+		self.filemenu.addActions([self.load_widget,self.save_widget,self.script_execute_widget])
+		self.menu.addMenu(self.filemenu)
+		self.menu.addActions([self.toggle_rec_widget,self.toggle_play_widget,self.scrextaction,self.conf_widget,self.quitaction])
 
-		self.settingsw = QWidget()
+		self.settingsw = QWidget() # Settings window
 		
 		self.settingsw_layout = QVBoxLayout()
 		self.settingsw.setLayout(self.settingsw_layout)
@@ -503,19 +498,18 @@ class Main(QObject):
 		self.settingsw_scroll.setWidgetResizable(True)
 		self.settingsw_scroll.setWidget(self.settingsw)
 		self.settingsw_scroll.setBaseSize(300,500)
+		self.settingsw_scroll.setWindowTitle("Settings")
 
-		self.settingsw_label_hkheader = QLabel("Hotkeys",self.settingsw)
+		# Hotkey settings
+		self.settingsw_label_hkheader = QLabel("Hotkeys",self.settingsw) 
 		self.settingsw_label_hkheader.setStyleSheet("font-weight: bold; color: white;")
 		self.settingsw_label_hkheader.setAlignment(Qt.AlignmentFlag.AlignCenter)
 		self.settingsw_layout.addWidget(self.settingsw_label_hkheader)
-
 		self.settingsw_label = QLabel("Hotkeys are disabled while this window is active.",self.settingsw)
 		self.settingsw_label.setStyleSheet("color: gray;")
 		self.settingsw_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
 		self.settingsw_layout.addWidget(self.settingsw_label)
-		
 		self.settingsw_layout.addSpacing(10)
-
 		self.settingsw_hk_layout = QVBoxLayout()
 		self.settingsw_hk_rec_layout = QHBoxLayout()
 		self.settingsw_hk_rec = QPushButton("Edit RECORD hotkey",self.settingsw)
@@ -548,14 +542,13 @@ class Main(QObject):
 		self.settingsw_hk_layout.setContentsMargins(0, 0, 0, 0)
 		self.settingsw_layout.addLayout(self.settingsw_hk_layout)
 
-
+		# Speed adjust settings
 		self.settingsw_layout.addSpacing(10)
 		self.settingsw_label_speedheader = QLabel("Speed Adjust",self.settingsw)
 		self.settingsw_label_speedheader.setStyleSheet("font-weight: bold; color: white;")
 		self.settingsw_label_speedheader.setAlignment(Qt.AlignmentFlag.AlignCenter)
 		self.settingsw_layout.addWidget(self.settingsw_label_speedheader)
 		self.settingsw_layout.addSpacing(10)
-
 		self.settingsw_speededit = QWidget()
 		self.settingsw_speededit_layout = QHBoxLayout()
 		self.settingsw_speededit.setLayout(self.settingsw_speededit_layout)
@@ -687,25 +680,23 @@ class Main(QObject):
 		self.settingsw_scroll.closeEvent = self.anyw_close
 
 		self.script_ext.mainw.closeEvent = self.anyw_close
+		self.script_ext.logw.closeEvent = self.anyw_close
+		self.script_ext.logw_scroll.closeEvent = self.anyw_close
+		self.script_ext.log_btn.released.connect(self.anyw_open)
 
 		self.tray.setContextMenu(self.menu)
 
-		self.run_workers = True
-		self.auto_thread = None
+		self.auto_thread = None # Thread to be used by the autoclicker
 
-		#QTimer.singleShot(0,self.start_hotkeys)
-		QTimer.singleShot(0,self.init_input_devices)
+		QTimer.singleShot(0,self.init_input_devices) # Start listeners and mouse simulator
 
-		if not self.conf_data["HIDE_APP_ICON"].real_value: self.anyw_open()
+		if not self.conf_data["HIDE_APP_ICON"].real_value: self.anyw_open() # Open the app icon if HIDE_APP_ICON is disabled.
 		
-		if self.update_available:
-			QTimer.singleShot(0,self.prompt_update)
+		if self.update_available: 
+			QTimer.singleShot(0,self.prompt_update) # Finally, open the update prompt if there's an update available.
 
 	def shutdown(self):
-		self.run_workers = False
 		self.app.quit()
-
-
 
 	def rebuild_hotkey_lookup(self):
 		self.hotkey_lookup.clear()
@@ -774,22 +765,28 @@ class Main(QObject):
 		self.script_ext.mainw.raise_()
 
 	def anyw_open(self):
+		
 		import AppKit
 		AppKit.NSApp.setActivationPolicy_(AppKit.NSApplicationActivationPolicyRegular)
+		self.windows_open+=1
 
 	def anyw_close(self, event:QEvent):
+		
+		self.windows_open-=1
 		if not self.conf_data["HIDE_APP_ICON"].real_value:
 			event.accept()
 			return
-		import AppKit
-		AppKit.NSApp.setActivationPolicy_(AppKit.NSApplicationActivationPolicyAccessory)
-		event.accept()
+		else:
+			if self.windows_open<=0:
+				import AppKit
+				AppKit.NSApp.setActivationPolicy_(AppKit.NSApplicationActivationPolicyAccessory)
+			event.accept()
 
-	def upd_speed(self,x):
+	def upd_speed(self,x): # Update playback speed multiplier
 		if x == 0: return
 		self.timestamp_multiplier=1/x
 
-	def upd_cps(self,x):
+	def upd_cps(self,x): # Update target clicks/second
 		if x == 0: return
 		self.cps = (1/x)
 
@@ -825,7 +822,7 @@ class Main(QObject):
 				if hk.startswith("KEYBIND"): 
 					self.conf_data[hk].set_value(self.hotkeys[hk])
 
-	def vk_to_name(self,vk):
+	def vk_to_name(self,vk): # Helper to convert a virtual key code to a character name so it can be displayed
 		if vk == 49: return MACOS_VK_MAP[vk]
 		if pynput.keyboard.KeyCode.from_vk(vk) in pynput.keyboard.Key:
 			return pynput.keyboard.Key(pynput.keyboard.KeyCode.from_vk(vk)).name
@@ -876,7 +873,7 @@ class Main(QObject):
 		if self.conf_data["HOOK_KEYPRESS_EVENTS"].real_value: 
 			self.script_ext.kit._signal_keystatus(vk,False)
 
-	def init_input_devices(self):
+	def init_input_devices(self): # Start listeners, recorder singleton, and mouse simulator
 		try:
 			self.keyboard_listener = pynput.keyboard.Listener(
 				on_press=self.master_on_press,
@@ -931,17 +928,7 @@ class Main(QObject):
 		self.recorder.captured_mouse_scroll(x,y,dx,dy,t)
 		if self.conf_data["HOOK_MOUSE_EVENTS"].real_value: self.script_ext.kit._signal_mousescroll(x,y,dx,dy)
 		
-
-	#def start_hotkeys(self):
-	#	try:
-	#		if hasattr(self, "h") and self.h:
-	#			self.h.stop()
-	#		self.h.start()
-	#	except Exception:
-	#		self.anyw_open()
-	#		crash(headline="An error occured while initializing recording/playback infastructure.",detail="Could not start the hotkey listener.")
-
-	def toggle_recording(self):
+	def toggle_recording(self): # Callback for when the record hotkey is triggered
 		try:
 			if self.state_playback or self.state_autoclicker: return
 			if self.state_recording:
@@ -957,7 +944,7 @@ class Main(QObject):
 		except Exception:
 			self.error_emitter.error.emit(traceback.format_exc())
 
-	def toggle_playback(self):
+	def toggle_playback(self): # Callback for when the playback hotkey is triggered
 		try:
 			if self.state_recording or self.state_autoclicker: return
 			if self.state_playback:
@@ -1003,7 +990,7 @@ class Main(QObject):
 		except Exception:
 			self.error_emitter.error.emit(traceback.format_exc())
 
-	def toggle_autoclicker(self):
+	def toggle_autoclicker(self): # Callback for when the autoclick hotkey is triggered
 		try:
 			if self.state_recording or self.state_playback: return
 			if self.state_autoclicker:
@@ -1018,14 +1005,15 @@ class Main(QObject):
 		except Exception:
 			self.error_emitter.error.emit(traceback.format_exc())
 			
-	def _INNER_toggle_autoclicker_simple(self):
+	def _INNER_toggle_autoclicker_simple(self): # Simple autoclick logic
 		while self.state_autoclicker:
 			playback.mouseButtonStatus(1,True)
 			time.sleep(0)
 			playback.mouseButtonStatus(1,False)
 			time.sleep(self.cps)
-	def _INNER_toggle_autoclicker_intelligent(self):
+	def _INNER_toggle_autoclicker_intelligent(self): # Intelligent autoclick logic that adjusts the delay it waits for to achieve the target (because intended delay != actual delay)
 		
+		passed_target = False
 		added_delay = 0
 		total = 0
 		counter = 0
@@ -1043,11 +1031,13 @@ class Main(QObject):
 			#added_delay = min(0,(self.cps*multiplier)-(t-last_timestamp))
 			if total/counter > self.cps: 
 				multiplier-=0.001
+				if not passed_target: passed_target = True
 			elif (total/counter)+0.001 < self.cps:
 				multiplier+=0.001
+				if not passed_target: multiplier+=0.999
 			#print("New added delay:",added_delay,"Resulting delay:",self.cps+added_delay,"Average actual delay:",total/counter,"mult:",multiplier)
 
-	def load(self):
+	def load(self): # Load a recording
 
 		try:
 			file, _ = QFileDialog.getOpenFileName(None,"Select a recording to load","",filter="Recordings (*.neop);;All Files (*)")
@@ -1065,7 +1055,7 @@ class Main(QObject):
 		except Exception:
 			self.error_emitter.error.emit(traceback.format_exc())
 
-	def save(self):
+	def save(self): # Save a recording
 
 		try:
 			file, _ = QFileDialog.getSaveFileName(None,"Select a location to save your recording","",filter="Recordings (*.neop)")
@@ -1080,4 +1070,5 @@ try:
 	m = Main()
 except Exception:
 	crash(headline="Failed to start Neoprisma!",detail="Uncaught exception in `Main` class initialization.",exit_code=70)
-sys.exit(m.app.exec())
+
+sys.exit(m.app.exec()) # Start the app.

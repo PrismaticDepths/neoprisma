@@ -132,7 +132,7 @@ A list of functions and objects is also provided below. It should hopefully be u
 ### API
 
 > **[ℹ]** **Notice**\
-> Since Neoprisma implements its own log functions, the builtin lua `error` and `warning` objects have been renamed to `_error` and `_warning` respsectively. Additionally, the standard `print()` function does not print to the Script Log.
+> Since Neoprisma implements its own log functions, the builtin lua `error` and `warn` objects have been renamed to `_error` and `_warn` respsectively. Additionally, the standard `print()` function does not print to the Script Log.
 
 > **[ℹ]** **Notice**\
 > Many of the below functions enforce strict typing. Simply passing a float instead of an integer *can* and *will* raise an error.

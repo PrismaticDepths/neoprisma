@@ -401,7 +401,7 @@ class Runner(QObject):
 		self.logw.setStyleSheet("""QLabel, QWidget {
 		background-color: #1A1A1A;
 		font-family: 'Courier New', monospace;
-		font-size: 10pt;
+		font-size: 11pt;
 		border: 1px solid #2A2A2A;
 		border-radius: 1px;
 		text-align: left;
@@ -470,7 +470,7 @@ class Runner(QObject):
 		self.logcontents = []
 
 		self.system_message_script = Script("print()","Neoprisma",self.error)
-		self.system_message_script.uuid = "000000"
+		self.system_message_script.uuid = "0000000"
 		self.info("Script output/errors will show here.",self.system_message_script)
 
 		self.refreshtimer = QTimer(self)
@@ -565,7 +565,7 @@ class Runner(QObject):
 		self.logcontents[-1].setStyleSheet("""QLabel, QWidget {
 		background-color: #1A1A1A;
 		font-family: 'Courier New', monospace;
-		font-size: 10pt;
+		font-size: 11pt;
 		border: 1px solid #2A2A2A;
 		border-radius: 1px;
 		text-align: left;
@@ -579,7 +579,7 @@ class Runner(QObject):
 		self.logcontents[-1].setStyleSheet("""QLabel, QWidget {
 		background-color: #1A1A1A;
 		font-family: 'Courier New', monospace;
-		font-size: 10pt;
+		font-size: 11pt;
 		border: 1px solid #2A2A2A;
 		border-radius: 1px;
 		text-align: left;
