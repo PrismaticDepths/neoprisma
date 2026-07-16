@@ -17,18 +17,19 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>
 
 import os, sys
 
-if getattr(sys, "frozen", False):
-	BASE = sys._MEIPASS
-else:
-	BASE = os.path.dirname(__file__)
-SRC = os.path.join(BASE, "src")
-if SRC not in sys.path:
-	sys.path.insert(0, SRC)
+if sys.platform == "darwin":
+	if getattr(sys, "frozen", False):
+		BASE = sys._MEIPASS
+	else:
+		BASE = os.path.dirname(__file__)
+	SRC = os.path.join(BASE, "src")
+	if SRC not in sys.path:
+		sys.path.insert(0, SRC)
 
 from upstreampatches import pynput_313
 pynput_313()
 
-def crash(headline="Neoprisma encountered an error and has to crash.",detail="Entrypoint hook triggered.",error_msg="",exit_code=1):
+def crash(headline="Neoprisma encountered an error and has to crash.",detail="Entrypoint hook triggered.",error_msg="",infotext="",exit_code=1):
 	from PyQt6.QtWidgets import (
 		QApplication,
 		QMessageBox
@@ -39,7 +40,9 @@ def crash(headline="Neoprisma encountered an error and has to crash.",detail="En
 	box = QMessageBox()
 	box.setIcon(QMessageBox.Icon.Critical)
 	box.setText(headline)
-	box.setInformativeText(f"Please report this issue to the developers!\n\nYou can press \"Show Details...\" to see the full crash report. Include the entire crash log if you file a bug report.\nPressing \"Abort\" or closing the crash dialog will terminate this process.")
+	if infotext == "": 
+		box.setInformativeText(f"Please report this issue to the developers!\n\nYou can press \"Show Details...\" to see the full crash report. Include the entire crash log if you file a bug report.\nPressing \"Abort\" or closing the crash dialog will terminate this process.")
+	else: box.setInformativeText(infotext)
 	box.setDetailedText(f"""--- Crash Summary ---
 Report generated in file: `{__name__}`
 Crash headline: {headline}
@@ -90,9 +93,10 @@ def exception_hook(exctype, value, tb):
 	crash(error_msg=error_msg)
 sys.excepthook = exception_hook
 
+SUPPORTED_PLATFORMS = ["darwin","win32"]
+if sys.platform.lower().strip() not in SUPPORTED_PLATFORMS: crash("Unsupported platform!","No support for user's platform.","--Intentional--","Neoprisma does not support your operating system/platform.\n\nYou can help expand Neoprisma's support by contributing code for your platform.",0)
+
 if sys.platform == "darwin":
 	import platform_macos
 elif sys.platform == "win32":
-	pass
-else:
-	pass
+	import platform_windows
