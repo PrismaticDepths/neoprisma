@@ -1,5 +1,5 @@
 local allow = {
-	[0] = true,
+	[Neoprisma.Keys.kVK_ANSI_A] = true,
 	[1] = true,
 	[2] = true,
 	[13] = true

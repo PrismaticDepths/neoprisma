@@ -123,9 +123,13 @@ from PyQt6.QtWidgets import (
 	QToolTip,
 )
 
+from utils import (
+	resource_path, notice,
+	MACOS_fetch_keyboard_layout,
+	MACOS_is_trusted_ListenEvent,
+	MACOS_is_trusted_Accessibility,
+)
 
-
-from resources import resource_path
 try: # Import neoprisma's own modules
 	# Core
 	import playback
@@ -137,170 +141,11 @@ try: # Import neoprisma's own modules
 
 	# Config types
 	from globalconfwizard import CNVKeyset,CNVString,CNVType,CNVBoolean,CNVInteger,CNVFloat
+
 except Exception: # Crash if failed
 	crash("Failed to start Neoprisma!","Fatal error while importing components of the app in seperate Python modules/files.",exit_code=70)
 
-MASTER_STYLESHEET = """
-	QWidget {
-		background-color: #303030;
-		color: #DEDEDE;
-		font-size: 13px;
-	}
-
-	QPushButton {
-		background-color: #535353;
-		border: 0px solid #000000;
-		border-radius: 6px;
-		padding: 4px 8px;
-		color: #E0E0E0;
-	}
-
-	QPushButton:hover {
-		background-color: #404046;
-		border: 1px solid #444444;
-		color: #FFFFFF;
-	}
-
-	QPushButton:pressed {
-		background-color: #1A1A1A;
-		border: 1px solid #222222;
-	}
-
-	QLineEdit, QTextEdit, QPlainTextEdit {
-		background-color: #1A1A1A;
-		border: 1px solid #2A2A2A;
-		border-radius: 1px;
-		padding: 5px;
-		color: #FFFFFF;
-	}
-
-	QLineEdit:focus {
-		border: 1px solid #555555;
-	}
-
-	/*QCheckBox::indicator {
-		width: 16px;
-		height: 16px;
-		background-color: #1A1A1A;
-		border: 2px solid #444444;
-		border-radius: 4px;
-	}
-
-	QCheckBox::indicator:checked {
-		background-color: #00B467;
-	}*/
-
-	QCheckBox::indicator {
-    	width: 16px;
-   		height: 16px;
-	}
-
-
-	QScrollBar:vertical {
-		border: none;
-		background: #121212;
-		width: 8px;
-	}
-
-	QScrollBar::handle:vertical {
-		background: #333333;
-		min-height: 20px;
-		border-radius: 4px;
-	}
-
-	QScrollBar::handle:vertical:hover {
-		background: #444444;
-	}
-	QScrollBar:horizontal {
-		border: none;
-		background: #121212;
-		width: 8px;
-	}
-
-	QScrollBar::handle:horizontal {
-		background: #333333;
-		min-height: 20px;
-		border-radius: 4px;
-	}
-
-	QScrollBar::handle:horizontal:hover {
-		background: #444444;
-	}
-
-	QLabel#heading {
-		color: #FFFFFF;
-		font-weight: bold;
-		font-size: 16px;
-	}
-	QLabel#script-status-long {
-		color: #BDBDBD;
-		font-size: 8px;
-	}
-	QPushButton#info-popup {
-		border-radius: 8px;
-		background-color: #535353;
-		border: 1px solid #000000;
-		width: 16px;
-   		height: 16px;
-		margin: 0;
-        padding: 0;
-	}
-	QPushButton:pressed#info-popup {
-	}
-	QPushButton:hover#info-popup {
-	}
-	QPushButton#status-red {
-		border-radius: 8px;
-		background-color: #FF0000;
-		border: 1px solid #000000;
-		width: 16px;
-   		height: 16px;
-		margin: 0;
-        padding: 0;
-	}
-	QPushButton:pressed#status-red {
-	}
-	QPushButton:hover#status-red {
-	}
-	QPushButton#status-green {
-		border-radius: 8px;
-		background-color: #32FF64;
-		color: #000000;
-		border: 1px solid #000000;
-		width: 16px;
-   		height: 16px;
-		margin: 0;
-        padding: 0;
-	}
-	QPushButton:pressed#status-green {
-	}
-	QPushButton:hover#status-green {
-	}
-	QPushButton#status-yellow {
-		border-radius: 8px;
-		background-color: #FFFA05;
-		color: #000000;
-		border: 1px solid #000000;
-		width: 16px;
-   		height: 16px;
-		margin: 0;
-        padding: 0;
-	}
-	QPushButton:pressed#status-yellow {
-	}
-	QPushButton:hover#status-yellow {
-	}
-	
-"""
-
-MACOS_VK_MAP = { # Virtual keycode to character
-	0: 'a', 11: 'b', 8: 'c', 2: 'd', 14: 'e', 3: 'f', 5: 'g', 4: 'h', 34: 'i',
-	38: 'j', 40: 'k', 37: 'l', 46: 'm', 45: 'n', 31: 'o', 35: 'p', 12: 'q',
-	15: 'r', 1: 's', 17: 't', 32: 'u', 9: 'v', 13: 'w', 7: 'x', 16: 'y', 6: 'z',
-	29: '0', 18: '1', 19: '2', 20: '3', 21: '4', 23: '5', 22: '6', 26: '7', 28: '8', 25: '9',
-	49: 'space', 36: 'newline', 48: 'tab',
-	24: '=', 27: '-', 33: '[', 30: ']', 42: '\\', 41: ';', 39: "'", 43: ',', 47: '.', 44: '/', 50: '`'
-}
+from constants import *
 
 CN_CONFIGURATION_DEFAULTS = { # Configuration defaults & descriptions/categories
 	"DOC":CNVString("NEOPRISMA CONFIGURATION DATA"),
@@ -319,6 +164,10 @@ CN_CONFIGURATION_DEFAULTS = { # Configuration defaults & descriptions/categories
 }
 
 MAX_HOTKEY_LEN = 5 # max hotkey length
+
+###
+
+
 
 def latest(): # fetch the latest release's version
 	url = f"https://api.github.com/repos/prismaticdepths/neoprisma/releases/latest"
@@ -366,9 +215,35 @@ class Main(QObject):
 	def __init__(self):
 		super().__init__()
 		
-		self.app = QApplication(sys.argv)
+		self.app = QApplication.instance()
+		if self.app is None: self.app = QApplication(sys.argv)
 		self.app.setStyleSheet(MASTER_STYLESHEET)
 		self.app.setQuitOnLastWindowClosed(False)
+
+		# Check for permissions early so that the rest of the app can use them
+		is_trusted_Accessibility = MACOS_is_trusted_Accessibility(); is_untrusted_Accessibility = not is_trusted_Accessibility
+		is_trusted_ListenEvent = MACOS_is_trusted_ListenEvent(); is_untrusted_ListenEvent = not is_trusted_ListenEvent
+
+		QTimer.singleShot(0,self.init_input_devices) # Start listeners and mouse simulator
+		# This goes at the top because for some reason MacOS doesn't like if we open windows before firing this
+
+
+		privillege_notifications = []
+
+		if is_untrusted_Accessibility: privillege_notifications.append(["Control your mouse & keyboard (<a href='x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility'>Accessibility</a>)"])
+		if is_untrusted_ListenEvent: privillege_notifications.append(["Monitor keyboard input (<a href='x-apple.systempreferences:com.apple.preference.security?Privacy_ListenEvent'>Input Monitoring</a>)"])
+
+		if len(privillege_notifications) > 0:
+			notice(
+				headline = "Neoprisma is not trusted!",
+				infotext = f"""
+				Neoprisma <u>requires</u> your permission to:<br>
+				<br>
+				{"<br>".join(f"{group[0]}" for group in privillege_notifications)}<br>
+				<br>
+				<i>*You can click the blue links to open their respective settings panels.</i>
+""")
+
 
 		try: # force the "about" pane to appear on the left of the system menu bar
 			import AppKit
@@ -462,6 +337,7 @@ class Main(QObject):
 		self.tray.setVisible(True)
 
 		self.script_ext=ext_scripting_macos.Runner()
+
 
 		self.menu = QMenu() # Menu for when you click the tray icon
 		self.filemenu = QMenu("File") # Submenu in the tray icon menu
@@ -688,7 +564,15 @@ class Main(QObject):
 
 		self.auto_thread = None # Thread to be used by the autoclicker
 
-		QTimer.singleShot(0,self.init_input_devices) # Start listeners and mouse simulator
+
+		
+
+		try:
+			USER_KB_LAYOUT = MACOS_fetch_keyboard_layout()
+			if USER_KB_LAYOUT.strip() != "U.S.":
+				notice("Non-standard keyboard layout detected!","You are using a keyboard layout other than the default U.S. QWERTY layout.\n\nThis causes a mismatch between keycodes and the keys they represent. Some parts of this app may fail.")
+		except FileNotFoundError:
+			pass
 
 		if not self.conf_data["HIDE_APP_ICON"].real_value: self.anyw_open() # Open the app icon if HIDE_APP_ICON is disabled.
 		
@@ -902,30 +786,30 @@ class Main(QObject):
 		if injected==True: return # Everything can be skipped if it's injected to begin with.
 		triggered_hotkey = self.listener_hotkeysv2_handlekeypress(key,injected)
 		if triggered_hotkey: return # This will prevent a hotkey activation from getting logged into the recorder
-		self.recorder.captured_key_press(key,t,injected)
+		if self.recorder.running: self.recorder.captured_key_press(key,t,injected)
 
 	def master_on_release(self,key:pynput.keyboard.Key|pynput.keyboard.KeyCode,injected=False):
 		t=time.perf_counter_ns()-self.recorder.starting_time # Same as before.
 		if injected==True: return # Everything can be skipped if it's injected to begin with.
 		self.listener_hotkeysv2_handlekeyrelease(key,injected)
-		self.recorder.captured_key_release(key,t,injected)
+		if self.recorder.running:  self.recorder.captured_key_release(key,t,injected)
 
 	def master_on_move(self,x,y,injected=False):
 		t=time.perf_counter_ns()-self.recorder.starting_time # Same as before.
 		if injected==True: return # Everything can be skipped if it's injected to begin with.
-		self.recorder.captured_mouse_move(x,y,t)
+		if self.recorder.running: self.recorder.captured_mouse_move(x,y,t)
 		if self.conf_data["HOOK_MOUSE_EVENTS"].real_value: self.script_ext.kit._signal_mousemovement(x,y)
 
 	def master_on_click(self,x,y,button,pressed,injected=False):
 		t=time.perf_counter_ns()-self.recorder.starting_time # Same as before.
 		if injected==True: return # Everything can be skipped if it's injected to begin with.
-		self.recorder.captured_mouse_click(x,y,button,pressed,t)
+		if self.recorder.running: self.recorder.captured_mouse_click(x,y,button,pressed,t)
 		if self.conf_data["HOOK_MOUSE_EVENTS"].real_value: self.script_ext.kit._signal_mousestatus(button,pressed,x,y)
 
 	def master_on_scroll(self,x,y,dx,dy,injected=False):
 		t=time.perf_counter_ns()-self.recorder.starting_time # Same as before.
 		if injected==True: return # Everything can be skipped if it's injected to begin with.
-		self.recorder.captured_mouse_scroll(x,y,dx,dy,t)
+		if self.recorder.running: self.recorder.captured_mouse_scroll(x,y,dx,dy,t)
 		if self.conf_data["HOOK_MOUSE_EVENTS"].real_value: self.script_ext.kit._signal_mousescroll(x,y,dx,dy)
 		
 	def toggle_recording(self): # Callback for when the record hotkey is triggered

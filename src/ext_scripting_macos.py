@@ -62,14 +62,7 @@ from PyQt6.QtWidgets import (
 	QListWidgetItem,
 )
 
-MACOS_VK_MAP = { # Duplicated - from `platform_macos.py`
-	0: 'a', 11: 'b', 8: 'c', 2: 'd', 14: 'e', 3: 'f', 5: 'g', 4: 'h', 34: 'i',
-	38: 'j', 40: 'k', 37: 'l', 46: 'm', 45: 'n', 31: 'o', 35: 'p', 12: 'q',
-	15: 'r', 1: 's', 17: 't', 32: 'u', 9: 'v', 13: 'w', 7: 'x', 16: 'y', 6: 'z',
-	29: '0', 18: '1', 19: '2', 20: '3', 21: '4', 23: '5', 22: '6', 26: '7', 28: '8', 25: '9',
-	49: 'space', 36: 'newline', 48: 'tab',
-	24: '=', 27: '-', 33: '[', 30: ']', 42: '\\', 41: ';', 39: "'", 43: ',', 47: '.', 44: '/', 50: '`'
-}
+from constants import *
 
 class ScriptStatusEnums(enum.Enum):
 
@@ -144,9 +137,11 @@ class LUA_Clock:
 
 class LUA_Neoprisma:
 	def __init__(self,playback,termhelper):
+		import enums_vk_macos
 		self.Keyboard = LUA_Keyboard(playback,termhelper)
 		self.Mouse = LUA_Mouse(playback,termhelper)
 		self.Clock = LUA_Clock()
+		self.Keys = enums_vk_macos
 
 UUID_INJECT_TYPES = (
 	LuaSignal
@@ -388,7 +383,6 @@ class Runner(QObject):
 		self.script_view.setAlignment(Qt.AlignmentFlag.AlignTop)
 		self.script_scroll_content = QWidget(); self.script_scroll_content.setLayout(self.script_view)
 		self.script_scroll = QScrollArea(); self.script_scroll.setWidget(self.script_scroll_content); self.script_scroll.setWidgetResizable(True)
-
 		self.logw = QWidget()
 		self.logw.setBaseSize(500,750)
 		self.logw_layout = QVBoxLayout()
@@ -472,11 +466,11 @@ class Runner(QObject):
 		self.system_message_script = Script("print()","Neoprisma",self.error)
 		self.system_message_script.uuid = "0000000"
 		self.info("Script output/errors will show here.",self.system_message_script)
-
 		self.refreshtimer = QTimer(self)
 		self.refreshtimer.setInterval(500)
 		self.refreshtimer.timeout.connect(self.refresh)
 		self.refreshtimer.start()
+		
 
 	def show_log(self):
 		self.logw_scroll.show()

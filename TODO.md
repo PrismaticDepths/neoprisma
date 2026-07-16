@@ -2,7 +2,6 @@
 # Todo
 
 [ ] playback: timer for playback or autoclicker \
-[ ] autoclick: timer for playback or autoclicker \
 [ ] playback: set how many loops \
 [ ] extensions: editor/tas \
 [ ] automation: relative mouse \
@@ -13,4 +12,12 @@
 [ ] hotkeys: suppress hotkeys \
 [ ] hotkeys: settings to block cmd, opt, ctrl from being played by recordings (seperate setting for each) \
 [ ] hotkeys: normalize hotkeys (...this might be done? idk) \
-[ ] autoclick: option to click at fixed position
+[ ] autoclick: option to click at fixed position \
+[ ] autoclick: timer for playback or autoclicker \
+[ ] autoclick: option to click only when target apps are focused \
+[ ] autoclick: set to any mouse button or key \
+
+[ ] platform: windows support
+
+[ ] automation: linux support
+[ ] platform: linux support
