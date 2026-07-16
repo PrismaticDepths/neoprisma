@@ -235,7 +235,7 @@ class Main(QObject):
 
 		if len(privillege_notifications) > 0:
 			notice(
-				headline = "Neoprisma is not trusted!",
+				headline = "Neoprisma is missing permissions!",
 				infotext = f"""
 				Neoprisma <u>requires</u> your permission to:<br>
 				<br>
