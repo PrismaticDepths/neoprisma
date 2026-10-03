@@ -7,3 +7,5 @@
 *.o
 tester.py
 version.py
+*.pyd
+src/build
