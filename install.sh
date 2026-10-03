@@ -44,6 +44,7 @@ BUNDLE_ID="com.prismaticdepths.neoprisma"
 BRANCH="stable"
 FROM_SOURCE=0
 WELCOME_MESSAGE="download and install the latest available Neoprisma release"
+ENABLE_SCRIPTING="True"
 OPTIND=1
 
 while getopts ":b:i:r:y:s:" opt; do
@@ -280,6 +281,9 @@ fi
 
 cat <<EOF > src/version.py
 __version__ = "$LATEST_VERSION"
+ext = {
+	"scripting":$ENABLE_SCRIPTING
+}
 EOF
 
 

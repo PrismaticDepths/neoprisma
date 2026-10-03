@@ -3,7 +3,7 @@ def crash(headline="Neoprisma encountered an error and has to crash.",infotext:s
 	from PyQt6.QtWidgets import (
 		QApplication,
 		QMessageBox,
-		QLAbel
+		QLabel
 	)
 	import os,sys,traceback,platform,time
 	app = QApplication.instance()
@@ -115,7 +115,7 @@ def notice(headline="Notice",infotext="Dialog info text"):
 		label.setOpenExternalLinks(True)
 		label.setTextInteractionFlags(Qt.TextInteractionFlag.LinksAccessibleByMouse)
 
-	box.exec()
+	t = box.exec()
 
 
 def resource_path(relative_path: str) -> str:
