@@ -137,3 +137,48 @@ void mouseButtonStatus(uint16_t button, uint16_t x, uint16_t y, bool status) {
 	CFRelease(click);  
 	*/
 }
+
+void warpMouseAbsolute(uint16_t x, uint16_t y) {
+    SetCursorPos(x, y);
+}
+
+void mouseDragAbsolute(uint8_t button, uint16_t x, uint16_t y) {
+    INPUT input;
+    ZeroMemory(&input, sizeof(INPUT));
+    input.type = INPUT_MOUSE;
+    input.mi.dx = (static_cast<long>(x) * 65535) / (GetSystemMetrics(SM_CXSCREEN) - 1);
+    input.mi.dy = (static_cast<long>(y) * 65535) / (GetSystemMetrics(SM_CYSCREEN) - 1);
+    input.mi.dwFlags = MOUSEEVENTF_MOVE | MOUSEEVENTF_ABSOLUTE;
+    
+    switch (button) {
+        case 1: input.mi.dwFlags |= MOUSEEVENTF_LEFTDOWN; break;
+        case 2: input.mi.dwFlags |= MOUSEEVENTF_RIGHTDOWN; break;
+        case 3: input.mi.dwFlags |= MOUSEEVENTF_MIDDLEDOWN; break;
+        default: return;
+    }
+    SendInput(1, &input, sizeof(INPUT));
+}
+
+void mouseButtonStatus(uint16_t button, bool status) {
+    POINT p;
+    GetCursorPos(&p);
+    mouseButtonStatus(button, static_cast<uint16_t>(p.x), static_cast<uint16_t>(p.y), status);
+}
+
+void mouseScroll(uint16_t x, uint16_t y, uint16_t dx, uint16_t dy) {
+    moveMouseAbsolute(x, y);
+    if (dy != 0) {
+        INPUT input = {0};
+        input.type = INPUT_MOUSE;
+        input.mi.dwFlags = MOUSEEVENTF_WHEEL;
+        input.mi.mouseData = dy;
+        SendInput(1, &input, sizeof(INPUT));
+    }
+    if (dx != 0) {
+        INPUT input = {0};
+        input.type = INPUT_MOUSE;
+        input.mi.dwFlags = MOUSEEVENTF_HWHEEL;
+        input.mi.mouseData = dx;
+        SendInput(1, &input, sizeof(INPUT));
+    }
+}

@@ -241,33 +241,33 @@ class Main(QObject):
 		# This goes at the top because for some reason MacOS doesn't like if we open windows before firing this
 		# Unsure of behaviour on Windows, probably no effect. 
 
-		if sys.platform == "win32":
-			notice(
-				headline = "Windows support is WIP!",
-				infotext = f"""
-				Neoprisma is primarily for MacOS.<br>
-				Beware that some features may be buggy or missing on Windows.<br>
-				Please report any bugs to help improve support!!<br>
-				TODO: Scripting, Updater/Installer, VK, QOL<br>
-""")
-
 		privillege_notifications = []
 
 		if sys.platform == "darwin": # Privillege notifications are only for MacOS, so completely ignore them elsewhere even though they'd be automatically true by default
 			if self.is_untrusted_Accessibility: privillege_notifications.append(["Control your mouse & keyboard (<a href='x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility'>Accessibility</a>)"])
 			if self.is_untrusted_ListenEvent: privillege_notifications.append(["Monitor keyboard input (<a href='x-apple.systempreferences:com.apple.preference.security?Privacy_ListenEvent'>Input Monitoring</a>)"])
 
-		if len(privillege_notifications) > 0:
-			notice(
-				headline = "Neoprisma is missing permissions!",
-				infotext = f"""
-				Neoprisma <u>requires</u> your permission to:<br>
-				<br>
-				{"<br>".join(f"{group[0]}" for group in privillege_notifications)}<br>
-				<br>
-				<i>*You can click the blue links to open their respective settings panels.</i><br>
-				--- Please grant each of the above permissions, and then restart the app completely.
-""")
+		def startup_popups(): # Popups are blocking. It's convienent to have them at the top of the file, but it will throw an error since it blocks config initialization. So this function gets called later.
+			if sys.platform == "win32":
+				notice(
+					headline = "Windows support is WIP!",
+					infotext = f"""
+					Neoprisma is primarily for MacOS.<br>
+					Beware that some features may be buggy or missing on Windows.<br>
+					Please report any bugs to help improve support!!<br>
+					TODO: Scripting, Updater/Installer, VK, QOL<br>
+	""")
+			if len(privillege_notifications) > 0:
+				notice(
+					headline = "Neoprisma is missing permissions!",
+					infotext = f"""
+					Neoprisma <u>requires</u> your permission to:<br>
+					<br>
+					{"<br>".join(f"{group[0]}" for group in privillege_notifications)}<br>
+					<br>
+					<i>*You can click the blue links to open their respective settings panels.</i><br>
+					--- Please grant each of the above permissions, and then restart the app completely.
+	""")
 
 
 		try: # force the "about" pane to appear on the left of the system menu bar
@@ -343,6 +343,8 @@ class Main(QObject):
 		for key in self.conf_data.keys():
 			if key.startswith("KEYBIND"):
 				self.hotkeys[key] = self.conf_data[key].get_value()
+
+		startup_popups()
 
 		self.rebuild_hotkey_lookup()
 
