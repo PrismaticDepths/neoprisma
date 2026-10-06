@@ -97,6 +97,6 @@ SUPPORTED_PLATFORMS = ["darwin","win32"]
 if sys.platform.lower().strip() not in SUPPORTED_PLATFORMS: crash("Unsupported platform!","No support for user's platform.","--Intentional--","Neoprisma does not support your operating system/platform.\n\nYou can help expand Neoprisma's support by contributing code for your platform.",0)
 
 if sys.platform == "darwin":
-	import platform_macos
+	import platform_universal
 elif sys.platform == "win32":
-	import platform_windows
+	import platform_universal

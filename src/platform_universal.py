@@ -167,7 +167,7 @@ CN_CONFIGURATION_DEFAULTS = { # Configuration defaults & descriptions/categories
 	"DELAY_BEFORE_PLAYBACK":CNVFloat(0,description="After playback is triggered, wait the specified number of seconds\nbefore actually starting playback.",smin=0,smax=60,category="Playback"),
 	"COMPENSATE_AUTOCLICKER_DRIFT":CNVBoolean(True,description="Intelligently adjusts autoclicker delay to compensate for drift and overhead added by the OS.\nIncreases CPS, but also raises CPU usage.",category="Autoclicking"),
 	"LOCK_AUTOCLICK_TO_POINT":CNVBoolean(False,"Sets whether to autoclick at a specific point on-screen.",category="Autoclicking"),
-	"AUTOCLICK_TARGET":CNVPoint2D([0,0],description="Specifies where to click if Lock Autoclick To Point is enabled.",category="Autoclicking"),
+	#"AUTOCLICK_TARGET":CNVPoint2D([0,0],description="Specifies where to click if Lock Autoclick To Point is enabled.",category="Autoclicking"),
 	"HOOK_KEYPRESS_EVENTS":CNVBoolean(True,description="Allows userscripts to log keypresses and receive keypress data. Also uses more CPU.",category="Scripts"),
 	"HOOK_MOUSE_EVENTS":CNVBoolean(True,description="Allows userscripts to l og mouse movement and clicks and receive mouse data. Also uses more CPU.",category="Scripts"),
 	"LIMIT_PLAYBACK_LOOPS":CNVBoolean(False,description="Controls whether to apply a limit to the amount of times playback will loop.",category="Playback"),
@@ -234,8 +234,8 @@ class Main(QObject):
 			self.is_trusted_Accessibility = MACOS_is_trusted_Accessibility(); self.is_untrusted_Accessibility = not self.is_trusted_Accessibility
 			self.is_trusted_ListenEvent = MACOS_is_trusted_ListenEvent(); self.is_untrusted_ListenEvent = not self.is_trusted_ListenEvent
 		else:
-			self.is_trusted_Accessibility = True
-			self.is_trusted_ListenEvent = True
+			self.is_trusted_Accessibility = True; self.is_untrusted_Accessibility = not self.is_trusted_Accessibility
+			self.is_trusted_ListenEvent = True; self.is_untrusted_ListenEvent = not self.is_trusted_ListenEvent
 
 		QTimer.singleShot(0,self.init_input_devices) # Start listeners and mouse simulator
 		# This goes at the top because for some reason MacOS doesn't like if we open windows before firing this
@@ -248,6 +248,7 @@ class Main(QObject):
 				Neoprisma is primarily for MacOS. 
 				Beware that some features may be buggy or missing on Windows.
 				Please report any bugs to help improve support!!
+				TODO: Scripting, Updater/Installer, VK, QOL
 """)
 
 		privillege_notifications = []
