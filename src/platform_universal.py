@@ -146,7 +146,7 @@ try: import playback, recorder
 except Exception: crash("Failed to start Neoprisma!","Fatal error while importing components of the app in seperate Python modules/files.",exit_code=70)
 
 import globalconfwizard
-from globalconfwizard import CNVKeyset,CNVString,CNVType,CNVBoolean,CNVInteger,CNVFloat,CNVPoint2D
+from globalconfwizard import CNVKeyset,CNVString,CNVType,CNVBoolean,CNVInteger,CNVFloat#,CNVPoint2D
 from constants import *
 
 if version.ext["scripting"]: 
@@ -245,10 +245,10 @@ class Main(QObject):
 			notice(
 				headline = "Windows support is WIP!",
 				infotext = f"""
-				Neoprisma is primarily for MacOS. 
-				Beware that some features may be buggy or missing on Windows.
-				Please report any bugs to help improve support!!
-				TODO: Scripting, Updater/Installer, VK, QOL
+				Neoprisma is primarily for MacOS.<br>
+				Beware that some features may be buggy or missing on Windows.<br>
+				Please report any bugs to help improve support!!<br>
+				TODO: Scripting, Updater/Installer, VK, QOL<br>
 """)
 
 		privillege_notifications = []
