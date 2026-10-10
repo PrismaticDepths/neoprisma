@@ -792,7 +792,7 @@ class Main(QObject):
 					return pynput.keyboard.Key(key_obj).name
 				if hasattr(key_obj, 'char') and key_obj.char: 
 					return key_obj.char
-			return f"⍰<{vk}>"
+			raise RuntimeError # Trigger the catch; not really much of an actual error
 		except Exception:
 			logging.warning(f"Could not map vk {vk}")
 			return f"⍰<{vk}>"
