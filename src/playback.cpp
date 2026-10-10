@@ -29,8 +29,8 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>*/
 
 namespace py = pybind11;
 
-constexpr uint8_t MAJOR_FMT_VERSION = 1; // CHANGE IF YOU ALSO CHANGE THIS VARIABLE IN recorder.py
-constexpr uint8_t EARLIEST_SUPPORTED_FMT_VERSION = 1; // LEAVE THIS ALONE UNLESS YOU MAKE BREAKING CHANGES AND CANT READ OLDER STUFF SOMEHOW
+constexpr uint8_t MAJOR_FMT_VERSION = 2; // CHANGE IF YOU ALSO CHANGE THIS VARIABLE IN recorder.py
+constexpr uint8_t EARLIEST_SUPPORTED_FMT_VERSION = 2; // LEAVE THIS ALONE UNLESS YOU MAKE BREAKING CHANGES AND CANT READ OLDER STUFF SOMEHOW
 constexpr char FILE_HEADER_ID[11] = {'<','N','E','O','P','R','I','S','M','A','>'}; // DONT CHANGE THIS ONE
 constexpr uint8_t FILE_HEADER_ID_SIZE = 11;
 
