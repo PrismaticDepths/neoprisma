@@ -15,7 +15,11 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>
 """
 
-import os, sys
+import os, sys, logging
+
+MACOS = sys.platform=="darwin" # Is user on MacOS?
+WIN32 = sys.platform=="win32" # Is user on Windows?
+logging.debug(f"MACOS: {MACOS}\nWIN32: {WIN32}")
 
 if getattr(sys, "frozen", False):
 	EXEPATH = os.path.dirname(os.path.dirname(os.path.dirname(sys.executable)))
@@ -28,13 +32,12 @@ SRC = os.path.join(BASE, "src")
 if SRC not in sys.path:
 	sys.path.insert(0, SRC)
 
-if sys.platform == "darwin":
+if MACOS: # Hotpatch for SOMETHING (not sure what)
 	import objc, CoreFoundation
 	objc.registerCFSignature("CFStringRef", b"^{__CFString=}", CoreFoundation.CFStringGetTypeID(), "NSString")
 
 try: import version
-except Exception:
-	crash_later=True
+except Exception: crash_later=True
 else: 
 	__version__ = version.__version__
 	crash_later=False
@@ -134,7 +137,7 @@ from utils import (
 	notice,
 )
 
-if sys.platform == "darwin":	
+if MACOS:	
 	from utils import (
 		MACOS_fetch_keyboard_layout,
 		MACOS_is_trusted_ListenEvent,
@@ -150,7 +153,10 @@ from globalconfwizard import CNVKeyset,CNVString,CNVType,CNVBoolean,CNVInteger,C
 from constants import *
 
 if version.ext["scripting"]: 
-	if sys.platform == "darwin": import ext_scripting_macos
+	if MACOS: 
+		import ext_scripting_macos
+		logging.info(f"Added extension: {ext_scripting_macos.__file__}")
+		
 
 ###
 
@@ -202,22 +208,18 @@ def version_dif(inp): # calculate whether the current version is higher than the
 	return False, inp
 
 def run_updater(): # curl and run the standard stable neoprisma installer
-	if sys.platform != "darwin": return # No windows installer yet
+	if MACOS:
+		import tempfile, os, subprocess
+		command = f"#!/bin/zsh\ncurl -fsSL https://raw.githubusercontent.com/PrismaticDepths/neoprisma/stable/install.sh | $SHELL {'-s -- -i '+os.path.dirname(EXEPATH) if EXEPATH != '' else ''}; open -a neoprisma"
+		with tempfile.NamedTemporaryFile(suffix=".command",delete=False,mode="w") as f:
+			f.write(command)
+			tmpath=f.name
+		os.chmod(tmpath, 0o755) # Make the temporary file executable
+		subprocess.Popen(["open", tmpath])
+	else:
+		notice("Installer: Not implemented for cross-platform.") # TODO: crossplatform installer
 
-	import tempfile
-	import os
-	import sys
-	import subprocess
-
-	command = f"#!/bin/zsh\ncurl -fsSL https://raw.githubusercontent.com/PrismaticDepths/neoprisma/stable/install.sh | $SHELL {'-s -- -i '+os.path.dirname(EXEPATH) if EXEPATH != '' else ''}; open -a neoprisma"
-	with tempfile.NamedTemporaryFile(suffix=".command",delete=False,mode="w") as f:
-		f.write(command)
-		tmpath=f.name
-	os.chmod(tmpath, 0o755) # Make the temporary file executable
-	subprocess.Popen(["open", tmpath])
-
-class Emitter(QObject):
-	error = pyqtSignal(str)
+class Emitter(QObject): error = pyqtSignal(str)
 
 class Main(QObject):
 
@@ -230,34 +232,36 @@ class Main(QObject):
 		self.app.setQuitOnLastWindowClosed(False)
 
 		# Check for permissions early so that the rest of the app can use them
-		if sys.platform == "darwin":
+		if MACOS:
 			self.is_trusted_Accessibility = MACOS_is_trusted_Accessibility(); self.is_untrusted_Accessibility = not self.is_trusted_Accessibility
 			self.is_trusted_ListenEvent = MACOS_is_trusted_ListenEvent(); self.is_untrusted_ListenEvent = not self.is_trusted_ListenEvent
 		else:
 			self.is_trusted_Accessibility = True; self.is_untrusted_Accessibility = not self.is_trusted_Accessibility
 			self.is_trusted_ListenEvent = True; self.is_untrusted_ListenEvent = not self.is_trusted_ListenEvent
 
+		logging.debug(f"is_trusted_Accessibility: {self.is_trusted_Accessibility}\nis_trusted_ListenEvent: {self.is_trusted_ListenEvent}")
+
+		logging.info("Starting input devices!")
 		QTimer.singleShot(0,self.init_input_devices) # Start listeners and mouse simulator
 		# This goes at the top because for some reason MacOS doesn't like if we open windows before firing this
 		# Unsure of behaviour on Windows, probably no effect. 
 
 		privillege_notifications = []
 
-		if sys.platform == "darwin": # Privillege notifications are only for MacOS, so completely ignore them elsewhere even though they'd be automatically true by default
+		if MACOS: # Privillege notifications are only for MacOS, so completely ignore them elsewhere even though they'd be automatically true by default
 			if self.is_untrusted_Accessibility: privillege_notifications.append(["Control your mouse & keyboard (<a href='x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility'>Accessibility</a>)"])
 			if self.is_untrusted_ListenEvent: privillege_notifications.append(["Monitor keyboard input (<a href='x-apple.systempreferences:com.apple.preference.security?Privacy_ListenEvent'>Input Monitoring</a>)"])
 
-		def startup_popups(): # Popups are blocking. It's convienent to have them at the top of the file, but it will throw an error since it blocks config initialization. So this function gets called later.
-			if sys.platform == "win32":
-				notice(
-					headline = "Windows support is WIP!",
-					infotext = f"""
-					Neoprisma is primarily for MacOS.<br>
-					Beware that some features may be buggy or missing on Windows.<br>
-					Please report any bugs to help improve support!!<br>
-					TODO: Scripting, Updater/Installer, VK, QOL<br>
-	""")
-			if len(privillege_notifications) > 0:
+
+		# Popups are blocking. 
+		# It's convienent to have them at the top of the file, 
+		# but it will throw an error 
+		# since it blocks config initialization. 
+		# So, I've just put them in this function. It's called right after config init.
+		def startup_popups(): 
+			if WIN32:
+				notice( headline = "Windows support is WIP!", infotext = f"""Neoprisma is primarily for MacOS.<br>Beware that some features may be buggy or missing on Windows.<br>Please report any bugs to help improve support!!<br>TODO: Scripting, Updater/Installer, VK, QOL<br>""")
+			if MACOS and len(privillege_notifications) > 0:
 				notice(
 					headline = "Neoprisma is missing permissions!",
 					infotext = f"""
@@ -266,12 +270,11 @@ class Main(QObject):
 					{"<br>".join(f"{group[0]}" for group in privillege_notifications)}<br>
 					<br>
 					<i>*You can click the blue links to open their respective settings panels.</i><br>
-					--- Please grant each of the above permissions, and then restart the app completely.
-	""")
+					--- Please grant each of the above permissions, and then restart the app completely.""")
 
-
-		try: # force the "about" pane to appear on the left of the system menu bar
-			if sys.platform == "darwin":
+		# MACOS: try to force the "about" pane to appear on the left of the system menu bar
+		if MACOS:
+			try:
 				import AppKit
 				AppKit.NSApp.setActivationPolicy_(AppKit.NSApplicationActivationPolicyAccessory)
 				self.app.setApplicationName("neoprisma")
@@ -283,7 +286,7 @@ class Main(QObject):
 				)
 				self.dummy_menu = self.menu_bar.addMenu("App")
 				self.dummy_menu.addAction(self.about_action)
-		except Exception: pass
+			except Exception: pass
 
 		self.arr = bytearray(b"<NEOPRISMA>\x01") # Load an empty recording
 		self.compiled_arr:list[playback.EventPacket] = [] # This is also an empty recording
@@ -307,12 +310,14 @@ class Main(QObject):
 			"KEYBIND_TOGGLE_AUTOCLICK": set()
 		}
 
+		# Configuration works crossplatform
 		self.conf_data=copy.deepcopy(CN_CONFIGURATION_DEFAULTS)
 		if os.path.exists(os.path.expanduser("~/.neoprisma")):
 			try:
 				conf_data=globalconfwizard.unpack(os.path.expanduser("~/.neoprisma")) # Try unpacking the config
 			except RuntimeError as e: # Handle cases where the file might be outdated and need migration
 				if str(e).strip().startswith("NO_VERSION"):
+					logging.warning("globalconfwizard returned 'NO_VERSION' (outdated configuration formatting)")
 
 					conf_data=copy.deepcopy(CN_CONFIGURATION_DEFAULTS) # Since we don't have the real unpacked version, grab the default values
 
@@ -327,8 +332,10 @@ class Main(QObject):
 					globalconfwizard.pack(os.path.expanduser("~/.neoprisma"),self.conf_data) # Write the migrated configuration file
 
 				elif str(e).strip().startswith("LOW_VERSION"):
+					logging.warning("globalconfwizard returned 'LOW_VERSION' (outdated configuration formatting)")
 					pass # migrate to updated version, if there were a new one now
 			except Exception as e: # Handle exceptions not intentionally raised
+				logging.critical("Uncaught exception while reading configuration")
 				QMessageBox.warning(None,"Error","Your configuration file appears to be corrupted; please delete hidden file '~/.neoprisma' to reset configurations. Neoprisma will now crash.")
 				raise # Exit "gracefully" and show crash details
 			else: # part of the try catch logic, not an if-then-else statement
@@ -337,6 +344,7 @@ class Main(QObject):
 					self.conf_data[key].description=CN_CONFIGURATION_DEFAULTS[key].description
 					self.conf_data[key].category=CN_CONFIGURATION_DEFAULTS[key].category
 		else: # Generate new configurations if no file is found
+			logging.warning("Configuration file not found; generating a new one")
 			self.conf_data=copy.deepcopy(CN_CONFIGURATION_DEFAULTS)
 			globalconfwizard.pack(os.path.expanduser("~/.neoprisma"),self.conf_data)
 
@@ -344,7 +352,7 @@ class Main(QObject):
 			if key.startswith("KEYBIND"):
 				self.hotkeys[key] = self.conf_data[key].get_value()
 
-		startup_popups()
+		startup_popups() # Show popups defined earlier
 
 		self.rebuild_hotkey_lookup()
 
@@ -365,7 +373,7 @@ class Main(QObject):
 		self.tray.setVisible(True)
 
 		if version.ext["scripting"]: 
-			self.script_ext=ext_scripting_macos.Runner() # Need to port scripting for cross-platform
+			self.script_ext=ext_scripting_macos.Runner() # TODO: Need to port scripting for cross-platform
 
 
 		self.menu = QMenu() # Menu for when you click the tray icon
@@ -603,7 +611,6 @@ class Main(QObject):
 					cat_layout.addWidget(add_conf_num(key,value))
 			self.settingsw_layout.addLayout(cat_layout)
 
-
 		self.settingsw_layout.setSpacing(4)
 		self.settingsw_hk_layout.setContentsMargins(0, 0, 0, 0)
 		self.settingsw_layout.addSpacing(15)
@@ -628,20 +635,20 @@ class Main(QObject):
 		self.auto_thread = None # Thread to be used by the autoclicker
 
 		
-		if sys.platform == "darwin":
-			try:	
+		if MACOS: # Throw keyboard layout notice
+			try:
 				USER_KB_LAYOUT = MACOS_fetch_keyboard_layout()
-				if USER_KB_LAYOUT.strip() != "U.S.":
+				if USER_KB_LAYOUT.strip() != "U.S.": 
+					logging.warning("Active keyboard layout is non-standard (not 'U.S.')")
 					notice("Non-standard keyboard layout detected!","You are using a keyboard layout other than the default U.S. QWERTY layout.\n\nThis causes a mismatch between keycodes and the keys they represent. Some parts of this app may fail. (blame Apple)")
-			except FileNotFoundError:
-				pass
+			except FileNotFoundError: pass
 
 		if not self.conf_data["HIDE_APP_ICON"].real_value: self.anyw_open() # Open the app icon if HIDE_APP_ICON is disabled.
 		
-		if self.update_available: 
-			QTimer.singleShot(0,self.prompt_update) # Finally, open the update prompt if there's an update available.
+		if self.update_available: QTimer.singleShot(0,self.prompt_update) # Finally, open the update prompt if there's an update available.
 
 	def shutdown(self):
+		logging.info("Quitting...")
 		self.app.quit()
 
 	def rebuild_hotkey_lookup(self):
@@ -774,19 +781,20 @@ class Main(QObject):
 	def vk_to_name(self,vk): # Helper to convert a virtual key code to a character name so it can be displayed
 		try:
 			key_obj = pynput.keyboard.KeyCode.from_vk(vk)
-			if sys.platform == "darwin":
+			if MACOS:
 				if vk == 49: return MACOS_VK_MAP[vk]
 				if key_obj in pynput.keyboard.Key:
 					return pynput.keyboard.Key(key_obj).name
 				else:	
 					return MACOS_VK_MAP[vk]
-			elif sys.platform == "win32":
+			elif WIN32:
 				if key_obj in pynput.keyboard.Key: 
 					return pynput.keyboard.Key(key_obj).name
 				if hasattr(key_obj, 'char') and key_obj.char: 
 					return key_obj.char
 			return f"⍰<{vk}>"
 		except Exception:
+			logging.warning(f"Could not map vk {vk}")
 			return f"⍰<{vk}>"
 
 	def listener_hotkeysv2_handlekeypress(self,key:pynput.keyboard.Key|pynput.keyboard.KeyCode,injected=False): # this is a very long name

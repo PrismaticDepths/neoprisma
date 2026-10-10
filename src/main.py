@@ -15,16 +15,39 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>
 """
 
-import os, sys
+import os, sys, logging
 
-if sys.platform == "darwin":
-	if getattr(sys, "frozen", False):
-		BASE = sys._MEIPASS
-	else:
-		BASE = os.path.dirname(__file__)
-	SRC = os.path.join(BASE, "src")
-	if SRC not in sys.path:
-		sys.path.insert(0, SRC)
+
+
+if sys.stdout.isatty():
+	logging.basicConfig(
+		stream=sys.stdout,
+		level=logging.INFO,
+		format="[%(asctime)s] %(levelname)s : %(message)s",
+		datefmt='%H:%M:%S'
+	)
+	print("""
+	☀︎ Neoprisma Copyright (C) 2026 PrismaticDepths <\x1b[94m\x1b]8;;mailto://prismaticdepths@gmail.com\x1b\\prismaticdepths@gmail.com\x1b]8;;\x1b\\\x1b[0m>
+	☀︎ Licensed under GNU GPL v3; see \x1b[94m\x1b]8;;https://www.gnu.org/licenses\x1b\\gnu.org/licenses\x1b]8;;\x1b\\\x1b[0m
+	☀︎ Project Homepage: \x1b[94m\x1b]8;;https://github.com/PrismaticDepths/neoprisma\x1b\\github.com/PrismaticDepths/neoprisma\x1b]8;;\x1b\\\x1b[0m
+	""") # note the tabs & newlines above!! don't remove
+else:
+	logging.basicConfig(
+		filename='neoprisma.log',
+		filemode='w',  # 'w' overwrites the file; 'a' appends (default)
+		level=logging.INFO,
+		format='[%(asctime)s] %(levelname)s : %(message)s',
+		datefmt='%H:%M:%S'
+	)
+
+
+if getattr(sys, "frozen", False):
+	BASE = sys._MEIPASS
+else:
+	BASE = os.path.dirname(__file__)
+SRC = os.path.join(BASE, "src")
+if SRC not in sys.path:
+	sys.path.insert(0, SRC)
 
 from upstreampatches import pynput_313
 pynput_313()
@@ -94,7 +117,9 @@ def exception_hook(exctype, value, tb):
 sys.excepthook = exception_hook
 
 SUPPORTED_PLATFORMS = ["darwin","win32"]
-if sys.platform.lower().strip() not in SUPPORTED_PLATFORMS: crash("Unsupported platform!","No support for user's platform.","--Intentional--","Neoprisma does not support your operating system/platform.\n\nYou can help expand Neoprisma's support by contributing code for your platform.",0)
+if sys.platform.lower().strip() not in SUPPORTED_PLATFORMS: 
+	logging.critical(f"Unsupported platform! Expected {SUPPORTED_PLATFORMS}; got {sys.platform.lower().strip()}")
+	crash("Unsupported platform!","No support for user's platform.","--Intentional--","Neoprisma does not support your operating system/platform.\n\nYou can help expand Neoprisma's support by contributing code for your platform.",0)
 
 if sys.platform == "darwin":
 	import platform_universal

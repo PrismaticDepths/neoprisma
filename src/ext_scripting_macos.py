@@ -16,7 +16,9 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>
 """
 
 from typing import Any
-import os, sys,time, uuid, enum,math,functools
+import os, sys,time, uuid, enum,math,functools, logging
+
+
 
 if getattr(sys, "frozen", False):
 	EXEPATH = os.path.dirname(os.path.dirname(os.path.dirname(sys.executable)))
@@ -558,12 +560,12 @@ class Runner(QObject):
 		
 	def _info(self,text:str):
 		import time
-		print(text)
+		logging.info(f"{text}")
 		self.logcontents.append(QLabel(text))
 		self.logw_layout.addWidget(self.logcontents[-1])
 	def _warn(self,text:str):
 		import time
-		print(text)
+		logging.warning(f"\x1b[33;20m{text}\x1b[0m")
 		self.logcontents.append(QLabel(text))
 		self.logcontents[-1].setStyleSheet("""QLabel, QWidget {
 		background-color: #1A1A1A;
@@ -577,7 +579,7 @@ class Runner(QObject):
 		self.logw_layout.addWidget(self.logcontents[-1])
 	def _error(self,text:str):
 		import time
-		print(text)
+		logging.error(f"\x1b[31;20m{text}\x1b[0m")
 		self.logcontents.append(QLabel(text))
 		self.logcontents[-1].setStyleSheet("""QLabel, QWidget {
 		background-color: #1A1A1A;
@@ -656,3 +658,4 @@ class Runner(QObject):
 					fstream.write(self.input_box.toPlainText())
 		except:
 			pass
+

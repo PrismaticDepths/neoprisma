@@ -15,6 +15,11 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>
 """
 
+# This file is deprecated or something like that
+# Just don't use this; use platform_universal
+
+
+
 import os, sys
 
 if getattr(sys, "frozen", False):
