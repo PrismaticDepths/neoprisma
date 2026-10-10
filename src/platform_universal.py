@@ -181,6 +181,11 @@ CN_CONFIGURATION_DEFAULTS = { # Configuration defaults & descriptions/categories
 
 }
 
+if WIN32:
+	CN_CONFIGURATION_DEFAULTS["KEYBIND_TOGGLE_RECORD"] = CNVKeyset(set([91,219]))
+	CN_CONFIGURATION_DEFAULTS["KEYBIND_TOGGLE_AUTOCLICK"] = CNVKeyset(set([91,220]))
+	CN_CONFIGURATION_DEFAULTS["KEYBIND_TOGGLE_PLAYBACK"] =CNVKeyset(set([91,221]))
+
 ###
 
 def latest(): # fetch the latest release's version
@@ -260,7 +265,7 @@ class Main(QObject):
 		# So, I've just put them in this function. It's called right after config init.
 		def startup_popups(): 
 			if WIN32:
-				notice( headline = "Windows support is WIP!", infotext = f"""Neoprisma is primarily for MacOS.<br>Beware that some features may be buggy or missing on Windows.<br>Please report any bugs to help improve support!!<br>TODO: Scripting, Updater/Installer, VK, QOL<br>""")
+				notice( headline = "Windows support is WIP!", infotext = f"""Neoprisma is primarily for MacOS.<br>Beware that some features may be buggy or missing on Windows.<br>Please report any bugs to help improve support!!<br>TODO: Scripting, Updater/Installer, VK cross-compatibility, QOL<br>""")
 			if MACOS and len(privillege_notifications) > 0:
 				notice(
 					headline = "Neoprisma is missing permissions!",
@@ -788,17 +793,17 @@ class Main(QObject):
 				else:	
 					return MACOS_VK_MAP[vk]
 			elif WIN32:
-				if key_obj in pynput.keyboard.Key: 
-					return pynput.keyboard.Key(key_obj).name
+				if vk == 91: return 'win'
+				for special_key in pynput.keyboard.Key:
+					if hasattr(special_key.value, 'vk') and special_key.value.vk == vk:
+						return special_key.name
 				if hasattr(key_obj, 'char') and key_obj.char: 
 					return key_obj.char
 				import ctypes
-				# MapVirtualKeyW converts a VK code into its corresponding character (MAPVK_VK_TO_CHAR = 2)
 				char_code = ctypes.windll.user32.MapVirtualKeyW(vk, 2)
 				if char_code > 0:
 					return chr(char_code)
-		except Exception:
-			raise RuntimeError # Trigger the catch; not really much of an actual error
+				raise RuntimeError # Trigger the catch; not really much of an actual error
 		except Exception:
 			logging.warning(f"Could not map vk {vk}")
 			return f"⍰<{vk}>"
