@@ -29,7 +29,7 @@ void keyStatus(uint16_t vk_code, bool status) {
 	SendInput(ARRAYSIZE(inputs), inputs, sizeof(INPUT));
 }
 
-void moveMouseAbsolute(uint16_t x, uint16_t y) {
+void moveMouseAbsolute(int32_t x, int32_t y) {
 	
 	/*macos version
 	CGPoint destination = CGPointMake(x, y);
@@ -53,7 +53,7 @@ void moveMouseAbsolute(uint16_t x, uint16_t y) {
 
 }
 
-void mouseButtonStatus(uint16_t button, uint16_t x, uint16_t y, bool status) {
+void mouseButtonStatus(uint16_t button, int32_t x, int32_t y, bool status) {
 	
 	INPUT input;
 	ZeroMemory(&input, sizeof(INPUT));
@@ -138,11 +138,11 @@ void mouseButtonStatus(uint16_t button, uint16_t x, uint16_t y, bool status) {
 	*/
 }
 
-void warpMouseAbsolute(uint16_t x, uint16_t y) {
+void warpMouseAbsolute(int32_t x, int32_t y) {
     SetCursorPos(x, y);
 }
 
-void mouseDragAbsolute(uint8_t button, uint16_t x, uint16_t y) {
+void mouseDragAbsolute(uint8_t button, int32_t x, int32_t y) {
     INPUT input;
     ZeroMemory(&input, sizeof(INPUT));
     input.type = INPUT_MOUSE;
@@ -162,10 +162,10 @@ void mouseDragAbsolute(uint8_t button, uint16_t x, uint16_t y) {
 void mouseButtonStatus(uint16_t button, bool status) {
     POINT p;
     GetCursorPos(&p);
-    mouseButtonStatus(button, static_cast<uint16_t>(p.x), static_cast<uint16_t>(p.y), status);
+    mouseButtonStatus(button, static_cast<int32_t>(p.x), static_cast<int32_t>(p.y), status);
 }
 
-void mouseScroll(uint16_t x, uint16_t y, uint16_t dx, uint16_t dy) {
+void mouseScroll(int32_t x, int32_t y, uint16_t dx, uint16_t dy) {
     moveMouseAbsolute(x, y);
     if (dy != 0) {
         INPUT input = {0};

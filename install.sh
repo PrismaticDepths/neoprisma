@@ -251,6 +251,7 @@ require_cmd() {
 require_cmd git
 require_cmd python3
 require_cmd clang++
+require_cmd cmake
 
 echo "\r  [\033[32mOK\033[0m] Checking for dependencies"
 
@@ -295,18 +296,24 @@ PIP="python3 -m pip"
 run_step "Installing pip" $PIP install --upgrade pip
 run_step "Installing from requirements.txt" $PIP install -r requirements.txt
 run_step "Installing pyinstaller" $PIP install pyinstaller 
-cd src
 
 PYTHON_EXE=$(which python3 || which python)
 EXT_SUFFIX=$($PYTHON_EXE -c "import sysconfig; print(sysconfig.get_config_var('EXT_SUFFIX'))")
 
 echo "Building from source... "
 
-run_step "Building binaries" clang++ -arch $ARCH -O3 -Wall -shared -std=c++17 -undefined dynamic_lookup $($PYTHON_EXE -m pybind11 --includes) playback.cpp -o playback$EXT_SUFFIX automation_macos.cpp
+mkdir build
+cd build
+
+run_step "Configuring build layout..." cmake ..
+
+run_step "Compiling binaries..." cmake --build . --config Release
 
 cd ..
 
 PLAYBACK_FILE=(src/playback*"${EXT_SUFFIX}")
+
+rm -rf build
 
 run_step "Building application bundle" $PYTHON_EXE -m PyInstaller \
 	--windowed \

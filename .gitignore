@@ -10,3 +10,4 @@ version.py
 *.pyd
 src/build
 *.log
+build
