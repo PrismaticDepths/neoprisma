@@ -22,7 +22,7 @@ import os, sys, logging
 if sys.stdout.isatty():
 	logging.basicConfig(
 		stream=sys.stdout,
-		level=logging.INFO,
+		level=logging.DEBUG,
 		format="[%(asctime)s] %(levelname)s : %(message)s",
 		datefmt='%H:%M:%S'
 	)
@@ -35,7 +35,7 @@ else:
 	logging.basicConfig(
 		filename='neoprisma.log',
 		filemode='w',  # 'w' overwrites the file; 'a' appends (default)
-		level=logging.INFO,
+		level=logging.DEBUG,
 		format='[%(asctime)s] %(levelname)s : %(message)s',
 		datefmt='%H:%M:%S'
 	)
