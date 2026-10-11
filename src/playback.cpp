@@ -33,6 +33,17 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>*/
 #pragma comment(lib, "winmm.lib")
 #endif
 
+#ifdef _WIN32
+#undef MOUSE_DOWN
+#undef MOUSE_UP
+#undef MOUSE_MOVE_ABSOLUTE
+#undef MOUSE_SCROLL
+#undef MOUSE_DRAG
+#undef MOUSE_MOVE_RELATIVE
+#undef KEY_DOWN
+#undef KEY_UP
+#endif
+
 namespace py = pybind11;
 
 constexpr uint8_t MAJOR_FMT_VERSION = 2; // CHANGE IF YOU ALSO CHANGE THIS VARIABLE IN recorder.py
@@ -62,7 +73,7 @@ bool getAbortStatus() {
 
 
 std::pair<bool, uint8_t> ensureValidHeaders(const std::vector<uint8_t>& e_bytearray) {
-	uint8_t version = 0;
+	uint8_t version = 2;
 	if (e_bytearray.size() < FILE_HEADER_ID_SIZE+1 || std::memcmp(e_bytearray.data(),FILE_HEADER_ID,FILE_HEADER_ID_SIZE) != 0) {
 		return {false, version};
 	} else {
