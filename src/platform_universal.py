@@ -19,7 +19,7 @@ import os, sys, logging
 
 MACOS = sys.platform=="darwin" # Is user on MacOS?
 WIN32 = sys.platform=="win32" # Is user on Windows?
-logging.debug(f"MACOS: {MACOS}\nWIN32: {WIN32}")
+logging.debug(f"MACOS: {MACOS}, WIN32: {WIN32}")
 
 if getattr(sys, "frozen", False):
 	EXEPATH = os.path.dirname(os.path.dirname(os.path.dirname(sys.executable)))
