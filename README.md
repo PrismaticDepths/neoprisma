@@ -21,11 +21,12 @@
 
 # Neoprisma / nprisma
 
-Neoprisma is a simple, reliable, and open source autoclicker/macro utility for MacOS
+Neoprisma is a simple, reliable, and open source autoclicker/macro utility for MacOS 
 
 For too long, sketchy, malware-infected TinyTask versions have ruled the internet in terms of automation. Neoprisma changes that.\
-Neoprisma is open-source, so you can actually see the code you are running, meaning no more trusting random blobs you can't see the internals of. Additionally, the app works on Mac!\
-Ironically, only MacOS is currently supported, however cross-platform support is a future goal. Neoprisma is an active project, and updates are released very frequently.
+Neoprisma is open-source, so you can actually see the code you are running, meaning no more trusting random blobs you can't see the internals of. 
+
+Windows support is in the works. Contributions are greatly appreciated.
 
 ## Features
 
