@@ -22,7 +22,10 @@ WIN32 = sys.platform=="win32" # Is user on Windows?
 logging.debug(f"MACOS: {MACOS}, WIN32: {WIN32}")
 
 if getattr(sys, "frozen", False):
-	EXEPATH = os.path.dirname(os.path.dirname(os.path.dirname(sys.executable)))
+	if MACOS:
+		EXEPATH = os.path.dirname(os.path.dirname(os.path.dirname(sys.executable)))
+	else:
+		EXEPATH = os.path.dirname(sys.executable)
 	BASE = sys._MEIPASS
 else:
 	EXEPATH = ""
@@ -221,8 +224,26 @@ def run_updater(): # curl and run the standard stable neoprisma installer
 			tmpath=f.name
 		os.chmod(tmpath, 0o755) # Make the temporary file executable
 		subprocess.Popen(["open", tmpath])
+	elif WIN32:
+		install_dir = os.path.dirname(EXEPATH) if EXEPATH != "" else os.path.join(os.environ.get("LOCALAPPDATA", ""), "Programs")
+		target_exe = os.path.join(install_dir, "neoprisma", "neoprisma.exe")
+		ps_script = f"""$ErrorActionPreference = 'Continue'
+Start-Sleep -Seconds 1
+& ([scriptblock]::Create((irm https://raw.githubusercontent.com/PrismaticDepths/neoprisma/stable/install.ps1))) -i "{install_dir}"
+if (Test-Path "{target_exe}") {{
+    Start-Process -FilePath "{target_exe}" -WorkingDirectory (Split-Path "{target_exe}")
+}}
+Remove-Item -LiteralPath $MyInvocation.MyCommand.Path -Force -ErrorAction SilentlyContinue
+"""
+		with tempfile.NamedTemporaryFile(suffix=".ps1", delete=False, mode="w", encoding="utf-8") as f:
+			f.write(ps_script)
+			tmpath = f.name
+		subprocess.Popen(
+			["powershell.exe", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", tmpath],
+			creationflags=subprocess.CREATE_NEW_CONSOLE
+		)
 	else:
-		notice("Installer: Not implemented for cross-platform.") # TODO: crossplatform installer
+		notice("Installer: Not implemented for target platform.")
 
 class Emitter(QObject): error = pyqtSignal(str)
 
@@ -249,7 +270,7 @@ class Main(QObject):
 		logging.info("Starting input devices!")
 		QTimer.singleShot(0,self.init_input_devices) # Start listeners and mouse simulator
 		# This goes at the top because for some reason MacOS doesn't like if we open windows before firing this
-		# Unsure of behaviour on Windows, probably no effect. 
+		# Unsure of behaviour on Windows, probably no effect. Not worth changing (no point)
 
 		privillege_notifications = []
 
@@ -362,6 +383,7 @@ class Main(QObject):
 		self.rebuild_hotkey_lookup()
 
 		self.update_available, self.latest_version = version_dif(latest())
+		self.update_available= True; logging.DEBUG("Firing update prompt even if no update (for testing; remove this line if not needed!)")
 
 		self.error_emitter = Emitter()
 		self.error_emitter.error.connect(lambda msg: QMessageBox.critical(None,"neoprisma: an error occured",msg,QMessageBox.StandardButton.Ok))
