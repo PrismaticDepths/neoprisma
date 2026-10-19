@@ -246,10 +246,93 @@ function New-AppShortcut([string]$ShortcutPath, [string]$TargetExe, [string]$Wor
 }
 
 if ($FROM_SOURCE -eq 0) {
-    # =========================================================================
-    # TODO: Implement precompiled Windows bundle download & extraction
-    # =========================================================================
-    Write-Host "No precompiled Windows bundle available yet, or the -s flag was passed. Building from source."
+    $LATEST_VERSION = $null
+    try {
+        $releaseInfo = Invoke-RestMethod -Uri "https://api.github.com/repos/PrismaticDepths/neoprisma/releases/latest" -Headers @{ "User-Agent" = "neoprisma-installer" } -ErrorAction Stop
+        $LATEST_VERSION = $releaseInfo.tag_name
+    } catch {
+        $LATEST_VERSION = $null
+    }
+
+    if ([string]::IsNullOrWhiteSpace($LATEST_VERSION)) {
+        Write-StepWarn "Failed to fetch latest version."
+        Stop-WithError "ERROR: Could not determine latest release version."
+    } else {
+        Write-StepOk "Latest release version: $LATEST_VERSION"
+    }
+
+    $BUNDLE_URL = "https://github.com/PrismaticDepths/neoprisma/releases/download/$LATEST_VERSION/neoprisma-win32.tar.xz"
+    
+    # Check if the precompiled Windows archive exists on the release
+    & curl.exe --head --fail "$BUNDLE_URL" >$null 2>&1
+    if ($LASTEXITCODE -eq 0) {
+        $EXTRACT_DIR = Join-Path "$BUILD_DIR" "extract"
+        $BUNDLE_ARCHIVE = Join-Path "$BUILD_DIR" "neoprisma.tar.xz"
+
+        New-Item -ItemType Directory -Path "$BUILD_DIR" -Force | Out-Null
+        New-Item -ItemType Directory -Path "$INSTALL_DIR" -Force | Out-Null
+        New-Item -ItemType Directory -Path "$EXTRACT_DIR" -Force | Out-Null
+
+        Write-Host "Precompiled bundle found. Skipping build stage and using the bundle instead..."
+
+        Invoke-Step "Downloading precompiled bundle" {
+            & curl.exe -fL "$BUNDLE_URL" -o "$BUNDLE_ARCHIVE"
+        }
+
+        Invoke-Step "Extracting precompiled bundle" {
+            & tar.exe -xJf "$BUNDLE_ARCHIVE" -C "$EXTRACT_DIR"
+        }
+
+        $EXTRACTED_APP = Join-Path "$EXTRACT_DIR" "$APP_NAME"
+        if (-not (Test-Path "$EXTRACTED_APP")) {
+            $firstDir = Get-ChildItem -Path "$EXTRACT_DIR" -Directory | Select-Object -First 1
+            if ($firstDir) {
+                $EXTRACTED_APP = $firstDir.FullName
+            } else {
+                Stop-WithError "ERROR: Extracted application directory not found in bundle."
+            }
+        }
+
+        Write-Host "Finalizing..."
+
+        Invoke-Step "Moving app to $INSTALL_DIR" {
+            Move-Item -Path "$EXTRACTED_APP" -Destination "$APP_TARGET_DIR" -Force -ErrorAction Stop
+        }
+
+        $INSTALLED_EXE = Join-Path "$APP_TARGET_DIR" "$APP_NAME.exe"
+        $INSTALLED_ICON = Join-Path "$APP_TARGET_DIR" "_internal\assets\AppIcon.ico"
+        $START_MENU_SHORTCUT = Join-Path ([Environment]::GetFolderPath("StartMenu")) "Programs\Neoprisma.lnk"
+        $DESKTOP_SHORTCUT = Join-Path ([Environment]::GetFolderPath("Desktop")) "Neoprisma.lnk"
+
+        Invoke-Step "Creating Start Menu shortcut" {
+            New-AppShortcut -ShortcutPath "$START_MENU_SHORTCUT" -TargetExe "$INSTALLED_EXE" -WorkingDir "$APP_TARGET_DIR" -IconFile "$INSTALLED_ICON"
+        }
+
+        Invoke-Step "Creating Desktop shortcut" {
+            New-AppShortcut -ShortcutPath "$DESKTOP_SHORTCUT" -TargetExe "$INSTALLED_EXE" -WorkingDir "$APP_TARGET_DIR" -IconFile "$INSTALLED_ICON"
+        }
+
+        Write-Host "Cleaning up... "
+        Set-Location "$ORIG_DIR"
+
+        if (Test-Path "$BUILD_DIR") {
+            if (-not [string]::IsNullOrWhiteSpace($BUILD_DIR) -and ($BUILD_DIR -ne $env:USERPROFILE) -and ($BUILD_DIR -ne $rootDrive)) {
+                Remove-Item -Recurse -Force "$BUILD_DIR" -ErrorAction SilentlyContinue
+            } else {
+                Stop-WithError "BUILD_DIR is empty, root, or user home. Cannot clean. The app has still been installed."
+            }
+        }
+
+        if (Test-Path "$LOG_FILE") {
+            Remove-Item -Force "$LOG_FILE" -ErrorAction SilentlyContinue
+        }
+
+        Write-Host "Installation complete! Neoprisma has been installed at $APP_TARGET_DIR" -ForegroundColor Green
+        Write-Host "Shortcuts have been added to your Desktop and Start Menu." -ForegroundColor Green
+        exit 0
+    } else {
+        Write-Host "No precompiled bundle found, or the -s flag was passed. Building from source."
+    }
 }
 
 function Update-SessionPath {
