@@ -106,7 +106,7 @@ $APP_NAME = "neoprisma"
 $BRANCH = "stable"
 $FROM_SOURCE = 0
 $WELCOME_MESSAGE = "download and install the latest available Neoprisma release"
-$ENABLE_SCRIPTING = "True"
+$ENABLE_SCRIPTING = "False"
 
 # Parse CLI flags (-b, -i, -r, -y, -s) matching install.sh getopts
 $argIndex = 0
