@@ -86,56 +86,6 @@ void mouseButtonStatus(uint16_t button, int32_t x, int32_t y, bool status) {
 			return;
 	}
 	SendInput(1, &input, sizeof(INPUT));
-
-
-	// below is macos version.
-	/*
-	CGPoint destination = CGPointMake(x, y);
-	CGEventType statusEvent;
-	CGMouseButton mouseButton;
-
-	switch (button) {
-		case 1:
-			if (status) {
-				statusEvent = kCGEventLeftMouseDown;
-			} else {
-				statusEvent = kCGEventLeftMouseUp;
-			}
-			mouseButton = kCGMouseButtonLeft;
-			break;
-		case 2:
-			if (status) {
-				statusEvent = kCGEventRightMouseDown;
-			} else {
-				statusEvent = kCGEventRightMouseUp;
-			}
-			mouseButton = kCGMouseButtonRight;
-			break;
-		case 3:
-			if (status) {
-				statusEvent = kCGEventOtherMouseDown;
-			} else {
-				statusEvent = kCGEventOtherMouseUp;
-			}
-			mouseButton = kCGMouseButtonCenter;
-			break;
-		default:
-			if (status) {
-				statusEvent = kCGEventOtherMouseDown;
-			} else {
-				statusEvent = kCGEventOtherMouseUp;
-			}
-			mouseButton = (CGMouseButton)button;
-			break;
-	}
-
-	CGEventRef click = CGEventCreateMouseEvent(NULL,statusEvent,destination,mouseButton);
-	if (button > 2) {
-		CGEventSetIntegerValueField(click, kCGMouseEventButtonNumber, button);
-	}
-	CGEventPost(kCGHIDEventTap,click);
-	CFRelease(click);  
-	*/
 }
 
 void warpMouseAbsolute(int32_t x, int32_t y) {
@@ -160,9 +110,24 @@ void mouseDragAbsolute(uint8_t button, int32_t x, int32_t y) {
 }
 
 void mouseButtonStatus(uint16_t button, bool status) {
-    POINT p;
-    GetCursorPos(&p);
-    mouseButtonStatus(button, static_cast<int32_t>(p.x), static_cast<int32_t>(p.y), status);
+    INPUT input = {};
+    input.type = INPUT_MOUSE;
+
+    switch (button) {
+        case 1:
+            input.mi.dwFlags = status ? MOUSEEVENTF_LEFTDOWN : MOUSEEVENTF_LEFTUP;
+            break;
+        case 2:
+            input.mi.dwFlags = status ? MOUSEEVENTF_RIGHTDOWN : MOUSEEVENTF_RIGHTUP;
+            break;
+        case 3:
+            input.mi.dwFlags = status ? MOUSEEVENTF_MIDDLEDOWN : MOUSEEVENTF_MIDDLEUP;
+            break;
+        default:
+			// Windows does not support arbitrary mouse buttons
+            return;
+    }
+    SendInput(1, &input, sizeof(INPUT));
 }
 
 void mouseScroll(int32_t x, int32_t y, uint16_t dx, uint16_t dy) {
