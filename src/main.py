@@ -18,28 +18,29 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>
 import os, sys, logging
 
 
-
-if sys.stdout.isatty():
-	logging.basicConfig(
-		stream=sys.stdout,
-		level=logging.DEBUG,
-		format="[%(asctime)s] %(levelname)s : %(message)s",
-		datefmt='%H:%M:%S'
-	)
-	print("""
-	☀︎ Neoprisma Copyright (C) 2026 PrismaticDepths <\x1b[94m\x1b]8;;mailto://prismaticdepths@gmail.com\x1b\\prismaticdepths@gmail.com\x1b]8;;\x1b\\\x1b[0m>
-	☀︎ Licensed under GNU GPL v3; see \x1b[94m\x1b]8;;https://www.gnu.org/licenses\x1b\\gnu.org/licenses\x1b]8;;\x1b\\\x1b[0m
-	☀︎ Project Homepage: \x1b[94m\x1b]8;;https://github.com/PrismaticDepths/neoprisma\x1b\\github.com/PrismaticDepths/neoprisma\x1b]8;;\x1b\\\x1b[0m
-	""") # note the tabs & newlines above!! don't remove
-else:
-	logging.basicConfig(
-		filename='neoprisma.log',
-		filemode='w',  # 'w' overwrites the file; 'a' appends (default)
-		level=logging.DEBUG,
-		format='[%(asctime)s] %(levelname)s : %(message)s',
-		datefmt='%H:%M:%S'
-	)
-
+try: 
+	if sys.stdout.isatty():
+		logging.basicConfig(
+			stream=sys.stdout,
+			level=logging.DEBUG,
+			format="[%(asctime)s] %(levelname)s : %(message)s",
+			datefmt='%H:%M:%S'
+		)
+		print("""
+		☀︎ Neoprisma Copyright (C) 2026 PrismaticDepths <\x1b[94m\x1b]8;;mailto://prismaticdepths@gmail.com\x1b\\prismaticdepths@gmail.com\x1b]8;;\x1b\\\x1b[0m>
+		☀︎ Licensed under GNU GPL v3; see \x1b[94m\x1b]8;;https://www.gnu.org/licenses\x1b\\gnu.org/licenses\x1b]8;;\x1b\\\x1b[0m
+		☀︎ Project Homepage: \x1b[94m\x1b]8;;https://github.com/PrismaticDepths/neoprisma\x1b\\github.com/PrismaticDepths/neoprisma\x1b]8;;\x1b\\\x1b[0m
+		""") # note the tabs & newlines above!! don't remove
+	else:
+		logging.basicConfig(
+			filename='neoprisma.log',
+			filemode='w',  # 'w' overwrites the file; 'a' appends (default)
+			level=logging.DEBUG,
+			format='[%(asctime)s] %(levelname)s : %(message)s',
+			datefmt='%H:%M:%S'
+		)
+except Exception:
+	pass
 
 if getattr(sys, "frozen", False):
 	BASE = sys._MEIPASS

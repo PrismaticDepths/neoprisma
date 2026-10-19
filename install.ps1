@@ -224,7 +224,6 @@ if (Test-Path "$APP_TARGET_DIR") {
                 exit 0
             }
         }
-        # Ensure Neoprisma is not running before replacing files
         Get-Process -Name "$APP_NAME" -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
         Remove-Item -Recurse -Force "$APP_TARGET_DIR" -ErrorAction Stop
     } else {
@@ -249,28 +248,14 @@ function New-AppShortcut([string]$ShortcutPath, [string]$TargetExe, [string]$Wor
 if ($FROM_SOURCE -eq 0) {
     # =========================================================================
     # TODO: Implement precompiled Windows bundle download & extraction
-    # Once Windows release archives (e.g., neoprisma-windows.zip) are uploaded
-    # to GitHub Releases, download and extract to $APP_TARGET_DIR here, create
-    # shortcuts with New-AppShortcut, clean up $BUILD_DIR, and exit 0.
     # =========================================================================
     Write-Host "No precompiled Windows bundle available yet, or the -s flag was passed. Building from source."
 }
 
-# Refresh PATH helper (so winget-installed tools are immediately available)
 function Update-SessionPath {
     $machinePath = [System.Environment]::GetEnvironmentVariable("Path", "Machine")
     $userPath = [System.Environment]::GetEnvironmentVariable("Path", "User")
     $env:Path = "$machinePath;$userPath"
-}
-
-function Test-MsvcInstalled {
-    if (Get-Command "cl.exe" -ErrorAction SilentlyContinue) { return $true }
-    $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
-    if (Test-Path "$vswhere") {
-        $vsPath = & "$vswhere" -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath 2>$null
-        if (-not [string]::IsNullOrWhiteSpace($vsPath)) { return $true }
-    }
-    return $false
 }
 
 function Resolve-PythonCommand {
@@ -286,44 +271,104 @@ function Resolve-PythonCommand {
     return $null
 }
 
+function Get-PythonTargetArch([string]$PyCmd) {
+    if (-not $PyCmd) { return "x64" }
+    $plat = (& "$PyCmd" -c "import sysconfig; print(sysconfig.get_platform())" 2>$null)
+    if ($plat) {
+        $plat = $plat.Trim().ToLower()
+        if ($plat -eq "win-arm64") { return "ARM64" }
+        if ($plat -eq "win32") { return "Win32" }
+    }
+    return "x64"
+}
+
+function Get-VsInstallationPath {
+    $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+    if (Test-Path "$vswhere") {
+        $vsPath = & "$vswhere" -latest -products * -property installationPath 2>$null
+        if (-not [string]::IsNullOrWhiteSpace($vsPath)) {
+            return $vsPath.Trim()
+        }
+    }
+    return $null
+}
+
+function Find-MsvcClExe([string]$TargetArch) {
+    $vsPath = Get-VsInstallationPath
+    if (-not $vsPath) { return $null }
+    $msvcRoot = Join-Path "$vsPath" "VC\Tools\MSVC"
+    if (-not (Test-Path "$msvcRoot")) { return $null }
+
+    $targetFolder = if ($TargetArch -eq "ARM64") { "arm64" } elseif ($TargetArch -eq "Win32") { "x86" } else { "x64" }
+    $clFiles = Get-ChildItem -Path "$msvcRoot" -Recurse -Filter "cl.exe" -ErrorAction SilentlyContinue |
+        Where-Object { $_.DirectoryName -match "[\\/]$targetFolder$" }
+    if ($clFiles) {
+        return ($clFiles | Select-Object -Last 1).FullName
+    }
+    return $null
+}
+
 Write-Host -NoNewline "  [..] Checking for dependencies"
+
+$detectedPy = Resolve-PythonCommand
+$targetArch = Get-PythonTargetArch $detectedPy
+$msvcComponent = if ($targetArch -eq "ARM64") {
+    "Microsoft.VisualStudio.Component.VC.Tools.ARM64"
+} else {
+    "Microsoft.VisualStudio.Component.VC.Tools.x86.x64"
+}
 
 $missingDeps = @()
 if (-not (Get-Command "git" -ErrorAction SilentlyContinue)) { $missingDeps += @{ Name = "git"; WingetId = "Git.Git" } }
-if (-not (Resolve-PythonCommand)) { $missingDeps += @{ Name = "python (>= 3.10)"; WingetId = "Python.Python.3.12" } }
+if (-not $detectedPy) { $missingDeps += @{ Name = "python (>= 3.10)"; WingetId = "Python.Python.3.12" } }
 if (-not (Get-Command "cmake" -ErrorAction SilentlyContinue)) { $missingDeps += @{ Name = "cmake"; WingetId = "Kitware.CMake" } }
-if (-not (Test-MsvcInstalled)) { $missingDeps += @{ Name = "Visual Studio C++ Build Tools"; WingetId = "Microsoft.VisualStudio.2022.BuildTools"; Override = "--wait --quiet --add Microsoft.VisualStudio.Workload.VCTools --includeRecommended" } }
+if (-not (Find-MsvcClExe $targetArch)) {
+    $missingDeps += @{
+        Name = "Visual Studio C++ Compiler ($targetArch)"
+        IsMsvc = $true
+        Component = $msvcComponent
+    }
+}
 
 if ($missingDeps.Count -gt 0) {
     Write-StepWarn "Checking for dependencies"
     $missingNames = ($missingDeps | ForEach-Object { $_.Name }) -join ", "
     Write-Host "  Missing build dependencies: $missingNames" -ForegroundColor Yellow
 
-    if (Get-Command "winget" -ErrorAction SilentlyContinue) {
-        $installDeps = $true
-        if ($INTERACTIVE -eq 1) {
-            $installDeps = Confirm-Prompt "Would you like the installer to automatically install the missing dependencies ($missingNames) using winget?"
-        }
-        if ($installDeps) {
-            foreach ($dep in $missingDeps) {
-                $depId = $dep.WingetId
-                $depOverride = $dep.Override
-                if ($depOverride) {
-                    Invoke-Step "Installing $($dep.Name) via winget (this may take several minutes)" {
-                        winget install --id "$depId" -e --accept-source-agreements --accept-package-agreements --override "$depOverride"
+    $installDeps = $true
+    if ($INTERACTIVE -eq 1) {
+        $installDeps = Confirm-Prompt "Would you like the installer to automatically install the missing dependencies ($missingNames)?"
+    }
+    if ($installDeps) {
+        foreach ($dep in $missingDeps) {
+            if ($dep.IsMsvc) {
+                if (Get-Command "winget" -ErrorAction SilentlyContinue) {
+                    Invoke-Step "Installing Visual Studio C++ Build Tools (Triggers UAC prompt)..." {
+                        # Run winget in an elevated child process so only this step prompts for admin rights
+                        $wingetArgs = "install --id Microsoft.VisualStudio.2022.BuildTools -e --accept-source-agreements --accept-package-agreements --override `"--wait --passive --norestart --add Microsoft.VisualStudio.Workload.VCTools --add Microsoft.VisualStudio.Component.VC.Tools.x86.x64 --includeRecommended`""
+                        $proc = Start-Process powershell.exe -ArgumentList "-NoProfile -ExecutionPolicy Bypass -Command `"$env:ProgramFiles\Microsoft Desktop App Installer\winget.exe` $wingetArgs`" -ErrorAction SilentlyContinue; if (-not (Get-Command winget -ErrorAction SilentlyContinue)) { winget $wingetArgs }" -Verb RunAs -PassThru -Wait
+                        
+                        # Fallback direct winget invocation if path lookup differs
+                        if ($proc.ExitCode -ne 0) {
+                            $proc2 = Start-Process winget.exe -ArgumentList$wingetArgs -Verb RunAs -PassThru -Wait
+                            if ($proc2.ExitCode -ne 0) {
+                                throw "Visual Studio installation exited with code $($proc2.ExitCode)"
+                            }
+                        }
                     }
                 } else {
-                    Invoke-Step "Installing $($dep.Name) via winget" {
-                        winget install --id "$depId" -e --accept-source-agreements --accept-package-agreements
-                    }
+                    Stop-WithError "ERROR: Could not find winget. Please install Visual Studio C++ Build Tools manually from https://visualstudio.microsoft.com/visual-cpp-build-tools/"
                 }
-                Update-SessionPath
+            } else {
+                $depId = $dep.WingetId
+                Invoke-Step "Installing $($dep.Name) via winget" {
+                    winget install --id "$depId" -e --accept-source-agreements --accept-package-agreements
+                }
             }
-        } else {
-            Stop-WithError "ERROR: missing required dependencies ($missingNames)"
+            Update-SessionPath
         }
     } else {
-        Stop-WithError "ERROR: missing required dependencies ($missingNames). Please install Git, Python 3.10+, CMake, and Visual Studio C++ Build Tools."
+        Stop-WithError "ERROR: missing required dependencies ($missingNames)"
     }
 } else {
     Write-StepOk "Checking for dependencies"
@@ -394,25 +439,56 @@ Invoke-Step "Installing pip" {
 Invoke-Step "Installing from requirements.txt" {
     & "$PYTHON_EXE" -m pip install -r requirements.txt
 }
-Invoke-Step "Installing pybind11, pyinstaller, and pillow" {
-    & "$PYTHON_EXE" -m pip install pybind11 pyinstaller pillow
+Invoke-Step "Installing pybind11, ninja, pyinstaller, and pillow" {
+    & "$PYTHON_EXE" -m pip install pybind11 ninja pyinstaller pillow
 }
 
 $EXT_SUFFIX = (& "$PYTHON_EXE" -c "import sysconfig; print(sysconfig.get_config_var('EXT_SUFFIX'))").Trim()
 $PYBIND11_CMAKE_DIR = (& "$PYTHON_EXE" -c "import pybind11; print(pybind11.get_cmake_dir())").Trim()
-$CMAKE_ARCH = (& "$PYTHON_EXE" -c "import platform; m = platform.machine().upper(); print('ARM64' if 'ARM' in m else ('Win32' if m in ('X86', 'I386') else 'x64'))").Trim()
+$CMAKE_ARCH = Get-PythonTargetArch $PYTHON_EXE
 
 Write-Host "Building from source... "
+
+# Patch CMakeLists.txt if the remote branch still contains the broken '/X' flag
+$cmakeFile = Join-Path "$BUILD_DIR" "CMakeLists.txt"
+if (Test-Path "$cmakeFile") {
+    $cmakeContent = [System.IO.File]::ReadAllText($cmakeFile)
+    $cmakeContent = $cmakeContent -replace 'add_compile_options\(/X\)', '# removed /X flag'
+    [System.IO.File]::WriteAllText($cmakeFile, $cmakeContent, [System.Text.UTF8Encoding]::new($false))
+}
 
 New-Item -ItemType Directory -Path "build" -Force | Out-Null
 Set-Location "build"
 
-Invoke-Step "Configuring build layout ($CMAKE_ARCH)..." {
-    cmake .. -A "$CMAKE_ARCH" -Dpybind11_DIR="$PYBIND11_CMAKE_DIR" -DPython_EXECUTABLE="$PYTHON_EXE" -DPYTHON_EXECUTABLE="$PYTHON_EXE"
-}
+$vsPath = Get-VsInstallationPath
+$vcvarsall = if ($vsPath) { Join-Path "$vsPath" "VC\Auxiliary\Build\vcvarsall.bat" } else { $null }
+$vcvarsArch = if ($CMAKE_ARCH -eq "ARM64") { "arm64" } elseif ($CMAKE_ARCH -eq "Win32") { "x86" } else { "x64" }
 
-Invoke-Step "Compiling binaries..." {
-    cmake --build . --config Release
+# Use Ninja + vcvarsall.bat when available to bypass MSBuild VCTargetsPath issues on ARM64 / VS 2026
+if ($vcvarsall -and (Test-Path "$vcvarsall")) {
+    $buildBatch = Join-Path "$BUILD_DIR" "build\run_cmake_build.bat"
+    $batchContent = @"
+@echo off
+call "$vcvarsall" $vcvarsArch
+if errorlevel 1 exit /b %errorlevel%
+cmake .. -G "Ninja" -DCMAKE_BUILD_TYPE=Release -Dpybind11_DIR="$PYBIND11_CMAKE_DIR" -DPython_EXECUTABLE="$PYTHON_EXE" -DPYTHON_EXECUTABLE="$PYTHON_EXE"
+if errorlevel 1 exit /b %errorlevel%
+cmake --build . --config Release
+if errorlevel 1 exit /b %errorlevel%
+"@
+    [System.IO.File]::WriteAllText($buildBatch, $batchContent, [System.Text.Encoding]::ASCII)
+
+    Invoke-Step "Configuring and compiling binaries ($CMAKE_ARCH)..." {
+        cmd.exe /c "`"$buildBatch`""
+    }
+} else {
+    Invoke-Step "Configuring build layout ($CMAKE_ARCH)..." {
+        cmake .. -A "$CMAKE_ARCH" -Dpybind11_DIR="$PYBIND11_CMAKE_DIR" -DPython_EXECUTABLE="$PYTHON_EXE" -DPYTHON_EXECUTABLE="$PYTHON_EXE"
+    }
+
+    Invoke-Step "Compiling binaries..." {
+        cmake --build . --config Release
+    }
 }
 
 Set-Location "$BUILD_DIR"
