@@ -1,6 +1,6 @@
 #include <windows.h>
 #include <cstdint>
-#include <pybind11/gil.h> // for mouse input
+#include <pybind11/gil.h>
 #include "automation.h"
 
 
@@ -63,8 +63,8 @@ void mouseButtonStatus(uint16_t button, int32_t x, int32_t y, bool status) {
 }
 
 void mouseButtonStatus(uint16_t button, bool status) {
-	py::gil_scoped_release release;
-	
+	pybind11::gil_scoped_release release;
+
     INPUT input = {};
     input.type = INPUT_MOUSE;
 
