@@ -32,6 +32,8 @@ try:
 		☀︎ Project Homepage: \x1b[94m\x1b]8;;https://github.com/PrismaticDepths/neoprisma\x1b\\github.com/PrismaticDepths/neoprisma\x1b]8;;\x1b\\\x1b[0m
 		""") # note the tabs & newlines above!! don't remove
 	else:
+		raise Exception
+except Exception:
 		logging.basicConfig(
 			filename='neoprisma.log',
 			filemode='w',  # 'w' overwrites the file; 'a' appends (default)
@@ -39,8 +41,6 @@ try:
 			format='[%(asctime)s] %(levelname)s : %(message)s',
 			datefmt='%H:%M:%S'
 		)
-except Exception:
-	pass
 
 if getattr(sys, "frozen", False):
 	BASE = sys._MEIPASS
