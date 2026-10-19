@@ -32,7 +32,7 @@ SRC = os.path.join(BASE, "src")
 if SRC not in sys.path:
 	sys.path.insert(0, SRC)
 
-if MACOS: # Hotpatch for SOMETHING (not sure what)
+if MACOS: # Hotpatch for SOMETHING (not sure what) (maybe pynput??)
 	import objc, CoreFoundation
 	objc.registerCFSignature("CFStringRef", b"^{__CFString=}", CoreFoundation.CFStringGetTypeID(), "NSString")
 
@@ -172,7 +172,7 @@ CN_CONFIGURATION_DEFAULTS = { # Configuration defaults & descriptions/categories
 	"USE_MOUSE_WARPING":CNVBoolean(False,description="Move the mouse instantly without emitting mouse movement events.\nCan fix issues with some video games, may cause issues with others.",category="Playback"),
 	"DELAY_BEFORE_PLAYBACK":CNVFloat(0,description="After playback is triggered, wait the specified number of seconds\nbefore actually starting playback.",smin=0,smax=60,category="Playback"),
 	"COMPENSATE_AUTOCLICKER_DRIFT":CNVBoolean(True,description="Intelligently adjusts autoclicker delay to compensate for drift and overhead added by the OS.\nIncreases CPS, but also raises CPU usage.",category="Autoclicking"),
-	"LOCK_AUTOCLICK_TO_POINT":CNVBoolean(False,"Sets whether to autoclick at a specific point on-screen.",category="Autoclicking"),
+	#"LOCK_AUTOCLICK_TO_POINT":CNVBoolean(False,"Sets whether to autoclick at a specific point on-screen.",category="Autoclicking"),
 	#"AUTOCLICK_TARGET":CNVPoint2D([0,0],description="Specifies where to click if Lock Autoclick To Point is enabled.",category="Autoclicking"),
 	"HOOK_KEYPRESS_EVENTS":CNVBoolean(True,description="Allows userscripts to log keypresses and receive keypress data. Also uses more CPU.",category="Scripts"),
 	"HOOK_MOUSE_EVENTS":CNVBoolean(True,description="Allows userscripts to l og mouse movement and clicks and receive mouse data. Also uses more CPU.",category="Scripts"),
@@ -184,7 +184,7 @@ CN_CONFIGURATION_DEFAULTS = { # Configuration defaults & descriptions/categories
 if WIN32:
 	CN_CONFIGURATION_DEFAULTS["KEYBIND_TOGGLE_RECORD"] = CNVKeyset(set([91,219]))
 	CN_CONFIGURATION_DEFAULTS["KEYBIND_TOGGLE_AUTOCLICK"] = CNVKeyset(set([91,220]))
-	CN_CONFIGURATION_DEFAULTS["KEYBIND_TOGGLE_PLAYBACK"] =CNVKeyset(set([91,221]))
+	CN_CONFIGURATION_DEFAULTS["KEYBIND_TOGGLE_PLAYBACK"] = CNVKeyset(set([91,221]))
 
 ###
 
@@ -993,6 +993,7 @@ class Main(QObject):
 			time.sleep(0)
 			playback.mouseButtonStatus(1,False)
 			time.sleep(self.cps)
+
 	def _INNER_toggle_autoclicker_intelligent(self): # Intelligent autoclick logic that adjusts the delay it waits for to achieve the target (because intended delay != actual delay)
 		
 		passed_target = False
