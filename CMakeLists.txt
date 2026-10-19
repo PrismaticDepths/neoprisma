@@ -36,10 +36,14 @@ find_package(pybind11 REQUIRED)
 pybind11_add_module(playback 
     src/playback.cpp
 )
-
-# Force the binary into /src
+# Force the binary into /src across both single-config and multi-config (Visual Studio) generators
 set_target_properties(playback PROPERTIES
     LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/src"
+    LIBRARY_OUTPUT_DIRECTORY_RELEASE "${CMAKE_CURRENT_SOURCE_DIR}/src"
+    LIBRARY_OUTPUT_DIRECTORY_DEBUG "${CMAKE_CURRENT_SOURCE_DIR}/src"
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/src"
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_CURRENT_SOURCE_DIR}/src"
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_CURRENT_SOURCE_DIR}/src"
 )
 
 # Dynamic Platform Architecture & Source Mapping
@@ -60,12 +64,6 @@ if(APPLE)
     target_link_libraries(playback PRIVATE ${CORE_GRAPHICS_FRAMEWORK} ${APP_SERVICES_FRAMEWORK})
     
 elseif(WIN32)
-    # 🌟 FIX 3: Force the MSVC compiler layout to target 64-bit architectures
-    # This prevents the "Python is 64-bit, chosen compiler is 32-bit" restriction error
-    if(MSVC)
-        add_compile_options(/X)
-    endif()
-
     target_sources(playback PRIVATE src/automation_windows.cpp)
     
     # Target Windows multimedia engine dependencies for the timing precision loop fix
