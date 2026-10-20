@@ -111,10 +111,23 @@ class CNVKeyset(CNVType):
 	
 	def _unpack(self,value):
 		return set(int(v) for v in value.split(" "))
+	
+class CNVPoint2D(CNVType):
+
+	def __init__(self,value,**kwargs):
+		super().__init__("point",value,**kwargs)
+
+	def _pack(self):
+		return " ".join([str(v) for v in self.real_value])
+	
+	def _unpack(self,value):
+		t=value.split(" ")
+		return [float(v) for v in t]
 
 NAME_TO_TYPE = {
 	"bool":CNVBoolean,
 	"string":CNVString,
+	"point2d":CNVPoint2D,
 	"keyset":CNVKeyset,
 	"int":CNVInteger,
 	"float":CNVFloat,

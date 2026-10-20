@@ -21,11 +21,12 @@
 
 # Neoprisma / nprisma
 
-Neoprisma is a simple, reliable, and open source autoclicker/macro utility for MacOS
+Neoprisma is a simple, reliable, and open source autoclicker/macro utility for MacOS 
 
 For too long, sketchy, malware-infected TinyTask versions have ruled the internet in terms of automation. Neoprisma changes that.\
-Neoprisma is open-source, so you can actually see the code you are running, meaning no more trusting random blobs you can't see the internals of. Additionally, the app works on Mac!\
-Ironically, only MacOS is currently supported, however cross-platform support is a future goal. Neoprisma is an active project, and updates are released very frequently.
+Neoprisma is open-source, so you can actually see the code you are running, meaning no more trusting random blobs you can't see the internals of. 
+
+Windows support is in the works. Contributions are greatly appreciated.
 
 ## Features
 
@@ -151,8 +152,8 @@ class Neoprisma:
 
   class Keyboard: # Functions for controlling and monitoring the keyboard
 
-    onKeyPressed: Signal = ... # signal, passes vk:int
-    onKeyReleased: Signal = ... # signal, passes vk:int
+    onKeyPress: Signal = ... # signal, passes vk:int
+    onKeyRelease: Signal = ... # signal, passes vk:int
     def keyStatus(vk:int,status:bool): ... # presses or releases a key by vk
 
   class Mouse: # Functions for controlling and monitoring the mouse
@@ -234,8 +235,6 @@ You can also use the command-tab switcher to go to Neoprisma and quit it with `<
 When idle, CPU usage and RAM are very low. However, CPU usage spikes upon mouse movement and keyboard activity, to about 10% of a single core (tested on an M3 Pro). Neoprisma isn't actually optimized for either, and mostly optimized for accurate playback, however there is room to improve here and hence this will probably be improved someday.
 
 When testing with a recording of Geometry Dash gameplay (Stereo Madness), Neoprisma didn't do the best, getting as far as the middle of the first ship section after several tries. This was with an early version of Neoprisma; I have yet to see if there is any difference on later versions.
-
-Setting the process priority to 20 may help.
 
 ## Acknowledgements
 

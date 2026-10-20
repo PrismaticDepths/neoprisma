@@ -25,18 +25,18 @@ void keyStatus(uint16_t vk_code, bool status) {
 	CFRelease(keyStroke);
 }
 
-void moveMouseAbsolute(uint16_t x, uint16_t y) {
+void moveMouseAbsolute(int32_t x, int32_t y) {
 	CGPoint destination = CGPointMake(x, y);
 	CGEventRef motion = CGEventCreateMouseEvent(source,kCGEventMouseMoved,destination,kCGMouseButtonLeft);
 	CGEventPost(kCGHIDEventTap, motion);
 	CFRelease(motion);
 }
-void warpMouseAbsolute(uint16_t x, uint16_t y) {
+void warpMouseAbsolute(int32_t x, int32_t y) {
 	CGPoint destination = CGPointMake(x, y);
 	CGWarpMouseCursorPosition(destination);
 }
 
-void mouseDragAbsolute(uint8_t button, uint16_t x, uint16_t y) {
+void mouseDragAbsolute(uint8_t button, int32_t x, int32_t y) {
 	CGPoint destination = CGPointMake(x, y);
 	CGMouseButton mouseButton;
 	CGEventType dragType;
@@ -64,7 +64,7 @@ void mouseDragAbsolute(uint8_t button, uint16_t x, uint16_t y) {
 }
 
 
-void mouseButtonStatus(uint16_t button, uint16_t x, uint16_t y, bool status) {
+void mouseButtonStatus(uint16_t button, int32_t x, int32_t y, bool status) {
 	CGPoint destination = CGPointMake(x, y);
 	CGEventType statusEvent;
 	CGMouseButton mouseButton;
@@ -135,7 +135,7 @@ void mouseButtonStatus(uint16_t button, bool status) {
 }
 
 
-void mouseScroll(uint16_t x, uint16_t y, uint16_t dx, uint16_t dy) {
+void mouseScroll(int32_t x, int32_t y, uint16_t dx, uint16_t dy) {
 
 	CGPoint location = CGPointMake(x,y);
 	CGEventRef motion = CGEventCreateScrollWheelEvent(source, kCGScrollEventUnitPixel,2,dx,dy);

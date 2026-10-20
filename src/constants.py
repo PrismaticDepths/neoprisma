@@ -159,3 +159,5 @@ MASTER_STYLESHEET = """
 	QPushButton:hover#status-yellow {
 	}
 """
+
+MAX_HOTKEY_LEN = 5

@@ -16,7 +16,9 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>
 """
 
 from typing import Any
-import os, sys,time, uuid, enum,math,functools
+import os, sys,time, uuid, enum,math,functools, logging
+
+
 
 if getattr(sys, "frozen", False):
 	EXEPATH = os.path.dirname(os.path.dirname(os.path.dirname(sys.executable)))
@@ -107,9 +109,11 @@ class LuaSignal:
 			script.status = ScriptStatusEnums.RUNNING
 			handler(*args)
 			script.status = ScriptStatusEnums.SLEEPING
+			script.last_wake = time.time()
 		except Exception as e:
 			script.error_func(e,script)
 			script.status = ScriptStatusEnums.SLEEPING
+			script.last_wake = time.time()
 
 class LUA_Keyboard:
 	def __init__(self,playback,termhelper):
@@ -120,8 +124,8 @@ class LUA_Mouse:
 	def __init__(self,playback,termhelper):
 		self.onMouseDown = LuaSignal(termhelper) # args: button,x,y
 		self.onMouseUp = LuaSignal(termhelper) # args: button,x,y
-		self.onMouseMoved = LuaSignal(termhelper) # args: x,y
-		self.onMouseScrolled = LuaSignal(termhelper) # args: x,y,dx,dy
+		self.onMouseMove = LuaSignal(termhelper) # args: x,y
+		self.onMouseScroll = LuaSignal(termhelper) # args: x,y,dx,dy
 
 		self.moveMouseAbsolute = playback.moveMouseAbsolute
 		self.warpMouseAbsolute = playback.warpMouseAbsolute
@@ -141,7 +145,7 @@ class LUA_Neoprisma:
 		self.Keyboard = LUA_Keyboard(playback,termhelper)
 		self.Mouse = LUA_Mouse(playback,termhelper)
 		self.Clock = LUA_Clock()
-		self.Keys = enums_vk_macos
+		self.Keys = enums_vk_macos # I lied, not every user-accessible scripting api class has LUA_ in the name.
 
 UUID_INJECT_TYPES = (
 	LuaSignal
@@ -154,13 +158,13 @@ UUID_INJECT_METHODS = {
 class _LUA_UUID_INJECTION_PROXY:
 
 	def __init__(self,target,uuid4):
-		object.__setattr__(self,"_target",target) #bypass getattribute to avoid loops
-		object.__setattr__(self,"_uuid4",uuid4) #bypass getattribute to avoid loops
+		object.__setattr__(self,"_target",target) # bypass getattribute to avoid loops
+		object.__setattr__(self,"_uuid4",uuid4) # bypass getattribute to avoid loops but it's cooler when you do it twice
 
 	def __getattribute__(self, name: str) -> Any:
 		
-		target = object.__getattribute__(self,"_target")
-		uuid4 = object.__getattribute__(self,"_uuid4")
+		target = object.__getattribute__(self,"_target") # bypass getattribute to avoid loops but third time's the charm
+		uuid4 = object.__getattribute__(self,"_uuid4") # bypass getattribute to avoid loops but we all know the fourth time is the coolest
 
 		attr = getattr(target,name)
 		class_name = target.__class__.__name__
@@ -214,9 +218,9 @@ class NeoprismaScriptingToolkit:
 	def _signal_mousestatus(self,button,pressed,x,y):
 		self.LUA_Neoprisma.Mouse.onMouseDown.fire(button,x,y) if pressed else self.LUA_Neoprisma.Mouse.onMouseUp.fire(button,x,y)
 	def _signal_mousemovement(self,x,y):
-		self.LUA_Neoprisma.Mouse.onMouseMoved.fire(x,y) 
+		self.LUA_Neoprisma.Mouse.onMouseMove.fire(x,y) 
 	def _signal_mousescroll(self,x,y,dx,dy):
-		self.LUA_Neoprisma.Mouse.onMouseScrolled.fire(x,y,dx,dy) 
+		self.LUA_Neoprisma.Mouse.onMouseScroll.fire(x,y,dx,dy) 
 
 def create_runtime(extras=None,instruction_hook=None):
 	def attribute_filter(obj, attr_name, is_setting):
@@ -270,6 +274,8 @@ class ScriptStatus(QWidget):
 		self.start = start
 		self.terminate = False
 
+		self.last_wake = time.time()
+
 		self.status_layout = QHBoxLayout(self)
 
 		self.status_layout2 = QVBoxLayout()
@@ -299,16 +305,20 @@ class ScriptStatus(QWidget):
 
 		self.update_ui(status,num_hooks)
 
-	def update_ui(self,status,num_hooks=0):
+	def update_ui(self,status,num_hooks=0,last_wake=0):
 		assert status in [ScriptStatusEnums.RUNNING,ScriptStatusEnums.SLEEPING,ScriptStatusEnums.INTERRUPTED]
-		self.status, self.num_hooks = status, num_hooks
+		self.status, self.num_hooks, self.last_wake = status, num_hooks, last_wake
 
 		if self.status == ScriptStatusEnums.RUNNING:
 			m,s = divmod(int(time.time() - self.start), 60)
 			text = f"{m:02d}:{s:02d} elapsed"
 			obj_name = "status-green"
 		elif self.status == ScriptStatusEnums.SLEEPING:
-			text = f"sleeping ({str(self.num_hooks)} hooks active)"
+			tmp=int(time.time() - self.last_wake)
+			if tmp < 30:
+				text = f"last woken {str(tmp)}s ago ({str(self.num_hooks)} hooks active)"
+			else: 
+				text = f"sleeping ({str(self.num_hooks)} hooks active)"
 			obj_name = "status-yellow"
 		elif self.status == ScriptStatusEnums.INTERRUPTED:
 			text = f"error! (check logs)"
@@ -329,6 +339,7 @@ class Script:
 		self.text = text
 		self.name = name
 		self.status = ScriptStatusEnums.SLEEPING
+		self.last_wake = time.time()
 		self.started = int(time.time())
 		import copy
 		self.error_func = copy.copy(error_func)
@@ -490,7 +501,7 @@ class Runner(QObject):
 				widget.deleteLater()
 		for key, value in self.script_pool.items():
 			if key in self.status_uis:
-				self.status_uis[key].update_ui(value.status,value.num_hooks)
+				self.status_uis[key].update_ui(value.status,value.num_hooks,value.last_wake)
 				if self.status_uis[key].terminate: terminate.append(value)
 		for v in terminate: self.terminate_single(v)
 
@@ -549,12 +560,12 @@ class Runner(QObject):
 		
 	def _info(self,text:str):
 		import time
-		print(text)
+		logging.info(f"{text}")
 		self.logcontents.append(QLabel(text))
 		self.logw_layout.addWidget(self.logcontents[-1])
 	def _warn(self,text:str):
 		import time
-		print(text)
+		logging.warning(f"\x1b[33;20m{text}\x1b[0m")
 		self.logcontents.append(QLabel(text))
 		self.logcontents[-1].setStyleSheet("""QLabel, QWidget {
 		background-color: #1A1A1A;
@@ -568,7 +579,7 @@ class Runner(QObject):
 		self.logw_layout.addWidget(self.logcontents[-1])
 	def _error(self,text:str):
 		import time
-		print(text)
+		logging.error(f"\x1b[31;20m{text}\x1b[0m")
 		self.logcontents.append(QLabel(text))
 		self.logcontents[-1].setStyleSheet("""QLabel, QWidget {
 		background-color: #1A1A1A;
@@ -647,3 +658,4 @@ class Runner(QObject):
 					fstream.write(self.input_box.toPlainText())
 		except:
 			pass
+

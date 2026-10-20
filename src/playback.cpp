@@ -27,16 +27,34 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>*/
 #include "playback.h"
 #include "automation.h"
 
+#ifdef _WIN32
+#include <windows.h>
+#include <timeapi.h>
+#pragma comment(lib, "winmm.lib")
+#endif
+
+#ifdef _WIN32
+#undef MOUSE_DOWN
+#undef MOUSE_UP
+#undef MOUSE_MOVE_ABSOLUTE
+#undef MOUSE_SCROLL
+#undef MOUSE_DRAG
+#undef MOUSE_MOVE_RELATIVE
+#undef KEY_DOWN
+#undef KEY_UP
+#endif
+
 namespace py = pybind11;
 
-constexpr uint8_t MAJOR_FMT_VERSION = 1; // CHANGE IF YOU ALSO CHANGE THIS VARIABLE IN recorder.py
-constexpr uint8_t EARLIEST_SUPPORTED_FMT_VERSION = 1; // LEAVE THIS ALONE UNLESS YOU MAKE BREAKING CHANGES AND CANT READ OLDER STUFF SOMEHOW
+constexpr uint8_t MAJOR_FMT_VERSION = 2; // CHANGE IF YOU ALSO CHANGE THIS VARIABLE IN recorder.py
+constexpr uint8_t EARLIEST_SUPPORTED_FMT_VERSION = 2; // LEAVE THIS ALONE UNLESS YOU MAKE BREAKING CHANGES AND CANT READ OLDER STUFF SOMEHOW
 constexpr char FILE_HEADER_ID[11] = {'<','N','E','O','P','R','I','S','M','A','>'}; // DONT CHANGE THIS ONE
 constexpr uint8_t FILE_HEADER_ID_SIZE = 11;
 
 constexpr size_t sizeof_uint8_t = sizeof(uint8_t);
 constexpr size_t sizeof_uint16_t = sizeof(uint16_t);
 constexpr size_t sizeof_int16_t = sizeof(int16_t);
+constexpr size_t sizeof_int32_t = sizeof(int32_t);
 constexpr size_t sizeof_uint64_t = sizeof(uint64_t);
 
 std::atomic<bool> n_abort{false};
@@ -55,7 +73,7 @@ bool getAbortStatus() {
 
 
 std::pair<bool, uint8_t> ensureValidHeaders(const std::vector<uint8_t>& e_bytearray) {
-	uint8_t version = 0;
+	uint8_t version = 2;
 	if (e_bytearray.size() < FILE_HEADER_ID_SIZE+1 || std::memcmp(e_bytearray.data(),FILE_HEADER_ID,FILE_HEADER_ID_SIZE) != 0) {
 		return {false, version};
 	} else {
@@ -88,8 +106,8 @@ std::pair<std::vector<EventPacket>, std::string> CompileEventArray(const std::ve
 		cur += sizeof_uint64_t;
 		std::memcpy(&e.event, e_bytearray.data()+cur, sizeof_uint8_t);
 		cur += sizeof_uint8_t;
-		uint16_t x;
-		uint16_t y;
+		int32_t x;
+		int32_t y;
 		uint8_t button;
 		switch (e.event) {
 			case Events::KEY_DOWN:
@@ -104,26 +122,26 @@ std::pair<std::vector<EventPacket>, std::string> CompileEventArray(const std::ve
 
 			case Events::MOUSE_DOWN:
 			case Events::MOUSE_UP:
-				if (cur + sizeof_uint8_t + sizeof_uint16_t + sizeof_uint16_t > e_bytearray.size()) { throw std::runtime_error("Corrupt or truncated event array. (broken EventPacket payload @ index "+std::to_string(cur)+")"); }
+				if (cur + sizeof_uint8_t + sizeof(x) + sizeof(y) > e_bytearray.size()) { throw std::runtime_error("Corrupt or truncated event array. (broken EventPacket payload @ index "+std::to_string(cur)+")"); }
 				
 				std::memcpy(&button, e_bytearray.data()+cur, sizeof_uint8_t);
 				cur += sizeof_uint8_t;
-				std::memcpy(&x, e_bytearray.data()+cur, sizeof_uint16_t);
-				cur += sizeof_uint16_t;
-				std::memcpy(&y, e_bytearray.data()+cur, sizeof_uint16_t);
-				cur += sizeof_uint16_t;
+				std::memcpy(&x, e_bytearray.data()+cur, sizeof(x));
+				cur += sizeof(x);
+				std::memcpy(&y, e_bytearray.data()+cur, sizeof(y));
+				cur += sizeof(y);
 				e.payload.push_back(static_cast<int>(button));
 				e.payload.push_back(static_cast<int>(x));
 				e.payload.push_back(static_cast<int>(y));
 				break;
 
 			case Events::MOUSE_MOVE_ABSOLUTE:
-				if (cur + sizeof_uint16_t + sizeof_uint16_t > e_bytearray.size()) { throw std::runtime_error("Corrupt or truncated event array. (broken EventPacket payload @ index "+std::to_string(cur)+")"); }
+				if (cur + sizeof(x) + sizeof(y) > e_bytearray.size()) { throw std::runtime_error("Corrupt or truncated event array. (broken EventPacket payload @ index "+std::to_string(cur)+")"); }
 
-				std::memcpy(&x, e_bytearray.data()+cur, sizeof_uint16_t);
-				cur += sizeof_uint16_t;
-				std::memcpy(&y, e_bytearray.data()+cur, sizeof_uint16_t);
-				cur += sizeof_uint16_t;
+				std::memcpy(&x, e_bytearray.data()+cur, sizeof(x));
+				cur += sizeof(x);
+				std::memcpy(&y, e_bytearray.data()+cur, sizeof(y));
+				cur += sizeof(y);
 				e.payload.push_back(static_cast<int>(x));
 				e.payload.push_back(static_cast<int>(y));
 				break;
@@ -132,14 +150,14 @@ std::pair<std::vector<EventPacket>, std::string> CompileEventArray(const std::ve
 				break; // TO BE IMPLEMENTED LATER
 
 			case Events::MOUSE_SCROLL:
-				if (cur + sizeof_uint16_t + sizeof_uint16_t + sizeof_uint16_t + sizeof_uint16_t > e_bytearray.size()) { throw std::runtime_error("Corrupt or truncated event array. (broken EventPacket payload @ index "+std::to_string(cur)+")"); }
+				if (cur + sizeof(x) + sizeof(y) + sizeof_uint16_t + sizeof_uint16_t > e_bytearray.size()) { throw std::runtime_error("Corrupt or truncated event array. (broken EventPacket payload @ index "+std::to_string(cur)+")"); }
 
 				int16_t dx;
 				int16_t dy;
-				std::memcpy(&x, e_bytearray.data()+cur, sizeof_uint16_t);
-				cur += sizeof_uint16_t;
-				std::memcpy(&y, e_bytearray.data()+cur, sizeof_uint16_t);
-				cur += sizeof_uint16_t;
+				std::memcpy(&x, e_bytearray.data()+cur, sizeof(x));
+				cur += sizeof(x);
+				std::memcpy(&y, e_bytearray.data()+cur, sizeof(y));
+				cur += sizeof(y);
 				std::memcpy(&dx, e_bytearray.data()+cur, sizeof_int16_t);
 				cur += sizeof_int16_t;
 				std::memcpy(&dy, e_bytearray.data()+cur, sizeof_int16_t);
@@ -151,14 +169,14 @@ std::pair<std::vector<EventPacket>, std::string> CompileEventArray(const std::ve
 				break;
 
 			case Events::MOUSE_DRAG:
-				if (cur + sizeof_uint8_t + sizeof_uint16_t + sizeof_uint16_t > e_bytearray.size()) { throw std::runtime_error("Corrupt or truncated event array. (broken EventPacket payload @ index "+std::to_string(cur)+")"); }
+				if (cur + sizeof_uint8_t + sizeof(x) + sizeof(y) > e_bytearray.size()) { throw std::runtime_error("Corrupt or truncated event array. (broken EventPacket payload @ index "+std::to_string(cur)+")"); }
 
 				std::memcpy(&button, e_bytearray.data()+cur, sizeof_uint8_t);
 				cur += sizeof_uint8_t;
-				std::memcpy(&x, e_bytearray.data()+cur, sizeof_uint16_t);
-				cur += sizeof_uint16_t;
-				std::memcpy(&y, e_bytearray.data()+cur, sizeof_uint16_t);
-				cur += sizeof_uint16_t;
+				std::memcpy(&x, e_bytearray.data()+cur, sizeof(x));
+				cur += sizeof(x);
+				std::memcpy(&y, e_bytearray.data()+cur, sizeof(y));
+				cur += sizeof(y);
 				e.payload.push_back(static_cast<int>(button));
 				e.payload.push_back(static_cast<int>(x));
 				e.payload.push_back(static_cast<int>(y));
@@ -173,9 +191,24 @@ std::pair<std::vector<EventPacket>, std::string> CompileEventArray(const std::ve
 	return {eventList,""};
 }
 
+struct Win32GranularityAssistant {
+	Win32GranularityAssistant() {
+		#ifdef _WIN32
+		timeBeginPeriod(1);
+		#endif
+	}
+	~Win32GranularityAssistant() {
+		#ifdef _WIN32
+		timeEndPeriod(1);
+		#endif
+	}
+};
+
 void PlayEventList(const std::vector<EventPacket>& eventList, double speed, bool warp) {
 	py::gil_scoped_release release;
-	 if (eventList.empty()) return;
+	if (eventList.empty()) return;
+
+	Win32GranularityAssistant guard;
 
 	if (n_abort.load(std::memory_order_relaxed)) { return; }
 	auto start = std::chrono::steady_clock::now();
@@ -230,7 +263,7 @@ void CompileAndPlay(std::vector<uint8_t>& e_bytearray) {
 }
 
 PYBIND11_MODULE(playback, m) {
-    m.def("CompileEventArray", &CompileEventArray, "Reads a bytecode event array and returns a much more easily parseable list");
+	m.def("CompileEventArray", &CompileEventArray, "Reads a bytecode event array and returns a much more easily parseable list");
 	m.def("PlayEventList", &PlayEventList, "Injects input read from an event list");
 	m.def("CompileAndPlay", &CompileAndPlay, "Deprecated; please compile and play the event list using the associated functions.");
 	m.def("abortPlayback", &abortPlayback, "Sets flag n_abort to True, causing a running recording to stop after the current event finishes.");
@@ -241,11 +274,11 @@ PYBIND11_MODULE(playback, m) {
 	m.def("warpMouseAbsolute", &warpMouseAbsolute, "Warp mouse to target position");
 	m.def("mouseDragAbsolute", &mouseDragAbsolute, "Drag mouse to target position");
 	m.def("mouseScroll", &mouseScroll, "Scroll");
-	m.def("mouseButtonStatus", py::overload_cast<uint16_t, uint16_t, uint16_t, bool>(&mouseButtonStatus),"Simulates a mouse click at specific coordinates.",py::arg("button"), py::arg("x"), py::arg("y"), py::arg("status"));
-    m.def("mouseButtonStatus", py::overload_cast<uint16_t, bool>(&mouseButtonStatus),"Simulates a mouse click at the current position.",py::arg("button"), py::arg("status"));
+	m.def("mouseButtonStatus", py::overload_cast<uint16_t, int32_t, int32_t, bool>(&mouseButtonStatus),"Simulates a mouse click at specific coordinates.",py::arg("button"), py::arg("x"), py::arg("y"), py::arg("status"));
+	m.def("mouseButtonStatus", py::overload_cast<uint16_t, bool>(&mouseButtonStatus),"Simulates a mouse click at the current position.",py::arg("button"), py::arg("status"));
 	py::class_<EventPacket>(m, "EventPacket")
-        .def(py::init<>()) // Expose the default constructor to allow creation in Python
-        .def_readwrite("timestamp", &EventPacket::timestamp)
-        .def_readwrite("event", &EventPacket::event)
-        .def_readwrite("payload", &EventPacket::payload);
+		.def(py::init<>()) // Expose the default constructor to allow creation in Python
+		.def_readwrite("timestamp", &EventPacket::timestamp)
+		.def_readwrite("event", &EventPacket::event)
+		.def_readwrite("payload", &EventPacket::payload);
 }
