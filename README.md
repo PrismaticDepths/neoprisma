@@ -71,7 +71,7 @@ irm https://raw.githubusercontent.com/PrismaticDepths/neoprisma/stable/install.p
 
 Build from source:
 ```ps1
-& ([scriptblock]::Create((irm https://raw.githubusercontent.com/PrismaticDepths/neoprisma/main/install.ps1))) -s YES
+& ([scriptblock]::Create((irm https://raw.githubusercontent.com/PrismaticDepths/neoprisma/stable/install.ps1))) -s YES
 ```
 </details>
 
