@@ -220,8 +220,8 @@ if [ "$FROM_SOURCE" -eq 0 ]; then
 		mkdir -p "$INSTALL_DIR"
 		mkdir -p "$BUILD_DIR/extract"
 		echo "Precompiled bundle found. Skipping build stage and using the bundle instead..."
-		run_step "Downloading precompiled bundle" curl -L "$BUNDLE_URL" -o "$BUILD_DIR/neoprisma.tar.xz"
-		run_step "Extracting precompiled bundle" tar -xJf "$BUILD_DIR/neoprisma.tar.xz" -C "$BUILD_DIR/extract"
+		run_step "Downloading precompiled bundle" curl -L "$BUNDLE_URL" -o "$BUILD_DIR/neoprisma-macos.tar.xz"
+		run_step "Extracting precompiled bundle" tar -xJf "$BUILD_DIR/neoprisma-macos.tar.xz" -C "$BUILD_DIR/extract"
 		EXTRACTED_APP=$(find "$BUILD_DIR/extract" -maxdepth 1 -name "*.app" -type d | head -n 1)
 		echo "Finalizing..."
 		run_step "Moving app to $INSTALL_DIR" mv "$EXTRACTED_APP" "$INSTALL_DIR/$APP_NAME.app"
