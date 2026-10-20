@@ -239,6 +239,7 @@ $remoteScript = Invoke-RestMethod -Uri 'https://raw.githubusercontent.com/Prisma
 & ([scriptblock]::Create($remoteScript)) -i $installDir
 
 if (Test-Path -LiteralPath $targetExe) {{
+	Set-Location $env:TEMP
     Start-Process -FilePath $targetExe -WorkingDirectory (Split-Path -LiteralPath $targetExe)
 }}
 
@@ -247,8 +248,10 @@ Remove-Item -LiteralPath $PSCommandPath -Force -ErrorAction SilentlyContinue
 		with tempfile.NamedTemporaryFile(suffix=".ps1", delete=False, mode="w", encoding="utf-8-sig") as f:
 			f.write(ps_script)
 			tmpath = f.name
+		temp_dir = tempfile.gettempdir()
 		subprocess.Popen(
 			["powershell.exe", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", tmpath],
+			cwd=temp_dir,
 			creationflags=subprocess.CREATE_NEW_CONSOLE
 		)
 	else:
