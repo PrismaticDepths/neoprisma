@@ -21,12 +21,14 @@
 
 # Neoprisma / nprisma
 
-Neoprisma is a simple, reliable, and open source autoclicker/macro utility for MacOS 
+Neoprisma is a simple, reliable, and open source autoclicker/macro utility for MacOS & Windows
 
-For too long, sketchy, malware-infected TinyTask versions have ruled the internet in terms of automation. Neoprisma changes that.\
+For too long, sketchy, TinyTask versions have ruled the internet in terms of automation. Neoprisma aims to change that.\
 Neoprisma is open-source, so you can actually see the code you are running, meaning no more trusting random blobs you can't see the internals of. 
 
-Windows support is in the works. Contributions are greatly appreciated.
+We support multiple platforms, feature a powerful handful of automation tools, have relatively low CPU usage, and aim for the best user experience possible.
+
+###### *Not yet tested on MacOS 27, but it should probably work*
 
 ## Features
 
@@ -45,26 +47,57 @@ Windows support is in the works. Contributions are greatly appreciated.
 | Scripting/Full automation | <ul><li>- [ ] </li></ul> | Monitor and control the keyboard and mouse. Uses Lua; fully scriptable. More will be added to the API in the future |
 | Interface | <ul><li>- [x] </li></ul> | Primarily system tray based, but has normal UI too. Features automatic update prompting, and dedicated settings window. Icon auto-hides from the dock. |
 | Hotkeys | <ul><li>- [x] </li></ul> | Highly configurable. Bugs are still present, however they will be worked out sooner than later. |
-| Installer | <ul><li>- [x] </li></ul> | Build from source or download precompiled bundles. The installer will do everything for you with helpful visuals along the way. |
+| Installer | <ul><li>- [x] </li></ul> | Build from source or download precompiled bundles. The installer will do everything for you with (hopefully) helpful visuals along the way. |
 
 ## Installation
 
-Neoprisma can be built from source or installed with its dedicated installer script.\
+> [!IMPORTANT]
+> Follow good practice, and before running anything, inspect `install.sh` & `install.ps1` in the stable branch of this repository to make sure the code you are about to run is trustworthy. Only proceed if you are satisfied.
+>
+
+Neoprisma is installed via a terminal. There is currently no GUI installer available; however the terminal interface is designed to be as user-friendly as possible.
+
+The app can be built from source or installed with its dedicated installer script.
+
+
+---
+<details open>
+<summary> <sup><img src="https://custom-icon-badges.demolab.com/badge/-0078D6?logo=windows11&logoColor=white" align="middle" height="20" alt="Windows"></sup> Windows OS</summary> 
+	
+**Install prebuilt bundle (recommended):**
+```ps1
+irm https://raw.githubusercontent.com/PrismaticDepths/neoprisma/stable/install.ps1 | iex
+```
+
+Build from source:
+```ps1
+& ([scriptblock]::Create((irm https://raw.githubusercontent.com/PrismaticDepths/neoprisma/main/install.ps1))) -s YES
+```
+</details>
+
+---
+
+<details open>
+<summary> <sup><img src="https://img.shields.io/badge/-000000?flat&logo=apple&logoColor=white" align="middle" height="20" alt="Apple Logo"></sup> Mac OS</summary>
+
 *Once the install finishes, grant Neoprisma "Input Monitoring" and "Accessibility" permissions in System Settings.*
 
-Before running, inspect `install.sh` in the stable branch of this repository to make sure the code you are about to run is trustworthy. Only proceed if you are satisfied.
-
-Install prebuilt bundle (recommended):
+**Install prebuilt bundle (recommended):**
 ```bash
 curl -fsSL https://raw.githubusercontent.com/PrismaticDepths/neoprisma/stable/install.sh | $SHELL
 ```
-
 
 Build from source:
 ```bash
 curl -fsSL https://raw.githubusercontent.com/PrismaticDepths/neoprisma/stable/install.sh | $SHELL -s  -- -s YES
 ```
+</details>
 
+---
+
+<details open>
+<summary>Advanced (Flags)</summary> 
+	
 ### Installer Flags
 
 **It's not necessary to pass any options.**\
@@ -81,11 +114,13 @@ Example:
 curl -fsSL https://raw.githubusercontent.com/PrismaticDepths/neoprisma/stable/install.sh | $SHELL -s  -- -s YES -y YES -r main
 This would build from source, skip any prompts, and build from the main branch instead of the stable one.
 ```
+</details>
 
+---
 
 ### Caveats
 
-| Permissions |
+| Mac OS Permissions |
 | - |
 | Neoprisma requires *"Input Monitoring"* and *"Accessibility"* permissions to operate. You must re-grant these permissions every time you install or update Neoprisma. |
 | *"Input Monitoring"* allows Neoprisma to monitor keyboard input. This is used for hotkeys, and the recording of tasks. |
@@ -94,15 +129,18 @@ This would build from source, skip any prompts, and build from the main branch i
 
 ## Hotkeys / Usage
 
-Hotkeys are configurable in the settings menu.
+> [!TIP]
+> You can reset hotkeys and other configuration data by deleting the hidden file named `.neoprisma` in your home directory. To show hidden files, you can use the keyboard shortcut `<cmd>+<shift>+<.>` in Finder.
 
-| Default Keybind | Action |
-| - | - |
-|`<ctrl><fn><f7>` | toggle recording |
-|`<ctrl><fn><f8>` | toggle autoclicker |
-|`<ctrl><fn><f9>` | toggle playback |
+Hotkeys are fully configurable in the settings menu.
 
-You can reset hotkeys and other configuration data by deleting the hidden file named `.neoprisma` in your home directory. To show hidden files, you can use the keyboard shortcut `<cmd>+<shift>+<.>` in Finder.
+| Default Keybind (Mac OS) | Default Keybind (Windows) | Action |
+| - | - | - |
+| `<ctrl><fn><f7>` | `<win><[>` | toggle recording |
+| `<ctrl><fn><f8>` | `<win><\>` |  toggle autoclicker |
+| `<ctrl><fn><f9>` | `<win><]>` | toggle playback |
+
+
 
 ## Scripting
 
@@ -132,10 +170,10 @@ A list of functions and objects is also provided below. It should hopefully be u
 
 ### API
 
-> **[ℹ]** **Notice**\
-> Since Neoprisma implements its own log functions, the builtin lua `error` and `warn` objects have been renamed to `_error` and `_warn` respsectively. Additionally, the standard `print()` function does not print to the Script Log.
+> [!WARNING]
+> Since Neoprisma implements its own log functions, the built-in Lua `error` and `warn` objects have been renamed to `_error` and `_warn` respectively. Additionally, the standard `print()` function does not print to the Script Log.
 
-> **[ℹ]** **Notice**\
+> [!WARNING]
 > Many of the below functions enforce strict typing. Simply passing a float instead of an integer *can* and *will* raise an error.
 
 ```py
@@ -232,7 +270,7 @@ You can also use the command-tab switcher to go to Neoprisma and quit it with `<
 
 ## Performance
 
-When idle, CPU usage and RAM are very low. However, CPU usage spikes upon mouse movement and keyboard activity, to about 10% of a single core (tested on an M3 Pro). Neoprisma isn't actually optimized for either, and mostly optimized for accurate playback, however there is room to improve here and hence this will probably be improved someday.
+When idle, CPU usage and RAM are very low. However, CPU usage spikes upon mouse movement and keyboard activity, to about 10% of a single core (tested on an M3 Pro). Neoprisma isn't actually optimized for either, and mostly optimized for accurate playback, however there is room to improve here and hence this will probably be improved someday. 
 
 When testing with a recording of Geometry Dash gameplay (Stereo Madness), Neoprisma didn't do the best, getting as far as the middle of the first ship section after several tries. This was with an early version of Neoprisma; I have yet to see if there is any difference on later versions.
 
