@@ -225,17 +225,26 @@ def run_updater(): # curl and run the standard stable neoprisma installer
 		os.chmod(tmpath, 0o755) # Make the temporary file executable
 		subprocess.Popen(["open", tmpath])
 	elif WIN32:
+		import tempfile, os, subprocess
 		install_dir = os.path.dirname(EXEPATH) if EXEPATH != "" else os.path.join(os.environ.get("LOCALAPPDATA", ""), "Programs")
 		target_exe = os.path.join(install_dir, "neoprisma", "neoprisma.exe")
 		ps_script = f"""$ErrorActionPreference = 'Continue'
+[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 Start-Sleep -Seconds 1
-& ([scriptblock]::Create((irm https://raw.githubusercontent.com/PrismaticDepths/neoprisma/stable/install.ps1))) -i "{install_dir}"
-if (Test-Path "{target_exe}") {{
-    Start-Process -FilePath "{target_exe}" -WorkingDirectory (Split-Path "{target_exe}")
+
+$installDir = '{install_dir.replace("'", "''")}'
+$targetExe = '{target_exe.replace("'", "''")}'
+
+$remoteScript = Invoke-RestMethod -Uri 'https://raw.githubusercontent.com/PrismaticDepths/neoprisma/main/install.ps1' -UseBasicParsing
+& ([scriptblock]::Create($remoteScript)) -i $installDir
+
+if (Test-Path -LiteralPath $targetExe) {{
+    Start-Process -FilePath $targetExe -WorkingDirectory (Split-Path -LiteralPath $targetExe)
 }}
-Remove-Item -LiteralPath $MyInvocation.MyCommand.Path -Force -ErrorAction SilentlyContinue
+
+Remove-Item -LiteralPath $PSCommandPath -Force -ErrorAction SilentlyContinue
 """
-		with tempfile.NamedTemporaryFile(suffix=".ps1", delete=False, mode="w", encoding="utf-8") as f:
+		with tempfile.NamedTemporaryFile(suffix=".ps1", delete=False, mode="w", encoding="utf-8-sig") as f:
 			f.write(ps_script)
 			tmpath = f.name
 		subprocess.Popen(
@@ -383,7 +392,7 @@ class Main(QObject):
 		self.rebuild_hotkey_lookup()
 
 		self.update_available, self.latest_version = version_dif(latest())
-		self.update_available= True; logging.DEBUG("Firing update prompt even if no update (for testing; remove this line if not needed!)")
+		self.update_available= True; logging.debug("Firing update prompt even if no update (for testing; remove this line if not needed!)")
 
 		self.error_emitter = Emitter()
 		self.error_emitter.error.connect(lambda msg: QMessageBox.critical(None,"neoprisma: an error occured",msg,QMessageBox.StandardButton.Ok))
