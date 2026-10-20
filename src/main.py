@@ -17,31 +17,6 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>
 
 import os, sys, logging
 
-
-try: 
-	if sys.stdout.isatty():
-		logging.basicConfig(
-			stream=sys.stdout,
-			level=logging.DEBUG,
-			format="[%(asctime)s] %(levelname)s : %(message)s",
-			datefmt='%H:%M:%S'
-		)
-		print("""
-		☀︎ Neoprisma Copyright (C) 2026 PrismaticDepths <\x1b[94m\x1b]8;;mailto://prismaticdepths@gmail.com\x1b\\prismaticdepths@gmail.com\x1b]8;;\x1b\\\x1b[0m>
-		☀︎ Licensed under GNU GPL v3; see \x1b[94m\x1b]8;;https://www.gnu.org/licenses\x1b\\gnu.org/licenses\x1b]8;;\x1b\\\x1b[0m
-		☀︎ Project Homepage: \x1b[94m\x1b]8;;https://github.com/PrismaticDepths/neoprisma\x1b\\github.com/PrismaticDepths/neoprisma\x1b]8;;\x1b\\\x1b[0m
-		""") # note the tabs & newlines above!! don't remove
-	else:
-		raise Exception
-except Exception:
-		logging.basicConfig(
-			filename='neoprisma.log',
-			filemode='w',  # 'w' overwrites the file; 'a' appends (default)
-			level=logging.DEBUG,
-			format='[%(asctime)s] %(levelname)s : %(message)s',
-			datefmt='%H:%M:%S'
-		)
-
 if getattr(sys, "frozen", False):
 	BASE = sys._MEIPASS
 else:
@@ -117,10 +92,45 @@ def exception_hook(exctype, value, tb):
 	crash(error_msg=error_msg)
 sys.excepthook = exception_hook
 
+try: # initialize loggging
+	if sys.stdout.isatty():
+		logging.basicConfig(
+			stream=sys.stdout,
+			level=logging.DEBUG,
+			format="[%(asctime)s] %(levelname)s : %(message)s",
+			datefmt='%H:%M:%S',
+			force=True
+		)
+		print("""
+		☀︎ Neoprisma Copyright (C) 2026 PrismaticDepths <\x1b[94m\x1b]8;;mailto://prismaticdepths@gmail.com\x1b\\prismaticdepths@gmail.com\x1b]8;;\x1b\\\x1b[0m>
+		☀︎ Licensed under GNU GPL v3; see \x1b[94m\x1b]8;;https://www.gnu.org/licenses\x1b\\gnu.org/licenses\x1b]8;;\x1b\\\x1b[0m
+		☀︎ Project Homepage: \x1b[94m\x1b]8;;https://github.com/PrismaticDepths/neoprisma\x1b\\github.com/PrismaticDepths/neoprisma\x1b]8;;\x1b\\\x1b[0m
+		""") # note the tabs & newlines above!! don't remove
+	else:
+		raise Exception
+except Exception:
+		if sys.platform == "darwin":
+			logs = os.path.expanduser("~/Library/logs")
+		elif sys.platform == "win32":
+			logs = os.path.join(os.environ.get("LOCALAPPDATA"), "neoprisma")
+		else:
+			logs = os.path.expanduser("~/.config/neoprisma/logs") # fallback
+		os.makedirs(logs, exist_ok=True)
+		logging.basicConfig(
+			filename=os.path.join(logs,"neoprisma.log"),
+			filemode='w',  # 'w' overwrites the file; 'a' appends (default)
+			level=logging.DEBUG,
+			format='[%(asctime)s] %(levelname)s : %(message)s',
+			datefmt='%H:%M:%S',
+			force=True
+		)
+
+
 SUPPORTED_PLATFORMS = ["darwin","win32"]
 if sys.platform.lower().strip() not in SUPPORTED_PLATFORMS: 
 	logging.critical(f"Unsupported platform! Expected {SUPPORTED_PLATFORMS}; got {sys.platform.lower().strip()}")
 	crash("Unsupported platform!","No support for user's platform.","--Intentional--","Neoprisma does not support your operating system/platform.\n\nYou can help expand Neoprisma's support by contributing code for your platform.",0)
+
 
 if sys.platform == "darwin":
 	import platform_universal
