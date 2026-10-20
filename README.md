@@ -5,7 +5,7 @@
   <h1>Neoprisma</h1>
 
   <p>
-    Lightweight macro & autoclick utility for MacOS
+    Lightweight macro & autoclick utility for MacOS & Windows
   </p>
 
   <p>
