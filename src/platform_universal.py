@@ -224,6 +224,7 @@ def run_updater(): # curl and run the standard stable neoprisma installer
 			tmpath=f.name
 		os.chmod(tmpath, 0o755) # Make the temporary file executable
 		subprocess.Popen(["open", tmpath])
+
 	elif WIN32:
 		import tempfile, os, subprocess
 		install_dir = os.path.dirname(EXEPATH) if EXEPATH != "" else os.path.join(os.environ.get("LOCALAPPDATA", ""), "Programs")
@@ -235,7 +236,7 @@ Start-Sleep -Seconds 1
 $installDir = '{install_dir.replace("'", "''")}'
 $targetExe = '{target_exe.replace("'", "''")}'
 
-$remoteScript = Invoke-RestMethod -Uri 'https://raw.githubusercontent.com/PrismaticDepths/neoprisma/main/install.ps1' -UseBasicParsing
+$remoteScript = Invoke-RestMethod -Uri 'https://raw.githubusercontent.com/PrismaticDepths/neoprisma/stable/install.ps1' -UseBasicParsing
 & ([scriptblock]::Create($remoteScript)) -i $installDir
 
 if (Test-Path -LiteralPath $targetExe) {{
@@ -298,7 +299,7 @@ class Main(QObject):
 		# So, I've just put them in this function. It's called right after config init.
 		def startup_popups(): 
 			if WIN32:
-				notice( headline = "Windows support is WIP!", infotext = f"""Neoprisma is primarily for MacOS.<br>Beware that some features may be buggy or missing on Windows.<br>Please report any bugs to help improve support!!<br>TODO: Scripting, Updater/Installer, VK cross-compatibility, QOL<br>""")
+				notice( headline = "Windows support is WIP!", infotext = f"""Neoprisma is primarily for MacOS.<br>Beware that some features may be buggy or missing on Windows.<br>Please report any bugs to help improve support!!<br>TODO: Scripting, VK cross-compatibility, QOL<br>""")
 			if MACOS and len(privillege_notifications) > 0:
 				notice(
 					headline = "Neoprisma is missing permissions!",
@@ -395,7 +396,6 @@ class Main(QObject):
 		self.rebuild_hotkey_lookup()
 
 		self.update_available, self.latest_version = version_dif(latest())
-		self.update_available= True; logging.debug("Firing update prompt even if no update (for testing; remove this line if not needed!)")
 
 		self.error_emitter = Emitter()
 		self.error_emitter.error.connect(lambda msg: QMessageBox.critical(None,"neoprisma: an error occured",msg,QMessageBox.StandardButton.Ok))
